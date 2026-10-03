@@ -244,6 +244,18 @@ local builders = {
 
 local cache: { [string]: { PartSpec } } = {}
 
+-- Cadera (pivote del torso) para un zombi de 5 studs: el torso, la cabeza y
+-- los brazos giran juntos alrededor de este punto
+local HIPS = {
+	Zombie = Vector3.new(0, -0.6, 0),
+	Fat = Vector3.new(0, -1, 0),
+	Dragon = Vector3.zero,
+}
+
+function ZombieModels.getHip(info): Vector3
+	return HIPS[info.Model] or HIPS.Zombie
+end
+
 -- Piezas del tipo de enemigo (se calculan una vez por tipo)
 function ZombieModels.get(typeName: string, info): { PartSpec }
 	local cached = cache[typeName]

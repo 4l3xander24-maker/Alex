@@ -16,19 +16,24 @@ local Config = require(Shared.Config)
 local EnemyMath = require(Shared.EnemyMath)
 local Remotes = require(Shared.Remotes)
 local DeathFx = require(script.Parent.DeathFx)
+local ZombieAnimator = require(script.Parent.ZombieAnimator)
 local ZombieModels = require(script.Parent.ZombieModels)
 
 local FLASH_COLOR = Color3.new(1, 1, 1)
 local FLASH_TINT = Color3.new(1, 0.35, 0.35)
 local FLASH_TIME = 0.08
 local SWAY_SPEED = 4
+local TURN_RATE = 5 -- qué tan rápido giran hacia donde caminan
+-- Pose quieta para los zombis lejanos (no se anima)
+local REST_POSE = ZombieAnimator.newPose()
+local DIRT = { Color3.fromRGB(92, 70, 48), Color3.fromRGB(70, 54, 38), Color3.fromRGB(60, 90, 50) }
 local SPRITE_SWAY = 0.06
 local BOB_HEIGHT = 0.12
 local BREATH_DISTANCE = 320
 local BLOOD = Color3.fromRGB(120, 22, 26)
 local graphics = Config.Graphics
 -- Pixel art 3D: colores planos, y el fuego del dragón son cubitos
-local voxel = Config.ArtStyle == "Voxel"
+local voxel = Config.Style.Blocky
 local FIRE_CUBES_PER_SECOND = 40
 local FIRE_COLORS = { Color3.fromRGB(150, 255, 120), Color3.fromRGB(200, 255, 110), Color3.fromRGB(255, 200, 70), Color3.fromRGB(255, 140, 40) }
 
@@ -43,6 +48,8 @@ type Piece = {
 	Static: CFrame?,
 	Pivot: Vector3,
 	Hang: Vector3,
+	Role: string?,
+	OnTorso: boolean, -- se mueve con el torso (cabeza, brazos, ropa) o con la raíz (piernas)
 }
 
 type Visual = {
@@ -58,7 +65,12 @@ type Visual = {
 	Scale: number,
 	Extent: number, -- medio tamaño, para no ocultar a los jefes grandes antes de tiempo
 	Flying: boolean,
-	Facing: Vector3, -- última dirección en que caminó (por si queda quieto)
+	Facing: Vector3, -- hacia dónde mira (gira suave hacia donde camina)
+	Gait: ZombieAnimator.Gait,
+	Pose: ZombieAnimator.Pose,
+	Hip: Vector3,
+	HitAt: number,
+	SpawnAt: number,
 	FlashUntil: number,
 	Phase: number,
 	Slot: number, -- para repartir las actualizaciones de los lejanos entre cuadros
@@ -102,7 +114,7 @@ local function createSprite(typeName: string, info): ({ Piece }, Decal)
 	decal.Face = Enum.NormalId.Front
 	decal.Parent = part
 	part.Parent = folder
-	return { { Part = part, Spec = nil, Color = info.Skin, Glows = false, Pivot = Vector3.zero, Hang = Vector3.zero } }, decal
+	return { { Part = part, Spec = nil, Color = info.Skin, Glows = false, Pivot = Vector3.zero, Hang = Vector3.zero, OnTorso = false } }, decal
 end
 
 -- Fuego del dragón: llamas verdes y naranjas que salen de la boca
@@ -138,7 +150,7 @@ local function createBody(typeName: string, info, scale: number): ({ Piece }, Pa
 	for _, spec in ZombieModels.get(typeName, info) do
 		local color, glows = ZombieModels.resolveColor(info, spec.Color)
 		local material = if glows then Enum.Material.Neon else spec.Material
-		if voxel and material ~= Enum.Material.Neon then
+		if Config.Style.Flat and material ~= Enum.Material.Neon then
 			material = Enum.Material.SmoothPlastic
 		end
 		local part = newPart(spec.Name, spec.Size * scale, material)
@@ -150,6 +162,9 @@ local function createBody(typeName: string, info, scale: number): ({ Piece }, Pa
 		end
 		part.Parent = folder
 		local pivot, hang = spec.Pivot * scale, spec.Hang * scale
+		local dragon = info.Model == "Dragon"
+		-- La cabeza (con su cara y sombrero) se mueve entera: mira a los lados
+		local role = spec.Role or (if not dragon and spec.Group == "Head" then "Head" else nil)
 		local piece: Piece = {
 			Part = part,
 			Spec = spec,
@@ -157,8 +172,10 @@ local function createBody(typeName: string, info, scale: number): ({ Piece }, Pa
 			Glows = material == Enum.Material.Neon,
 			Pivot = pivot,
 			Hang = hang,
+			Role = role,
+			OnTorso = not dragon and spec.Group ~= "Leg",
 		}
-		if not spec.Role then
+		if not role then
 			piece.Static = CFrame.new(pivot) * CFrame.Angles(-spec.Tilt, 0, 0) * CFrame.new(hang)
 		end
 		table.insert(pieces, piece)
@@ -208,10 +225,33 @@ local function addEnemy(id: number, typeName: string, points: { Vector3 }, speed
 		Extent = math.max(info.Size.X, info.Size.Y) / 2,
 		Flying = info.Flying == true,
 		Facing = Vector3.new(0, 0, 1),
+		Gait = ZombieAnimator.newGait(id, info),
+		Pose = ZombieAnimator.newPose(),
+		Hip = ZombieModels.getHip(info) * scale,
+		HitAt = -math.huge,
+		SpawnAt = -math.huge,
 		FlashUntil = 0,
 		Phase = id * 0.37,
 		Slot = id % 3,
 	}
+
+	-- Recién nacido (no el que ya estaba al entrar al juego): sale de la tierra
+	local visual = visuals[id]
+	local now = workspace:GetServerTimeNow()
+	local age = now - spawnTime
+	if not visual.Flying and age < ZombieAnimator.EMERGE_TIME then
+		visual.SpawnAt = os.clock() - math.max(age, 0)
+		visual.Facing = Vector3.new(visual.Path.Points[#visual.Path.Points].X - points[1].X, 0, visual.Path.Points[#visual.Path.Points].Z - points[1].Z)
+		visual.Facing = if visual.Facing.Magnitude > 0.01 then visual.Facing.Unit else Vector3.new(0, 0, 1)
+		local position = EnemyMath.getPosition(visual.Path, now)
+		if (position - workspace.CurrentCamera.CFrame.Position).Magnitude < graphics.DeathFxDistance then
+			-- Tierra que salta al salir
+			for _ = 1, math.min(6, DeathFx.budget()) do
+				local direction = Vector3.new(random:NextNumber(-1, 1), random:NextNumber(0.6, 1.4), random:NextNumber(-1, 1)).Unit
+				DeathFx.addCube(Vector3.new(position.X, 0.3, position.Z), DIRT[random:NextInteger(1, #DIRT)], 0.4 * scale ^ 0.8, direction * 8 * scale ^ 0.5, 50, random:NextNumber(0.5, 0.8))
+			end
+		end
+	end
 end
 
 local function destroyPieces(visual: Visual)
@@ -328,46 +368,8 @@ local function flashEnemy(id: number)
 	if visual then
 		setFlash(visual, true)
 		visual.FlashUntil = os.clock() + FLASH_TIME
+		visual.HitAt = os.clock()
 	end
-end
-
--- Ángulo de la animación de cada pieza según su papel
-local function roleAngle(role: string, walk: number, attack: number, flap: number, sway: number, attacking: boolean): number
-	if role == "LegL" then
-		return walk * 0.6
-	elseif role == "LegR" then
-		return -walk * 0.6
-	elseif role == "ArmL" then
-		return walk * 0.15 + attack
-	elseif role == "ArmR" then
-		return -walk * 0.15 + attack * 0.8
-	elseif role == "Cape" then
-		return -math.abs(walk) * 0.15 - sway * 0.05
-	elseif role == "WingL" then
-		return -flap
-	elseif role == "WingR" then
-		return flap
-	elseif role == "Tail" then
-		return sway * 0.3
-	elseif role == "Neck" then
-		return if attacking then -0.25 + sway * 0.05 else sway * 0.08
-	elseif role == "Jaw" then
-		return if attacking then -0.45 - math.abs(attack) * 0.12 else -0.08
-	end
-	return 0
-end
-
-local function poseOf(piece: Piece, angle: number): CFrame
-	local spec = piece.Spec :: PartSpec
-	local rotation
-	if spec.Axis == "Z" then
-		rotation = CFrame.Angles(-spec.Tilt, 0, 0) * CFrame.Angles(0, 0, angle)
-	elseif spec.Axis == "Y" then
-		rotation = CFrame.Angles(-spec.Tilt, angle, 0)
-	else
-		rotation = CFrame.Angles(angle - spec.Tilt, 0, 0)
-	end
-	return CFrame.new(piece.Pivot) * rotation * CFrame.new(piece.Hang)
 end
 
 local function render(dt: number)
@@ -393,9 +395,13 @@ local function render(dt: number)
 			continue
 		end
 
+		-- Gira suave hacia donde camina (no de golpe en cada curva del camino)
 		local flatDirection = Vector3.new(direction.X, 0, direction.Z)
 		if flatDirection.Magnitude > 0.01 then
-			visual.Facing = flatDirection.Unit
+			local turned = visual.Facing:Lerp(flatDirection.Unit, math.min(1, dt * TURN_RATE))
+			if turned.Magnitude > 0.01 then
+				visual.Facing = turned.Unit
+			end
 		end
 		local arrived = traveled >= visual.Path.Distance
 		local wave = math.sin(clock * SWAY_SPEED + visual.Phase)
@@ -412,34 +418,34 @@ local function render(dt: number)
 		else
 			local animate = distance < graphics.AnimateDistance + visual.Extent
 			local scale = visual.Scale
-			-- Los grandes se mueven más lento para que se sientan pesados
-			local tempo = 1 / math.sqrt(scale)
-			local walk, attack, flap, bob
-			if visual.Flying then
-				walk = 0
-				attack = if arrived then math.sin(clock * 8 + visual.Phase) else 0
-				flap = math.sin(clock * 2.4 + visual.Phase) * 0.6
-				bob = math.sin(clock * 2.4 + visual.Phase - 0.6) * 0.25 * scale
+			local pose = visual.Pose
+			local hitAge = clock - visual.HitAt
+			local spawnAge = clock - visual.SpawnAt
+			if not animate and spawnAge >= ZombieAnimator.EMERGE_TIME then
+				-- Lejos: pose quieta (no vale la pena calcular la animación)
+				pose = REST_POSE
+			elseif visual.Flying then
+				ZombieAnimator.flyer(pose, clock, visual.Phase, arrived, scale, hitAge)
 			else
-				walk = if arrived then 0 else math.sin(clock * visual.Speed * 0.9 * tempo + visual.Phase)
-				attack = if arrived then -0.5 - math.abs(math.sin(clock * 6 * tempo + visual.Phase)) * 0.9 else 0
-				flap = 0
-				bob = if arrived then 0 else math.abs(walk) * BOB_HEIGHT * scale
+				ZombieAnimator.walker(pose, visual.Gait, clock, visual.Speed, scale, visual.Phase, arrived, hitAge, spawnAge)
 			end
-			local sway = math.sin(clock * 1.6 + visual.Phase)
-			local lifted = position + Vector3.new(0, bob, 0)
-			local root = CFrame.lookAt(lifted, lifted + visual.Facing) * CFrame.Angles(0, 0, if visual.Flying then 0 else wave * 0.08)
+
+			local lifted = position + Vector3.new(0, pose.Lift, 0) - visual.Facing * pose.Back
+			local root = CFrame.lookAt(lifted, lifted + visual.Facing)
+			-- El torso gira sobre la cadera y lleva consigo la cabeza y los brazos
+			local hip = visual.Hip
+			local torso = root * CFrame.new(hip) * CFrame.Angles(-pose.TorsoPitch, pose.TorsoYaw, pose.TorsoRoll) * CFrame.new(-hip)
 			local mouth: CFrame? = nil
 			for _, piece in visual.Pieces do
 				table.insert(parts, piece.Part)
+				local frameOf = if piece.OnTorso then torso else root
 				local static = piece.Static
 				local cframe
 				if static then
-					cframe = root * static
+					cframe = frameOf * static
 				else
-					local role = (piece.Spec :: PartSpec).Role :: string
-					local angle = if animate then roleAngle(role, walk, attack, flap, sway, arrived) else 0
-					cframe = root * poseOf(piece, angle)
+					local spec = piece.Spec :: PartSpec
+					cframe = frameOf * CFrame.new(piece.Pivot) * ZombieAnimator.rotation(piece.Role, spec.Tilt, pose) * CFrame.new(piece.Hang)
 				end
 				table.insert(cframes, cframe)
 				if piece.Part == visual.BreathPart then

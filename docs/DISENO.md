@@ -7,6 +7,15 @@ compras armas, mejoras, poderes y trampas a los NPC, y al terminar ganas **XP de
 mejorar tus estadísticas y aprender talentos.
 
 ## Estilo visual
+- **Bloques con texturas** (`Config.ArtStyle = "Texturado"`, por defecto): las formas son cubos (como en el pixel
+  art 3D) pero con los materiales de Roblox (madera, piedra, ladrillo, hojas, tela, metal) y el terreno de
+  Roblox con pasto 3D. El viento (`Workspace.GlobalWind`, `Config.Wind`) mueve el pasto, y cada cliente le
+  agrega ráfagas. Árboles, arbustos, matas y estandartes tienen un atributo `Sway` y se mecen alrededor de su
+  base (solo los que están a menos de 160 studs, y nada en calidad baja).
+- **Animación de los zombis** (`ZombieAnimator`): cada zombi tiene su manera de caminar (paso, ritmo, cojera en
+  1 de cada 3, cabeza ladeada, brazos abiertos). El torso gira sobre la cadera y lleva la cabeza y los brazos.
+  Giran suave en las curvas, salen de la tierra en 1.1 s al aparecer, se echan hacia atrás 0.28 s al recibir un
+  golpe y embisten al atacar. Los lejanos (más de 120 studs) no se animan.
 - **Pixel art 3D** (`Config.ArtStyle = "Voxel"`): todo de cubos con colores planos (SmoothPlastic). Las bolas y
   cilindros del mapa se vuelven bloques. Suelo de baldosas de 8 studs en varios tonos con flores y matas de
   cubitos; caminos escalonados de tierra y de piedra (en damero); acantilado de columnas de roca; mar azul con
@@ -165,6 +174,7 @@ Cada arma se mejora 5 veces (+20% daño, +15% cargador, recarga más rápida). C
 - **Fase 3.5 (hecha)**: machete, munición de reserva y balas por baja, Intendente (cartuchera y trampas),
   colores por mejora, acantilado y mar, preparación antes de la partida.
 - **Fase 3.6 (hecha)**: gráficos de otoño, zombis 3D animados y optimización.
+- **Fase 3.9 (hecha)**: texturas reales, pasto y árboles con viento, zombis con movimiento natural.
 - **Fase 3.8 (hecha)**: pixel art 3D y ciclo de día y noche.
 - **Fase 3.7 (hecha)**: noche medieval con velas, dos caminos, zombis de dibujo animado, jefes gigantes
   (Gordo, Rey y Dragón) y muerte pixelada.

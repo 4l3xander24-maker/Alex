@@ -8,10 +8,29 @@ local Config = {}
 Config.Theme = "Medieval"
 
 -- Estilo de dibujo del mundo:
---   "Voxel"    → pixel art 3D: todo de cubos de colores planos, suelo de baldosas,
---                sombras nítidas, nubes y luciérnagas de cubitos
---   "Realista" → materiales con textura, terreno de Roblox y efectos suaves
-Config.ArtStyle = "Voxel"
+--   "Texturado" → cubos con texturas reales (madera, piedra, tela, hojas) sobre el
+--                 terreno de Roblox con pasto 3D que se mueve con el viento
+--   "Voxel"     → pixel art 3D: cubos de colores planos y suelo de baldosas
+--   "Realista"  → formas redondas, materiales con textura, desenfoque y fuego de partículas
+Config.ArtStyle = "Texturado"
+
+-- Qué implica cada estilo: Blocky = bolas y cilindros se vuelven bloques (y el
+-- fuego, las nubes y las luciérnagas son de cubitos); Flat = colores planos sin
+-- textura; Tiles = suelo de baldosas en vez del terreno de Roblox
+Config.ArtStyles = {
+	Texturado = { Blocky = true, Flat = false, Tiles = false },
+	Voxel = { Blocky = true, Flat = true, Tiles = true },
+	Realista = { Blocky = false, Flat = false, Tiles = false },
+}
+Config.Style = Config.ArtStyles[Config.ArtStyle] or Config.ArtStyles.Realista
+
+-- Viento: mueve el pasto 3D del terreno, las nubes, los árboles, los arbustos y
+-- los estandartes. Cada cliente le agrega ráfagas suaves.
+Config.Wind = {
+	Direction = Vector3.new(1, 0, 0.35),
+	Speed = 9,
+	Gusts = 0.5, -- cuánto cambia con las ráfagas (0 = viento parejo)
+}
 
 -- Ciclo de día y noche (en los temas que tienen paleta de día, como el medieval).
 -- Todos los jugadores ven la misma hora: se calcula con el reloj del servidor.

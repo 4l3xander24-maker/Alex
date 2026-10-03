@@ -1,6 +1,6 @@
 # Campana Maldita 🔔🧟
 
-Juego de Roblox en primera persona, en pixel art 3D y en la Edad Media, con ciclo de día y noche: defiende la
+Juego de Roblox en primera persona, de bloques con texturas reales y en la Edad Media, con ciclo de día y noche: defiende la
 campana de tu campamento, al borde de un acantilado sobre el mar, de hordas de muertos vivientes que llegan por dos caminos. Empiezas solo con un machete y una pistola; prepárate antes de cada partida
 comprando armas, mejoras, poderes y trampas a los NPC del campamento.
 
@@ -8,14 +8,24 @@ comprando armas, mejoras, poderes y trampas a los NPC del campamento.
 
 _Vista previa: recreación con las medidas, colores y sprites del juego, no es captura de Roblox._
 
-Más vistas previas en [`docs/capturas/voxel/`](docs/capturas/voxel/) (pixel art 3D con día y noche, el estilo actual),
+🎬 Video del pasto con viento y los zombis caminando: [`docs/capturas/texturado/video-viento-zombis.mp4`](docs/capturas/texturado/video-viento-zombis.mp4)
+(recreación, no captura de Roblox).
+
+Más vistas previas en [`docs/capturas/texturado/`](docs/capturas/texturado/) (bloques con texturas, el estilo actual),
+[`docs/capturas/voxel/`](docs/capturas/voxel/) (pixel art 3D de colores planos),
 [`docs/capturas/medieval/`](docs/capturas/medieval/) (noche medieval realista),
 [`docs/capturas/otono/`](docs/capturas/otono/) (otoño) y [`docs/capturas/`](docs/capturas/) (versiones anteriores). El diseño completo está en [`docs/DISENO.md`](docs/DISENO.md).
 
 ## Qué tiene ya
-- **Pixel art 3D**: todo es de cubos con colores planos. El suelo es una cuadrícula de baldosas de pasto con
-  flores y matas de cubitos, los caminos tienen bordes escalonados, el fuego es de cubitos que bailan, hay nubes
-  de bloques y luciérnagas de cubitos, las sombras son nítidas y los números grandes del HUD usan letra pixelada.
+- **Bloques con texturas reales**: todo es de cubos, pero con los materiales de Roblox (madera, piedra, ladrillo,
+  hojas, tela, metal). El suelo es el terreno de Roblox con **pasto 3D que se mueve con el viento**, con ráfagas
+  que lo hacen ondular. Los árboles, arbustos y estandartes también se mecen. El fuego es de cubitos que bailan,
+  hay nubes de bloques y luciérnagas de cubitos, y los números grandes del HUD usan letra pixelada.
+  (También está el estilo `"Voxel"`, de colores planos y baldosas.)
+- **Zombis que se mueven como zombis**: cada uno camina distinto (largo del paso, ritmo, cabeza ladeada),
+  algunos cojean y se hunden al pisar, el torso se balancea, la cabeza mira a los lados, los brazos suben y bajan,
+  giran suave en las curvas, **salen de la tierra** arañando al aparecer, se echan hacia atrás cuando reciben
+  un balazo y embisten al atacar. Los jefes dan pasos más lentos y pesados.
 - **Ciclo de día y noche** (10 minutos por día): amanecer, mediodía, atardecer y noche con la luna enorme.
   Las velas y antorchas alumbran más de noche, y **de noche llegan más zombis** (30% más por segundo).
   Todos los jugadores ven la misma hora. Arriba a la derecha está el reloj.
@@ -69,8 +79,10 @@ Los gráficos ya vienen configurados en `default.project.json`: iluminación **F
 (`Terrain.Decoration`) y **StreamingEnabled**. No tienes que tocar nada en Studio.
 
 ## Gráficos y rendimiento
-- **Estilo**: `Config.ArtStyle` = `"Voxel"` (pixel art 3D, por defecto) o `"Realista"` (materiales con
-  textura, terreno de Roblox, desenfoque y fuego de partículas).
+- **Estilo**: `Config.ArtStyle` = `"Texturado"` (bloques con texturas y pasto con viento, por defecto),
+  `"Voxel"` (pixel art 3D de colores planos y baldosas) o `"Realista"` (formas redondas, desenfoque y fuego
+  de partículas).
+- **Viento**: `Config.Wind` (dirección, fuerza y ráfagas).
 - **Día y noche**: `Config.DayCycle` (duración del día, hora de inicio, cuántos zombis más de noche;
   `Enabled = false` para dejarlo siempre de noche).
 - **Ambiente**: `Config.Theme` = `"Medieval"` (aldea medieval con día y noche, por defecto), `"Otono"`
@@ -160,8 +172,9 @@ src/
     EnemyRenderer.luau      ← dibuja y anima los zombis (3D o pixel, con recorte por distancia)
     ZombieModels.luau       ← piezas de cada zombi, del Gordo, del Rey y del Dragón
     DeathFx.luau            ← muerte en cubitos
-    WorldFx.luau            ← molino, parpadeo del fuego y efectos según la calidad gráfica
+    WorldFx.luau            ← molino, viento (ráfagas y cosas que se mecen), fuego y calidad gráfica
     SkyFx.luau              ← ciclo de día y noche, nubes y luciérnagas de cubitos
+    ZombieAnimator.luau     ← manera de caminar de cada zombi, cojera, salir de la tierra, golpes y embestidas
   character/Health.server.luau ← quita la regeneración automática de Roblox
 assets/sprites/             ← PNG de los zombis
 tools/make_sprites.py       ← generador de los sprites

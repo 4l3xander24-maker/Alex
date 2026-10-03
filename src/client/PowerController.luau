@@ -20,7 +20,7 @@ local LIGHTNING_COLOR = Color3.fromRGB(140, 220, 255)
 local BELL_COLOR = Color3.fromRGB(255, 215, 100)
 local GRENADE_COLOR = Color3.fromRGB(60, 80, 50)
 -- En pixel art 3D las explosiones y la granada son cubos
-local voxel = Config.ArtStyle == "Voxel"
+local voxel = Config.Style.Blocky
 local ROUND = if voxel then Enum.PartType.Block else Enum.PartType.Ball
 local DISC = if voxel then Enum.PartType.Block else Enum.PartType.Cylinder
 

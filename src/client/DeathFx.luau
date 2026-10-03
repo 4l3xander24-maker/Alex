@@ -142,7 +142,7 @@ function DeathFx.splat(position: Vector3, radius: number, color: Color3, life: n
 	local part = Instance.new("Part")
 	part.Name = "Splat"
 	-- En pixel art 3D la mancha es cuadrada
-	part.Shape = if Config.ArtStyle == "Voxel" then Enum.PartType.Block else Enum.PartType.Cylinder
+	part.Shape = if Config.Style.Blocky then Enum.PartType.Block else Enum.PartType.Cylinder
 	part.Size = Vector3.new(0.1, radius * 2, radius * 2)
 	part.CFrame = CFrame.new(position.X, GROUND + 0.08, position.Z) * CFrame.Angles(0, 0, math.pi / 2)
 	part.Color = color

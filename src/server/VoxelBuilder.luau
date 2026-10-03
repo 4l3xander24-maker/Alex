@@ -71,12 +71,16 @@ local function decorate(ground: Instance, center: Vector3, top: number)
 	local roll = random:NextNumber()
 	local spot = center + Vector3.new(random:NextNumber(-2.5, 2.5), top, random:NextNumber(-2.5, 2.5))
 	if roll < 0.04 then
-		makeProp({ Name = "Stem", Size = Vector3.new(0.2, 0.8, 0.2), Position = spot + Vector3.new(0, 0.4, 0), Color = shade(theme.Ground, 0.8), CastShadow = false, Parent = ground })
-		makeProp({ Name = "Flower", Size = Vector3.new(0.5, 0.4, 0.5), Position = spot + Vector3.new(0, 0.95, 0), Color = FLOWER_COLORS[random:NextInteger(1, #FLOWER_COLORS)], CastShadow = false, Parent = ground })
+		local stem = makeProp({ Name = "Stem", Size = Vector3.new(0.2, 0.8, 0.2), Position = spot + Vector3.new(0, 0.4, 0), Color = shade(theme.Ground, 0.8), CastShadow = false, Parent = ground })
+		local flower = makeProp({ Name = "Flower", Size = Vector3.new(0.5, 0.4, 0.5), Position = spot + Vector3.new(0, 0.95, 0), Color = FLOWER_COLORS[random:NextInteger(1, #FLOWER_COLORS)], CastShadow = false, Parent = ground })
+		Props.sway(stem, spot, 0.2)
+		Props.sway(flower, spot, 0.2)
 	elseif roll < 0.11 then
 		for blade = 1, 3 do
 			local height = random:NextNumber(0.6, 1.3)
-			makeProp({ Name = "GrassTuft", Size = Vector3.new(0.25, height, 0.25), Position = spot + Vector3.new(blade * 0.35 - 0.7, height / 2, random:NextNumber(-0.3, 0.3)), Color = shade(theme.Ground, random:NextNumber(1.05, 1.3)), CastShadow = false, Parent = ground })
+			local base = spot + Vector3.new(blade * 0.35 - 0.7, 0, random:NextNumber(-0.3, 0.3))
+			local tuft = makeProp({ Name = "GrassTuft", Size = Vector3.new(0.25, height, 0.25), Position = base + Vector3.new(0, height / 2, 0), Color = shade(theme.Ground, random:NextNumber(1.05, 1.3)), CastShadow = false, Parent = ground })
+			Props.sway(tuft, base, 0.3)
 		end
 	end
 end

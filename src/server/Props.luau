@@ -10,8 +10,10 @@ local Props = {}
 -- Las luces con esta etiqueta parpadean como fuego (lo hace WorldFx en cada cliente)
 Props.FLICKER_TAG = "Flicker"
 local medieval = (Config.Themes[Config.Theme] or {}).Medieval == true
--- Pixel art 3D: todo es de cubos con colores planos
-Props.voxel = Config.ArtStyle == "Voxel"
+-- Estilos de bloques: las formas redondas se vuelven cubos (Texturado y Voxel)
+-- y en Voxel además los materiales pasan a colores planos
+Props.voxel = Config.Style.Blocky
+Props.flat = Config.Style.Flat
 local KEEP_MATERIAL = {
 	[Enum.Material.Neon] = true,
 	[Enum.Material.Glass] = true,
@@ -31,11 +33,11 @@ Props.Colors = {
 
 function Props.makePart(props: { [string]: any }, className: string?): BasePart
 	if Props.voxel then
-		-- Bolas y cilindros se vuelven bloques, y los materiales con textura, color plano
+		-- Bolas y cilindros se vuelven bloques (y en Voxel, los materiales, color plano)
 		if props.Shape == Enum.PartType.Ball or props.Shape == Enum.PartType.Cylinder then
 			props.Shape = Enum.PartType.Block
 		end
-		if not (props.Material and KEEP_MATERIAL[props.Material]) then
+		if Props.flat and not (props.Material and KEEP_MATERIAL[props.Material]) then
 			props.Material = Enum.Material.SmoothPlastic
 		end
 	end
@@ -55,6 +57,13 @@ function Props.makeProp(props: { [string]: any }, className: string?): BasePart
 	props.CanQuery = false
 	props.CanTouch = false
 	return Props.makePart(props, className)
+end
+
+-- Marca una pieza para que se meza con el viento alrededor de `pivot`
+-- (la base del árbol, el travesaño del estandarte...). WorldFx la mueve en cada cliente.
+function Props.sway(part: BasePart, pivot: Vector3, amount: number)
+	part:SetAttribute("Sway", amount)
+	part:SetAttribute("SwayPivot", pivot)
 end
 
 function Props.vary(color: Color3, amount: number, random: Random): Color3
@@ -145,9 +154,15 @@ function Props.banner(parent: Instance, position: Vector3, facing: number, cloth
 	local frame = CFrame.new(position) * CFrame.Angles(0, facing, 0)
 	Props.makePart({ Name = "BannerPole", Size = Vector3.new(0.5, 12, 0.5), CFrame = frame * CFrame.new(0, 6, 0), Material = Enum.Material.Wood, Color = Props.Colors.DarkWood, Parent = parent })
 	Props.makeProp({ Name = "BannerBar", Size = Vector3.new(4.2, 0.3, 0.3), CFrame = frame * CFrame.new(0, 11.4, -0.3), Material = Enum.Material.Wood, Color = Props.Colors.DarkWood, Parent = parent })
-	Props.makeProp({ Name = "BannerCloth", Size = Vector3.new(3.6, 6, 0.12), CFrame = frame * CFrame.new(0, 8.3, -0.35), Material = Enum.Material.Fabric, Color = cloth, Parent = parent })
-	Props.makeProp({ Name = "BannerStripe", Size = Vector3.new(3.62, 0.6, 0.14), CFrame = frame * CFrame.new(0, 7.2, -0.35), Material = Enum.Material.Fabric, Color = Color3.fromRGB(230, 190, 70), Parent = parent })
-	Props.makeProp({ Name = "BannerTail", Size = Vector3.new(1.4, 1.4, 0.12), CFrame = frame * CFrame.new(0, 5.3, -0.35) * CFrame.Angles(0, 0, math.rad(45)), Material = Enum.Material.Fabric, Color = cloth, Parent = parent })
+	-- La tela cuelga del travesaño y flamea con el viento
+	local hinge = (frame * CFrame.new(0, 11.3, -0.35)).Position
+	for _, piece in {
+		Props.makeProp({ Name = "BannerCloth", Size = Vector3.new(3.6, 6, 0.12), CFrame = frame * CFrame.new(0, 8.3, -0.35), Material = Enum.Material.Fabric, Color = cloth, Parent = parent }),
+		Props.makeProp({ Name = "BannerStripe", Size = Vector3.new(3.62, 0.6, 0.14), CFrame = frame * CFrame.new(0, 7.2, -0.35), Material = Enum.Material.Fabric, Color = Color3.fromRGB(230, 190, 70), Parent = parent }),
+		Props.makeProp({ Name = "BannerTail", Size = Vector3.new(1.4, 1.4, 0.12), CFrame = frame * CFrame.new(0, 5.3, -0.35) * CFrame.Angles(0, 0, math.rad(45)), Material = Enum.Material.Fabric, Color = cloth, Parent = parent }),
+	} do
+		Props.sway(piece, hinge, 0.18)
+	end
 end
 
 -- Farol con poste. En el mapa medieval se cambia por una antorcha.

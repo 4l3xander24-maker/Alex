@@ -25,7 +25,7 @@ type Firefly = { Part: BasePart, Home: Vector3, Phase: number }
 
 local SkyFx = {}
 
-local voxel = Config.ArtStyle == "Voxel"
+local voxel = Config.Style.Blocky
 local theme = Config.Themes[Config.Theme] or {}
 local nightFactor = if theme.Night then 1 else 0
 local lastPalette = -math.huge

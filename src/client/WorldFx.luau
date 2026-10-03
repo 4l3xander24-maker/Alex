@@ -3,12 +3,17 @@
 --   * Hace parpadear la luz de velas y antorchas (solo en calidad alta) y la
 --     baja de día. Hace bailar los cubitos de la fogata en pixel art 3D.
 --   * Corre el cielo (SkyFx): ciclo de día y noche, nubes y luciérnagas.
+--   * Viento: ráfagas que mueven el pasto 3D del terreno, y árboles, arbustos,
+--     matas y estandartes que se mecen (solo los cercanos y en calidad alta).
 --   * Adapta los efectos a la calidad gráfica del jugador: en calidad baja o
 --     en celulares apaga el desenfoque, los rayos de sol y baja las partículas.
 local CollectionService = game:GetService("CollectionService")
 local Lighting = game:GetService("Lighting")
 local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
+
+local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 
 local SkyFx = require(script.Parent.SkyFx)
 
@@ -16,6 +21,9 @@ local BLADE_SPEED = 0.45 -- vueltas por segundo en radianes
 local LOW_QUALITY_LEVEL = 4 -- calidad 1-4 de 10 = equipo modesto
 local FLICKER_TAG = "Flicker"
 local FLICKER_SPEED = 7
+local SWAY_DISTANCE = 160 -- más lejos no se nota que se mueven
+local SWAY_SPEED = 1.7
+local UP = Vector3.new(0, 1, 0)
 
 local WorldFx = {}
 
@@ -28,6 +36,11 @@ local flames: { BasePart } = {}
 local flameBase: { [BasePart]: CFrame } = {}
 local lastDayDim = 0
 local ambientEmitter: ParticleEmitter? = nil
+
+type Swayer = { Part: BasePart, Base: CFrame, Pivot: Vector3, Amount: number, Seed: number }
+local swayers: { Swayer } = {}
+local baseWind = Config.Wind.Direction.Unit * Config.Wind.Speed
+local gustLevel = 1
 
 local function findBlades()
 	local map = workspace:FindFirstChild("Map")
@@ -78,6 +91,59 @@ local function updateAmbient()
 		if emitter.Enabled ~= wanted then
 			emitter.Enabled = wanted
 		end
+	end
+end
+
+local function trackSway(instance: Instance)
+	if instance:IsA("BasePart") then
+		local amount = instance:GetAttribute("Sway")
+		local pivot = instance:GetAttribute("SwayPivot")
+		if typeof(amount) == "number" and typeof(pivot) == "Vector3" then
+			table.insert(swayers, {
+				Part = instance,
+				Base = instance.CFrame,
+				Pivot = pivot,
+				Amount = amount,
+				Seed = pivot.X * 0.13 + pivot.Z * 0.07,
+			})
+		end
+	end
+end
+
+-- Ráfagas: el viento sube y baja suave. El pasto 3D del terreno lo sigue solo.
+local function updateWind(clock: number)
+	gustLevel = 1 + Config.Wind.Gusts * math.noise(clock * 0.15, 3.7)
+	workspace.GlobalWind = baseWind * math.max(gustLevel, 0.2)
+end
+
+-- Cada pieza gira un poquito alrededor de su base hacia donde sopla el viento
+local function updateSway(clock: number)
+	local camera = workspace.CurrentCamera.CFrame.Position
+	local direction = Vector3.new(baseWind.X, 0, baseWind.Z).Unit
+	local axis = UP:Cross(direction) -- girar sobre este eje inclina la punta a favor del viento
+	local parts, cframes = {}, {}
+	local index = 1
+	while index <= #swayers do
+		local swayer = swayers[index]
+		local part = swayer.Part
+		if not part.Parent then
+			-- Con StreamingEnabled la pieza pudo descargarse (vuelve a entrar como nueva)
+			swayers[index] = swayers[#swayers]
+			swayers[#swayers] = nil
+			continue
+		end
+		local pivot = swayer.Pivot
+		local offset = pivot - camera
+		if offset.X * offset.X + offset.Z * offset.Z < SWAY_DISTANCE * SWAY_DISTANCE then
+			local wave = math.sin(clock * SWAY_SPEED + swayer.Seed) * 0.5 + math.noise(clock * 0.6, swayer.Seed) * 0.5
+			local lean = swayer.Amount * gustLevel * (0.55 + wave)
+			table.insert(parts, part)
+			table.insert(cframes, CFrame.new(pivot) * CFrame.fromAxisAngle(axis, lean) * CFrame.new(-pivot) * swayer.Base)
+		end
+		index += 1
+	end
+	if #parts > 0 then
+		workspace:BulkMoveTo(parts, cframes, Enum.BulkMoveMode.FireCFrameChanged)
 	end
 end
 
@@ -142,10 +208,12 @@ function WorldFx.init()
 		applyQuality()
 		for _, descendant in map:GetDescendants() do
 			trackFlame(descendant)
+			trackSway(descendant)
 		end
 		-- Con StreamingEnabled las piezas llegan de a poco
 		map.DescendantAdded:Connect(function(descendant)
 			trackFlame(descendant)
+			trackSway(descendant)
 			if descendant.Name == "WindmillBlades" or descendant.Name == "AmbientEmitter" then
 				task.defer(function()
 					findBlades()
@@ -166,9 +234,11 @@ function WorldFx.init()
 		local clock = os.clock()
 		-- Cada 2 cuadros alcanza para que el fuego se vea vivo. En calidad baja
 		-- no parpadea: solo se ajusta a la hora del día de vez en cuando.
+		updateWind(clock)
 		if not lowQuality and frame % 2 == 0 then
 			flicker(clock)
 			danceFlames(clock)
+			updateSway(clock)
 		elseif lowQuality and clock - lastDayDim > 1 then
 			lastDayDim = clock
 			flicker(clock)

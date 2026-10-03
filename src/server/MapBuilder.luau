@@ -207,7 +207,7 @@ local function buildPine(map: Instance, position: Vector3, scale: number)
 	local y = 4 * scale
 	for index, width in { 9, 7, 5, 3 } do
 		local layerHeight = (if index == 4 then 2.5 else 3.2) * scale
-		makeProp({
+		local leaves = makeProp({
 			Name = "Leaves",
 			Size = Vector3.new(width * scale, layerHeight, width * scale),
 			CFrame = CFrame.new(position + Vector3.new(0, y + layerHeight / 2, 0)) * CFrame.Angles(0, random:NextNumber(0, math.pi / 2), 0),
@@ -215,6 +215,8 @@ local function buildPine(map: Instance, position: Vector3, scale: number)
 			Color = color:Lerp(Color3.new(1, 1, 1), index * 0.03),
 			Parent = tree,
 		})
+		-- Las capas de arriba se mecen más
+		Props.sway(leaves, position, 0.012 * index)
 		y += layerHeight * 0.8
 	end
 	tree.Parent = map
@@ -244,7 +246,7 @@ local function buildAutumnTree(map: Instance, position: Vector3, scale: number)
 	}
 	for _, blob in blobs do
 		local radius = blob[2] * scale * random:NextNumber(0.9, 1.1)
-		makeProp({
+		local leaves = makeProp({
 			Name = "Leaves",
 			Shape = Enum.PartType.Ball,
 			Size = Vector3.one * radius * 2,
@@ -253,6 +255,7 @@ local function buildAutumnTree(map: Instance, position: Vector3, scale: number)
 			Color = Props.vary(base, 0.06, random),
 			Parent = tree,
 		})
+		Props.sway(leaves, position, 0.035)
 	end
 	tree.Parent = map
 end
@@ -271,9 +274,13 @@ local function buildDeadTree(map: Instance, position: Vector3, scale: number)
 		local length = random:NextNumber(3, 5.5) * scale
 		local angle = index / 5 * math.pi * 2 + random:NextNumber(-0.4, 0.4)
 		local branch = base * CFrame.new(0, y, 0) * CFrame.Angles(0, angle, 0) * CFrame.Angles(0, 0, random:NextNumber(0.6, 1.1))
-		makeProp({ Name = "Branch", Size = Vector3.new(0.45 * scale, length, 0.45 * scale), CFrame = branch * CFrame.new(0, length / 2, 0), Material = Enum.Material.Wood, Color = bark, Parent = tree })
+		local limb = makeProp({ Name = "Branch", Size = Vector3.new(0.45 * scale, length, 0.45 * scale), CFrame = branch * CFrame.new(0, length / 2, 0), Material = Enum.Material.Wood, Color = bark, Parent = tree })
 		-- Ramita en la punta
-		makeProp({ Name = "Twig", Size = Vector3.new(0.25 * scale, length * 0.45, 0.25 * scale), CFrame = branch * CFrame.new(0, length, 0) * CFrame.Angles(0, 0, -0.8) * CFrame.new(0, length * 0.2, 0), Material = Enum.Material.Wood, Color = bark, Parent = tree })
+		local twig = makeProp({ Name = "Twig", Size = Vector3.new(0.25 * scale, length * 0.45, 0.25 * scale), CFrame = branch * CFrame.new(0, length, 0) * CFrame.Angles(0, 0, -0.8) * CFrame.new(0, length * 0.2, 0), Material = Enum.Material.Wood, Color = bark, Parent = tree })
+		-- Las ramas secas crujen con el viento desde donde salen del tronco
+		local joint = (base * CFrame.new(0, y, 0)).Position
+		Props.sway(limb, joint, 0.04)
+		Props.sway(twig, joint, 0.06)
 	end
 	tree.Parent = map
 end
@@ -293,7 +300,7 @@ local function buildBush(map: Instance, position: Vector3)
 	for index = 1, random:NextInteger(1, 3) do
 		-- En pixel art 3D son cubos más chicos para que no parezcan muros
 		local radius = random:NextNumber(1.2, 2.4) * (if voxel then 0.6 else 1)
-		makeProp({
+		local bush = makeProp({
 			Name = "Bush",
 			Shape = Enum.PartType.Ball,
 			Size = Vector3.one * radius * 2,
@@ -303,6 +310,7 @@ local function buildBush(map: Instance, position: Vector3)
 			CastShadow = false,
 			Parent = map,
 		})
+		Props.sway(bush, position, 0.05)
 	end
 end
 
@@ -530,7 +538,7 @@ local function setupLighting()
 	Lighting.EnvironmentDiffuseScale = 1
 	Lighting.EnvironmentSpecularScale = 1
 	-- Pixel art 3D: sombras nítidas, sin desenfoque
-	Lighting.ShadowSoftness = if voxel then 0 else 0.35
+	Lighting.ShadowSoftness = if Props.flat then 0 elseif voxel then 0.15 else 0.35
 	-- "Future" se pone desde default.project.json (los scripts no pueden cambiarlo)
 
 	local sky = Instance.new("Sky")
@@ -616,9 +624,13 @@ function MapBuilder.build(): Folder
 		end
 	end
 
+	-- Viento que mueve el pasto 3D, las nubes y las partículas (cada cliente le
+	-- agrega ráfagas en WorldFx)
+	workspace.GlobalWind = Config.Wind.Direction.Unit * Config.Wind.Speed
+
 	local map = Instance.new("Folder")
 	map.Name = "Map"
-	if voxel then
+	if Config.Style.Tiles then
 		-- Pixel art 3D: suelo de baldosas en vez del terreno de Roblox
 		VoxelBuilder.build(map)
 	else
