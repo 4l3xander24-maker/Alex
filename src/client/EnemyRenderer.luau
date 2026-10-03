@@ -15,6 +15,8 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
 local EnemyMath = require(Shared.EnemyMath)
 local Remotes = require(Shared.Remotes)
+local ResolvedAssets = require(Shared.ResolvedAssets)
+local DamageNumbers = require(script.Parent.DamageNumbers)
 local DeathFx = require(script.Parent.DeathFx)
 local ZombieAnimator = require(script.Parent.ZombieAnimator)
 local ZombieModels = require(script.Parent.ZombieModels)
@@ -59,6 +61,8 @@ type Visual = {
 	Breath: ParticleEmitter?,
 	BreathLight: PointLight?,
 	BreathPart: BasePart?, -- de dónde sale el fuego (estilo voxel)
+	SpriteFrames: { string }?, -- dos cuadros de caminar (estilo Pixel)
+	SpriteFrame: number,
 	FireBudget: number,
 	Path: EnemyMath.Path,
 	Speed: number,
@@ -105,12 +109,12 @@ local function newPart(name: string, size: Vector3, material: Enum.Material): Pa
 	return part
 end
 
-local function createSprite(typeName: string, info): ({ Piece }, Decal)
+local function createSprite(typeName: string, info, frames: { string }): ({ Piece }, Decal)
 	local size = info.SpriteSize or info.Size
 	local part = newPart(typeName, Vector3.new(size.X, size.Y, 0.05), Enum.Material.SmoothPlastic)
 	part.Transparency = 1
 	local decal = Instance.new("Decal")
-	decal.Texture = info.Sprite
+	decal.Texture = frames[1]
 	decal.Face = Enum.NormalId.Front
 	decal.Parent = part
 	part.Parent = folder
@@ -206,8 +210,22 @@ local function addEnemy(id: number, typeName: string, points: { Vector3 }, speed
 
 	local scale = info.Size.Y / 5
 	local pieces, decal, breath, breathLight, breathPart
-	if Config.ZombieStyle == "Pixel" and info.Sprite ~= "" then
-		pieces, decal = createSprite(typeName, info)
+	-- Sprite pixelado si se subió (tools/upload_assets.py) o si se pegó uno en Config
+	local frames = if Config.ZombieStyle == "Pixel" then ResolvedAssets.getSprite(typeName) else nil
+	if not frames and Config.ZombieStyle == "Pixel" and info.Sprite ~= "" then
+		frames = { info.Sprite, info.Sprite }
+	end
+	if frames then
+		pieces, decal = createSprite(typeName, info, frames)
+		if info.Flying then
+			-- El dragón de sprite también ilumina con su fuego
+			breathLight = Instance.new("PointLight")
+			breathLight.Color = Color3.fromRGB(150, 255, 110)
+			breathLight.Range = 40
+			breathLight.Brightness = 3
+			breathLight.Enabled = false
+			breathLight.Parent = pieces[1].Part
+		end
 	else
 		pieces, breath, breathLight, breathPart = createBody(typeName, info, scale)
 	end
@@ -218,6 +236,8 @@ local function addEnemy(id: number, typeName: string, points: { Vector3 }, speed
 		Breath = breath,
 		BreathLight = breathLight,
 		BreathPart = breathPart,
+		SpriteFrames = frames,
+		SpriteFrame = 1,
 		FireBudget = 0,
 		Path = EnemyMath.newRoute(points, speed, spawnTime),
 		Speed = speed,
@@ -363,6 +383,18 @@ local function removeEnemy(id: number, animate: boolean)
 	explode(visual, position, cameraPosition)
 end
 
+-- Número de daño sobre la cabeza del enemigo
+local function showDamage(id: number, amount: number, killed: boolean)
+	local visual = visuals[id]
+	if not visual or type(amount) ~= "number" then
+		return
+	end
+	local info = Config.Enemies[visual.Type]
+	local position = EnemyMath.getPosition(visual.Path, workspace:GetServerTimeNow())
+	local top = (info.SpriteSize or info.Size).Y / 2 + 0.8
+	DamageNumbers.show(position + Vector3.new(0, top, 0), amount, killed)
+end
+
 local function flashEnemy(id: number)
 	local visual = visuals[id]
 	if visual then
@@ -407,14 +439,53 @@ local function render(dt: number)
 		local wave = math.sin(clock * SWAY_SPEED + visual.Phase)
 
 		if visual.Decal then
-			-- El sprite gira para mirar siempre a la cámara (solo en horizontal)
-			local bobbed = position + Vector3.new(0, math.abs(wave) * BOB_HEIGHT * 2, 0)
+			-- Sprite: mira siempre a la cámara (solo en horizontal), alterna sus dos
+			-- cuadros al caminar, sale de la tierra y se echa atrás al recibir un golpe
+			local pose = visual.Pose
+			local hitAge = clock - visual.HitAt
+			local spawnAge = clock - visual.SpawnAt
+			if visual.Flying then
+				ZombieAnimator.flyer(pose, clock, visual.Phase, arrived, visual.Scale, hitAge)
+			else
+				ZombieAnimator.walker(pose, visual.Gait, clock, visual.Speed, visual.Scale, visual.Phase, arrived, hitAge, spawnAge)
+			end
+			local frames = visual.SpriteFrames
+			if frames and distance < graphics.AnimateDistance + visual.Extent then
+				local beat = if arrived then clock * 6 else clock * visual.Speed * 0.9 / math.sqrt(visual.Scale) * visual.Gait.Cadence
+				local index = if math.sin(beat + visual.Phase) > 0 then 1 else 2
+				if index ~= visual.SpriteFrame then
+					visual.SpriteFrame = index;
+					(visual.Decal :: Decal).Texture = frames[index]
+				end
+			end
+			local bobbed = position + Vector3.new(0, math.max(pose.Lift, -visual.Extent * 2) + math.abs(wave) * BOB_HEIGHT, 0) - visual.Facing * pose.Back
 			local facing = Vector3.new(cameraPosition.X, bobbed.Y, cameraPosition.Z)
 			if (facing - bobbed).Magnitude < 0.01 then
 				facing = bobbed - visual.Facing
 			end
+			local lean = if hitAge < 0.28 then (1 - hitAge / 0.28) * 0.35 else 0
+			local root = CFrame.lookAt(bobbed, facing) * CFrame.Angles(lean, 0, wave * SPRITE_SWAY)
 			table.insert(parts, visual.Pieces[1].Part)
-			table.insert(cframes, CFrame.lookAt(bobbed, facing) * CFrame.Angles(0, 0, wave * SPRITE_SWAY))
+			table.insert(cframes, root)
+
+			-- Dragón de sprite: escupe cubitos de fuego hacia la campana
+			local light = visual.BreathLight
+			if light then
+				local breathing = arrived and distance < BREATH_DISTANCE
+				if light.Enabled ~= breathing then
+					light.Enabled = breathing
+				end
+				if breathing then
+					local mouth = CFrame.lookAt(position + Vector3.new(0, visual.Extent * 0.3, 0), Vector3.new(0, 4, 0))
+					visual.FireBudget += dt * FIRE_CUBES_PER_SECOND
+					while visual.FireBudget >= 1 do
+						visual.FireBudget -= 1
+						local spread = Vector3.new(random:NextNumber(-0.15, 0.15), random:NextNumber(-0.15, 0.15), random:NextNumber(-0.15, 0.15))
+						local velocity = (mouth.LookVector + spread).Unit * 11 * visual.Scale * random:NextNumber(0.8, 1.2)
+						DeathFx.addCube(mouth.Position, FIRE_COLORS[random:NextInteger(1, #FIRE_COLORS)], 0.5 * visual.Scale ^ 0.8 * random:NextNumber(0.7, 1.3), velocity, 0, random:NextNumber(0.45, 0.7), true)
+					end
+				end
+			end
 		else
 			local animate = distance < graphics.AnimateDistance + visual.Extent
 			local scale = visual.Scale
@@ -490,6 +561,7 @@ end
 
 function EnemyRenderer.init()
 	DeathFx.init(folder)
+	DamageNumbers.init()
 
 	-- El servidor junta los eventos de cada cuadro en un solo mensaje
 	Remotes.EnemySpawned.OnClientEvent:Connect(function(spawns)
@@ -497,14 +569,17 @@ function EnemyRenderer.init()
 			addEnemy(table.unpack(entry))
 		end
 	end)
-	Remotes.EnemyHit.OnClientEvent:Connect(function(ids)
-		for _, id in ids do
-			flashEnemy(id)
+	-- Golpes y muertes llegan como { id, daño }: el número salta sobre la cabeza
+	Remotes.EnemyHit.OnClientEvent:Connect(function(hits)
+		for _, hit in hits do
+			showDamage(hit[1], hit[2], false)
+			flashEnemy(hit[1])
 		end
 	end)
-	Remotes.EnemyDied.OnClientEvent:Connect(function(ids)
-		for _, id in ids do
-			removeEnemy(id, true)
+	Remotes.EnemyDied.OnClientEvent:Connect(function(deaths)
+		for _, death in deaths do
+			showDamage(death[1], death[2], true)
+			removeEnemy(death[1], true)
 		end
 	end)
 	-- Cambios de recorrido: persiguen a un jugador, vuelven al camino o los empujan

@@ -6,6 +6,7 @@ local Shared = ReplicatedStorage.Shared
 local Config = require(Shared.Config)
 local Progression = require(Shared.Progression)
 local Remotes = require(Shared.Remotes)
+local AssetService = require(script.AssetService)
 local CombatService = require(script.CombatService)
 local DataService = require(script.DataService)
 local EnemyService = require(script.EnemyService)
@@ -21,6 +22,8 @@ local WaveService = require(script.WaveService)
 local random = Random.new()
 
 local map = MapBuilder.build()
+-- Imágenes subidas (sprites y texturas pixeladas), en segundo plano
+AssetService.init()
 GameState.init()
 TrapService.init()
 PlayerService.init()

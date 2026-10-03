@@ -402,6 +402,13 @@ local function buildScenery(map: Instance)
 			buildTree(map, position, random:NextNumber(1, 1.8))
 		end
 	end
+	-- Muro de bosque alrededor del claro: de aquí salen los zombis
+	for _ = 1, 190 do
+		local position = randomRingPoint(200, 280)
+		if position.Z < Config.Arena.CliffZ - 30 and MedievalBuilder.isClear(position, 5) then
+			buildTree(map, position, random:NextNumber(1.1, 1.9))
+		end
+	end
 	-- Algunos pinos sueltos a los lados y detrás del campamento
 	for _ = 1, 40 do
 		local position = randomRingPoint(95, 210)

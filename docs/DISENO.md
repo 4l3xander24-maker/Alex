@@ -7,7 +7,20 @@ compras armas, mejoras, poderes y trampas a los NPC, y al terminar ganas **XP de
 mejorar tus estadísticas y aprender talentos.
 
 ## Estilo visual
-- **Bloques con texturas** (`Config.ArtStyle = "Texturado"`, por defecto): las formas son cubos (como en el pixel
+- **Pixel art 3D estilo Guns 'n Goblins** (`Config.ArtStyle = "Pixel"`, por defecto): formas de cubos como en
+  `"Voxel"`, pero con **texturas pixeladas de 32×32** (`assets/textures/`, en gris para que tomen el color de cada
+  pieza). `AssetService` crea un `MaterialVariant` por textura y lo pone en lugar del material de Roblox con
+  `MaterialService:SetBaseMaterialOverride`, así cambia todo el mapa y el terreno sin tocar cada pieza.
+  Zombis, jefes y NPC son **sprites** (`assets/sprites/`, 2 cuadros de caminar cada uno) en `BillboardGui` con
+  `ResampleMode = Pixelated`. Las imágenes se suben con `tools/upload_assets.py` (Open Cloud) a
+  `src/shared/Assets.luau`; el servidor convierte cada id de Decal a id de imagen con `InsertService` y los
+  publica en `ReplicatedStorage.ResolvedAssets`. Sin imágenes subidas, todo vuelve a los muñecos de bloques y
+  los materiales normales.
+  - **Interfaz**: letra pixelada (Arcade), números de daño que saltan (blancos al pegar, amarillos al matar,
+    reciclados, máximo 40), cartel "¡SUBISTE DE NIVEL!" azul con borde oscuro, rebote y destellos en cruz, y la
+    pantalla del Veterano en dos columnas (MEJORAS con barritas, TALENTOS con su estado y descripción abajo).
+  - **Paleta más verde**: pinos verde azulado, pasto verde y bruma verdosa de noche.
+- **Bloques con texturas** (`Config.ArtStyle = "Texturado"`): las formas son cubos (como en el pixel
   art 3D) pero con los materiales de Roblox (madera, piedra, ladrillo, hojas, tela, metal) y el terreno de
   Roblox con pasto 3D. El viento (`Workspace.GlobalWind`, `Config.Wind`) mueve el pasto, y cada cliente le
   agrega ráfagas. Árboles, arbustos, matas y estandartes tienen un atributo `Sway` y se mecen alrededor de su
@@ -55,6 +68,10 @@ mejorar tus estadísticas y aprender talentos.
   - **Camino del cementerio** (tierra, `Main`): empieza en una cripta rodeada de tumbas y reja de hierro.
     Lo usan 3 de cada 4 zombis.
   - **Camino de las ruinas** (piedra, `Side`): empieza en el arco de un castillo en ruinas con una torre partida.
+  - **Senderos del bosque** (`ForestNorth`, `ForestWest`, `ForestEast`, 55% de los zombis): nacen entre los
+    árboles, sin entrada; los zombis salen desparramados (`SpawnSpread` = 12 studs) y el sendero se une al
+    camino del cementerio cerca de la campana, así el portón y las minas los alcanzan.
+  - Alrededor del mapa hay una pared de bosque (190 pinos entre 200 y 280 studs).
   - Cada zombi va un poco desviado del centro (hasta 2.5 studs) para que la horda no parezca una fila.
 - **Aldea**: casas con ventanas encendidas, pozo y carreta a los lados del campo.
 
@@ -112,7 +129,7 @@ mejorar tus estadísticas y aprender talentos.
 | Trampa | Precio | Efecto |
 |---|---|---|
 | 🪤 Mina (hasta 8) | 40 | Explota cuando pasa un zombi (12 de daño en 10 studs, crece con la oleada) |
-| 🚧 Reja del cementerio / de las ruinas | 150 c/u | Cierra ese camino a 36 studs de la campana: los zombis se paran a romperla (800 de vida); no persiguen a quien está detrás. El dragón pasa volando |
+| 🚧 Reja (portón de piedra) del cementerio / de las ruinas | 150 c/u | Cierra ese camino a 36 studs de la campana: los zombis se paran a romperla (800 de vida); no persiguen a quien está detrás. El dragón pasa volando |
 
 ## Zombis
 | Zombi | Desde la oleada | Cómo es |
@@ -178,4 +195,7 @@ Cada arma se mejora 5 veces (+20% daño, +15% cargador, recarga más rápida). C
 - **Fase 3.8 (hecha)**: pixel art 3D y ciclo de día y noche.
 - **Fase 3.7 (hecha)**: noche medieval con velas, dos caminos, zombis de dibujo animado, jefes gigantes
   (Gordo, Rey y Dragón) y muerte pixelada.
+- **Fase 4.0 (hecha)**: estilo Guns 'n Goblins: texturas y sprites pixelados con subida automática, zombis que
+  salen del bosque, portón de piedra, cobertizos en el campamento, números de daño, ¡SUBISTE DE NIVEL! y
+  pantalla del Veterano en dos columnas.
 - **Fase 4**: sonidos y música, más mapas (paletas morado/ámbar), más jefes, misiones diarias, pases de juego y lanzamiento.

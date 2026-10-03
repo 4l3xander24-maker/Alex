@@ -45,17 +45,15 @@ local function tileKind(center: Vector3): string
 		return "Dirt"
 	end
 	local width = Config.PathStyle.Width / 2 + 1
-	local mainPoints = Paths.getPoints("Main")
-	for index = 2, #mainPoints do
-		if Paths.segmentDistance(center, mainPoints[index - 1], mainPoints[index]) < width then
-			return "Dirt"
-		end
-	end
+	-- El de las ruinas es de piedra; los demás de tierra
 	local sidePoints = Paths.getPoints("Side")
 	for index = 2, #sidePoints do
 		if Paths.segmentDistance(center, sidePoints[index - 1], sidePoints[index]) < width then
 			return "Stone"
 		end
+	end
+	if Paths.distanceToAny(center) < width then
+		return "Dirt"
 	end
 	return "Grass"
 end

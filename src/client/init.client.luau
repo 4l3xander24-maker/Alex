@@ -5,6 +5,7 @@ local Progression = require(ReplicatedStorage:WaitForChild("Shared").Progression
 
 local EnemyRenderer = require(script.EnemyRenderer)
 local Hud = require(script.Hud)
+local LevelUpFx = require(script.LevelUpFx)
 local MatchSummary = require(script.MatchSummary)
 local MovementController = require(script.MovementController)
 local Notify = require(script.Notify)
@@ -29,6 +30,7 @@ WeaponController.init(EnemyRenderer.folder, Hud.flashHitMarker)
 PowerController.init()
 ShopUI.init()
 MatchSummary.init()
+LevelUpFx.init()
 Hud.init({
 	setTrigger = WeaponController.setTrigger,
 	setAiming = WeaponController.setAiming,

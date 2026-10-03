@@ -194,6 +194,9 @@ local function buildNpc(parent: Instance, info, cframe: CFrame)
 	end
 	info.Extras(piece)
 	model.PrimaryPart = torso
+	-- Si se subió su sprite pixelado, AssetService lo muestra en lugar del muñeco
+	local spriteKeys = { Armory = "Armero", Mystic = "Bruja", Trainer = "Veterano", Quartermaster = "Intendente" }
+	model:SetAttribute("SpriteKey", spriteKeys[info.Shop])
 
 	local tag = Instance.new("BillboardGui")
 	tag.Size = UDim2.fromOffset(220, 54)
@@ -385,8 +388,37 @@ local function buildTrainer(map: Instance)
 	}, stall * CFrame.new(0, 0, 1.2))
 end
 
+-- Refugio de madera junto a la fogata (como en Guns 'n Goblins): techo de
+-- tablas inclinado, pared de piedra al fondo, troncos para sentarse, cajas y un farol
+local function buildShelter(map: Instance)
+	local frame = facingCamp(camp + Vector3.new(19, 0, -17))
+	local width, depth, front, back = 11, 7, 6.5, 4
+	for _, x in { -width / 2, width / 2 } do
+		makePart({ Name = "ShelterPost", Size = Vector3.new(0.7, front, 0.7), CFrame = frame * CFrame.new(x, front / 2, -depth / 2), Material = Enum.Material.Wood, Color = DARK_WOOD, Parent = map })
+		makePart({ Name = "ShelterPost", Size = Vector3.new(0.7, back, 0.7), CFrame = frame * CFrame.new(x, back / 2, depth / 2), Material = Enum.Material.Wood, Color = DARK_WOOD, Parent = map })
+	end
+	-- Techo inclinado de tablas que sobresale adelante
+	local rise = front - back
+	local slope = math.sqrt(depth * depth + rise * rise) + 2
+	makePart({ Name = "ShelterRoof", Size = Vector3.new(width + 2, 0.5, slope), CFrame = frame * CFrame.new(0, (front + back) / 2 + 0.3, -0.6) * CFrame.Angles(math.atan2(rise, depth), 0, 0), Material = Enum.Material.WoodPlanks, Color = WOOD, Parent = map })
+	for x = -width / 2, width / 2, 2.2 do
+		makeProp({ Name = "RoofBeam", Size = Vector3.new(0.35, 0.35, slope), CFrame = frame * CFrame.new(x, (front + back) / 2 + 0.65, -0.6) * CFrame.Angles(math.atan2(rise, depth), 0, 0), Material = Enum.Material.Wood, Color = DARK_WOOD, Parent = map })
+	end
+	-- Pared de piedra al fondo, a media altura
+	makePart({ Name = "ShelterWall", Size = Vector3.new(width, 3, 1.2), CFrame = frame * CFrame.new(0, 1.5, depth / 2 + 0.2), Material = Enum.Material.Slate, Color = Props.Colors.Stone, Parent = map })
+	-- Troncos, cajas y una olla
+	for _, spot in { Vector3.new(-3, 0, 0.5), Vector3.new(3, 0, 0.5) } do
+		makePart({ Name = "LogSeat", Size = Vector3.new(2.6, 1.1, 1.1), CFrame = frame * CFrame.new(spot + Vector3.new(0, 0.55, -4.5)), Material = Enum.Material.Wood, Color = WOOD, Parent = map })
+	end
+	Props.crate(map, frame * CFrame.new(-4, 0, 2), 1.8)
+	Props.crate(map, frame * CFrame.new(-4.2, 1.8, 2.1) * CFrame.Angles(0, 0.3, 0), 1.2)
+	Props.barrel(map, (frame * CFrame.new(4, 0, 2)).Position)
+	Props.hangingLantern(map, (frame * CFrame.new(-width / 2 - 1.2, 0, -depth / 2)).Position, (frame.LookVector))
+end
+
 function CampBuilder.build(map: Instance)
 	buildCampfire(map)
+	buildShelter(map)
 	buildArmory(map)
 	buildMystic(map)
 	buildTrainer(map)

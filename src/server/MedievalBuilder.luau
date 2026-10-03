@@ -24,11 +24,14 @@ local random = Random.new(23)
 
 local MedievalBuilder = {}
 
--- Dónde empieza cada camino (ahí salen los zombis)
+-- Dónde empiezan los caminos con cripta o ruinas (ahí no hay árboles). Los
+-- senderos del bosque nacen entre los árboles, sin claro.
 function MedievalBuilder.getEntrances(): { Vector3 }
 	local entrances = {}
 	for _, name in Config.PathOrder do
-		table.insert(entrances, Config.Paths[name].Points[1])
+		if Config.Paths[name].Entrance then
+			table.insert(entrances, Config.Paths[name].Points[1])
+		end
 	end
 	return entrances
 end
@@ -46,11 +49,24 @@ function MedievalBuilder.isClear(position: Vector3, margin: number): boolean
 	return true
 end
 
--- Pinta los caminos en el terreno: tierra el principal, piedra el otro
+-- Pinta los caminos en el terreno: piedra el de las ruinas, tierra los demás.
+-- Primero los senderos del bosque, así los tramos compartidos quedan del
+-- material del camino al que se unen.
 function MedievalBuilder.paintPaths(terrain: Terrain)
 	local width = Config.PathStyle.Width
+	local order = {}
 	for _, name in Config.PathOrder do
-		local material = if name == "Main" then Enum.Material.Ground else Enum.Material.Cobblestone
+		if not Config.Paths[name].Entrance then
+			table.insert(order, name)
+		end
+	end
+	for _, name in Config.PathOrder do
+		if Config.Paths[name].Entrance then
+			table.insert(order, name)
+		end
+	end
+	for _, name in order do
+		local material = if name == "Side" then Enum.Material.Cobblestone else Enum.Material.Ground
 		local points = Paths.getPoints(name)
 		for index = 2, #points do
 			local a, b = points[index - 1], points[index]
@@ -74,6 +90,9 @@ end
 local function lightPaths(map: Instance)
 	local width = Config.PathStyle.Width
 	for _, name in Config.PathOrder do
+		if not Config.Paths[name].Entrance then
+			continue -- los senderos del bosque quedan a oscuras
+		end
 		local spacing = if name == "Main" then 34 else 42
 		local side = 1
 		for distance = 48, 240, spacing do
@@ -113,13 +132,13 @@ local function buildCrypt(map: Instance, frame: CFrame)
 	crypt.Name = "Crypt"
 	makePart({ Name = "CryptBase", Size = Vector3.new(16, 1, 14), CFrame = frame * CFrame.new(0, 0.5, 4), Material = Enum.Material.Cobblestone, Color = STONE, Parent = crypt })
 	for _, side in { -1, 1 } do
-		makePart({ Name = "CryptWall", Size = Vector3.new(2, 10, 12), CFrame = frame * CFrame.new(side * 6, 6, 4), Material = Enum.Material.Cobblestone, Color = Props.vary(STONE, 0.05, random), Parent = crypt })
-		makePart({ Name = "CryptFront", Size = Vector3.new(3.5, 10, 2), CFrame = frame * CFrame.new(side * 3.25, 6, -1), Material = Enum.Material.Cobblestone, Color = STONE, Parent = crypt })
+		makePart({ Name = "CryptWall", Size = Vector3.new(2, 10, 12), CFrame = frame * CFrame.new(side * 6, 6, 4), Material = Enum.Material.Slate, Color = Props.vary(STONE, 0.05, random), Parent = crypt })
+		makePart({ Name = "CryptFront", Size = Vector3.new(3.5, 10, 2), CFrame = frame * CFrame.new(side * 3.25, 6, -1), Material = Enum.Material.Slate, Color = STONE, Parent = crypt })
 		makePart({ Name = "CryptRoof", Size = Vector3.new(16, 3, 7.5), CFrame = frame * CFrame.new(0, 12.5, 4 + side * 3.5) * CFrame.Angles(0, if side > 0 then math.pi else 0, 0), Material = Enum.Material.Slate, Color = Color3.fromRGB(70, 72, 80), Parent = crypt }, "WedgePart")
 		makeProp({ Name = "Pillar", Size = Vector3.new(1.4, 10, 1.4), CFrame = frame * CFrame.new(side * 6.5, 6, -2.4), Material = Enum.Material.Marble, Color = Color3.fromRGB(150, 150, 156), Parent = crypt })
 	end
-	makePart({ Name = "CryptBack", Size = Vector3.new(10, 10, 2), CFrame = frame * CFrame.new(0, 6, 9), Material = Enum.Material.Cobblestone, Color = STONE, Parent = crypt })
-	makePart({ Name = "Lintel", Size = Vector3.new(4, 3, 2), CFrame = frame * CFrame.new(0, 9.5, -1), Material = Enum.Material.Cobblestone, Color = STONE, Parent = crypt })
+	makePart({ Name = "CryptBack", Size = Vector3.new(10, 10, 2), CFrame = frame * CFrame.new(0, 6, 9), Material = Enum.Material.Slate, Color = STONE, Parent = crypt })
+	makePart({ Name = "Lintel", Size = Vector3.new(4, 3, 2), CFrame = frame * CFrame.new(0, 9.5, -1), Material = Enum.Material.Slate, Color = STONE, Parent = crypt })
 	-- Oscuridad adentro y una calavera sobre la puerta
 	makeProp({ Name = "Darkness", Size = Vector3.new(3, 7.6, 0.2), CFrame = frame * CFrame.new(0, 4.8, 0), Material = Enum.Material.SmoothPlastic, Color = Color3.fromRGB(8, 10, 12), Parent = crypt })
 	makeProp({ Name = "Skull", Size = Vector3.new(1.2, 1.1, 0.6), CFrame = frame * CFrame.new(0, 9.6, -2.1), Material = Enum.Material.SmoothPlastic, Color = Color3.fromRGB(226, 220, 200), Parent = crypt })
@@ -155,7 +174,7 @@ local function buildGraveyard(map: Instance, entrance: Vector3, outward: Vector3
 		end
 	end
 	for _, side in { -1, 1 } do
-		makePart({ Name = "GatePillar", Size = Vector3.new(1.6, 5, 1.6), CFrame = frame * CFrame.new(side * 5, 2.5, 6), Material = Enum.Material.Cobblestone, Color = STONE, Parent = map })
+		makePart({ Name = "GatePillar", Size = Vector3.new(1.6, 5, 1.6), CFrame = frame * CFrame.new(side * 5, 2.5, 6), Material = Enum.Material.Slate, Color = STONE, Parent = map })
 		if theme.Medieval then
 			Props.torch(map, (frame * CFrame.new(side * 5, 5, 6)).Position, 1.2)
 		end
@@ -167,11 +186,11 @@ local function buildRuins(map: Instance, entrance: Vector3, outward: Vector3)
 	local frame = CFrame.lookAt(entrance, entrance + outward)
 	local function wall(offset: CFrame, length: number, height: number, battlements: boolean)
 		local cf = frame * offset
-		makePart({ Name = "RuinWall", Size = Vector3.new(length, height, 3), CFrame = cf * CFrame.new(0, height / 2, 0), Material = Enum.Material.Cobblestone, Color = Props.vary(STONE, 0.08, random), Parent = map })
+		makePart({ Name = "RuinWall", Size = Vector3.new(length, height, 3), CFrame = cf * CFrame.new(0, height / 2, 0), Material = Enum.Material.Slate, Color = Props.vary(STONE, 0.08, random), Parent = map })
 		if battlements then
 			for x = -length / 2 + 1, length / 2 - 1, 3 do
 				if random:NextNumber() < 0.7 then
-					makeProp({ Name = "Merlon", Size = Vector3.new(1.6, 1.6, 3), CFrame = cf * CFrame.new(x, height + 0.8, 0), Material = Enum.Material.Cobblestone, Color = STONE, Parent = map })
+					makeProp({ Name = "Merlon", Size = Vector3.new(1.6, 1.6, 3), CFrame = cf * CFrame.new(x, height + 0.8, 0), Material = Enum.Material.Slate, Color = STONE, Parent = map })
 				end
 			end
 		end
@@ -183,10 +202,10 @@ local function buildRuins(map: Instance, entrance: Vector3, outward: Vector3)
 	end
 	-- Arco por donde salen los zombis
 	for _, side in { -1, 1 } do
-		makePart({ Name = "ArchPillar", Size = Vector3.new(3, 12, 3), CFrame = frame * CFrame.new(side * 6, 6, -3), Material = Enum.Material.Cobblestone, Color = STONE, Parent = map })
+		makePart({ Name = "ArchPillar", Size = Vector3.new(3, 12, 3), CFrame = frame * CFrame.new(side * 6, 6, -3), Material = Enum.Material.Slate, Color = STONE, Parent = map })
 		wall(CFrame.new(side * 17, 0, -3), 18, random:NextNumber(5, 10), true)
 	end
-	makePart({ Name = "ArchTop", Size = Vector3.new(15, 3, 3), CFrame = frame * CFrame.new(0, 13.5, -3), Material = Enum.Material.Cobblestone, Color = STONE, Parent = map })
+	makePart({ Name = "ArchTop", Size = Vector3.new(15, 3, 3), CFrame = frame * CFrame.new(0, 13.5, -3), Material = Enum.Material.Slate, Color = STONE, Parent = map })
 	wall(CFrame.new(-26, 0, -14) * CFrame.Angles(0, math.pi / 2, 0), 20, 7, true)
 	wall(CFrame.new(26, 0, -16) * CFrame.Angles(0, math.pi / 2, 0), 16, 4, false)
 
@@ -195,7 +214,7 @@ local function buildRuins(map: Instance, entrance: Vector3, outward: Vector3)
 	local y = 0
 	for index, height in { 8, 8, 5 } do
 		local radius = 11 - index
-		makePart({ Name = "RuinTower", Shape = Enum.PartType.Cylinder, Size = Vector3.new(height, radius, radius), CFrame = towerCenter * CFrame.new(index * 0.6, y + height / 2, 0) * CFrame.Angles(0, 0, math.pi / 2), Material = Enum.Material.Cobblestone, Color = Props.vary(STONE, 0.06, random), Parent = map })
+		makePart({ Name = "RuinTower", Shape = Enum.PartType.Cylinder, Size = Vector3.new(height, radius, radius), CFrame = towerCenter * CFrame.new(index * 0.6, y + height / 2, 0) * CFrame.Angles(0, 0, math.pi / 2), Material = Enum.Material.Slate, Color = Props.vary(STONE, 0.06, random), Parent = map })
 		y += height
 	end
 	if theme.Medieval then

@@ -1,8 +1,9 @@
 -- El cielo de cada cliente:
 --   * Ciclo de día y noche: mueve la hora y los colores de la luz según el
 --     reloj del servidor (todos ven la misma hora sin gastar red).
---   * En pixel art 3D: nubes de bloques que cruzan el cielo y luciérnagas de
---     cubitos alrededor del jugador cuando es de noche.
+--   * En pixel art 3D: nubes de bloques que cruzan el cielo, esporas de
+--     cubitos blancos que flotan con el viento (de día y de noche) y luciérnagas
+--     de cubitos alrededor del jugador cuando es de noche.
 local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -19,6 +20,9 @@ local FIREFLY_RADIUS = 60
 local CLOUD_DAY = Color3.fromRGB(250, 250, 255)
 local CLOUD_NIGHT = Color3.fromRGB(56, 62, 92)
 local FIREFLY_COLOR = Color3.fromRGB(220, 255, 140)
+local MOTE_COUNT = 55
+local MOTE_RADIUS = 55
+local MOTE_COLORS = { Color3.fromRGB(240, 240, 228), Color3.fromRGB(226, 214, 186), Color3.fromRGB(255, 255, 255) }
 
 type Cloud = { Parts: { BasePart }, Offsets: { Vector3 }, Position: Vector3 }
 type Firefly = { Part: BasePart, Home: Vector3, Phase: number }
@@ -33,6 +37,8 @@ local random = Random.new()
 local folder: Folder
 local clouds: { Cloud } = {}
 local fireflies: { Firefly } = {}
+local motes: { Firefly } = {}
+local moteVisible = false
 local cloudShade = -1
 local fireflyVisible = false
 local reduced = false
@@ -96,6 +102,15 @@ local function buildFireflies()
 	end
 end
 
+local function buildMotes()
+	for index = 1, MOTE_COUNT do
+		local size = random:NextNumber(0.25, 0.6)
+		local part = newBlock(Vector3.one * size, MOTE_COLORS[random:NextInteger(1, #MOTE_COLORS)], Enum.Material.SmoothPlastic)
+		part.Transparency = 1
+		table.insert(motes, { Part = part, Home = Vector3.new(0, -500, 0), Phase = index * 2.1 })
+	end
+end
+
 local function randomHome(center: Vector3): Vector3
 	local angle = random:NextNumber(0, math.pi * 2)
 	local radius = random:NextNumber(12, FIREFLY_RADIUS)
@@ -148,6 +163,35 @@ local function updateFireflies(clock: number)
 	end
 end
 
+-- Esporas: flotan a favor del viento subiendo y bajando; las que se alejan
+-- vuelven a aparecer cerca del jugador
+local function updateMotes(dt: number, clock: number)
+	local visible = not reduced
+	if visible ~= moteVisible then
+		moteVisible = visible
+		for _, mote in motes do
+			mote.Part.Transparency = if visible then 0.1 else 1
+		end
+	end
+	if not visible then
+		return
+	end
+	local camera = workspace.CurrentCamera.CFrame.Position
+	local wind = workspace.GlobalWind * 0.12
+	for _, mote in motes do
+		local offset = mote.Home - camera
+		if Vector3.new(offset.X, 0, offset.Z).Magnitude > MOTE_RADIUS + 10 or mote.Home.Y > 16 then
+			local angle = random:NextNumber(0, math.pi * 2)
+			local radius = random:NextNumber(6, MOTE_RADIUS)
+			mote.Home = Vector3.new(camera.X + math.cos(angle) * radius, random:NextNumber(0.5, 9), camera.Z + math.sin(angle) * radius)
+		end
+		mote.Home += (wind + Vector3.new(0, 0.15, 0)) * dt
+		local phase = clock * 0.7 + mote.Phase
+		table.insert(parts, mote.Part)
+		table.insert(cframes, CFrame.new(mote.Home + Vector3.new(math.sin(phase) * 0.8, math.sin(phase * 1.3) * 0.5, math.cos(phase * 0.8) * 0.8)) * CFrame.Angles(phase, phase * 0.7, 0))
+	end
+end
+
 function SkyFx.step(dt: number)
 	local now = workspace:GetServerTimeNow()
 	if DayCycle.isEnabled() then
@@ -168,6 +212,7 @@ function SkyFx.step(dt: number)
 	table.clear(cframes)
 	updateClouds(dt)
 	updateFireflies(os.clock())
+	updateMotes(dt, os.clock())
 	if #parts > 0 then
 		workspace:BulkMoveTo(parts, cframes, Enum.BulkMoveMode.FireCFrameChanged)
 	end
@@ -182,6 +227,7 @@ function SkyFx.init()
 	folder.Parent = workspace
 	buildClouds()
 	buildFireflies()
+	buildMotes()
 end
 
 return SkyFx

@@ -165,8 +165,28 @@ function Props.banner(parent: Instance, position: Vector3, facing: number, cloth
 	end
 end
 
--- Farol con poste. En el mapa medieval se cambia por una antorcha.
+-- Farol que cuelga de un poste con brazo (como en Guns 'n Goblins).
+-- `facing`: hacia dónde sale el brazo.
+function Props.hangingLantern(parent: Instance, position: Vector3, facing: Vector3?)
+	local direction = facing or Vector3.new(1, 0, 0)
+	local frame = CFrame.lookAt(position, position + Vector3.new(direction.X, 0, direction.Z))
+	Props.makePart({ Name = "LanternPost", Size = Vector3.new(0.5, 6.5, 0.5), CFrame = frame * CFrame.new(0, 3.25, 0), Material = Enum.Material.Wood, Color = Props.Colors.DarkWood, Parent = parent })
+	Props.makeProp({ Name = "LanternArm", Size = Vector3.new(0.35, 0.35, 2.6), CFrame = frame * CFrame.new(0, 6.2, -1.2), Material = Enum.Material.Wood, Color = Props.Colors.DarkWood, Parent = parent })
+	Props.makeProp({ Name = "LanternBrace", Size = Vector3.new(0.25, 0.25, 1.4), CFrame = frame * CFrame.new(0, 5.6, -0.5) * CFrame.Angles(math.rad(-40), 0, 0), Material = Enum.Material.Wood, Color = Props.Colors.DarkWood, Parent = parent })
+	Props.makeProp({ Name = "LanternChain", Size = Vector3.new(0.12, 0.6, 0.12), CFrame = frame * CFrame.new(0, 5.75, -2.3), Material = Enum.Material.Metal, Color = Props.Colors.Iron, Parent = parent })
+	Props.makeProp({ Name = "LanternCap", Size = Vector3.new(0.9, 0.25, 0.9), CFrame = frame * CFrame.new(0, 5.35, -2.3), Material = Enum.Material.Metal, Color = Props.Colors.Iron, Parent = parent })
+	local glass = Props.makeProp({ Name = "Lantern", Size = Vector3.new(0.7, 0.9, 0.7), CFrame = frame * CFrame.new(0, 4.8, -2.3), Material = Enum.Material.Neon, Color = Props.Colors.Lantern, Parent = parent })
+	Props.makeProp({ Name = "LanternBase", Size = Vector3.new(0.9, 0.2, 0.9), CFrame = frame * CFrame.new(0, 4.3, -2.3), Material = Enum.Material.Metal, Color = Props.Colors.Iron, Parent = parent })
+	Props.flickerLight(glass, Props.Colors.Lantern, 22, 1.6, true)
+end
+
+-- Farol con poste. En el mapa medieval se cambia por un farol colgante
+-- (estilos de bloques) o una antorcha.
 function Props.lantern(parent: Instance, position: Vector3)
+	if medieval and Props.voxel then
+		Props.hangingLantern(parent, position, Vector3.new(position.X, 0, position.Z).Unit * -1)
+		return
+	end
 	if medieval then
 		Props.torch(parent, position, 4.6, true)
 		return

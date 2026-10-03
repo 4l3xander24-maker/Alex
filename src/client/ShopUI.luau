@@ -234,29 +234,130 @@ local function renderMystic(data: Progression.Profile, coins: number)
 	end
 end
 
+-- Veterano al estilo de Guns 'n Goblins: dos columnas en letra pixelada.
+-- Izquierda las mejoras con barritas (cada barrita llena = puntos gastados),
+-- derecha los talentos con su estado. Abajo, qué hace lo que señalas.
+local PIP_ON = Color3.fromRGB(150, 205, 255)
+local PIP_HALF = Color3.fromRGB(90, 130, 175)
+local PIP_OFF = Color3.fromRGB(44, 52, 68)
+local DIM = Color3.fromRGB(110, 120, 140)
+local SKY = Color3.fromRGB(170, 195, 230)
+
+local function pixelText(parent: Instance, props): TextLabel
+	local text = label(parent, props)
+	text.Font = Config.PixelFont
+	text.TextWrapped = false
+	text.TextStrokeTransparency = 0.4
+	return text
+end
+
+local function pixelButton(parent: Instance, text: string, position: UDim2, size: UDim2, color: Color3, onClick: () -> (), border: Color3?): TextButton
+	local button = Instance.new("TextButton")
+	button.AnchorPoint = Vector2.new(1, 0.5)
+	button.Position = position
+	button.Size = size
+	button.BackgroundColor3 = color
+	button.BorderSizePixel = 0
+	button.Font = Config.PixelFont
+	button.TextSize = 16
+	button.TextColor3 = if border then Color3.new(1, 1, 1) else Color3.fromRGB(16, 20, 32)
+	button.TextStrokeTransparency = if border then 0.3 else 1
+	button.Text = text
+	button.Parent = parent
+	if border then
+		local stroke = Instance.new("UIStroke")
+		stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+		stroke.Color = border
+		stroke.Thickness = 2
+		stroke.Parent = button
+	end
+	button.Activated:Connect(onClick)
+	return button
+end
+
 local function renderTrainer(data: Progression.Profile)
 	local nextTalent = (data.Level // Config.Progression.TalentEvery + 1) * Config.Progression.TalentEvery
-	sectionHeader(`Mejoras  ·  {data.StatPoints} punto(s) disponibles`)
-	for _, stat in Config.Stats do
-		local points = data.Stats[stat.Id] or 0
-		local current = if points > 0 then Progression.describeStat(stat.Id, points) else "Sin puntos"
-		local description = `{current}  ·  {points}/{stat.Max}\nCon +1: {Progression.describeStat(stat.Id, points + 1)}`
-		local canAdd = data.StatPoints > 0 and points < stat.Max
-		row(stat.Icon, stat.Name, description, {
-			{ Text = if points >= stat.Max then "Máximo" else "+1 punto", Enabled = canAdd, OnClick = function()
-				runAction("AddStat", stat.Id)
-			end },
-		})
+	local rowHeight = 34
+	local rows = math.max(#Config.Stats, #Config.Talents)
+	local open = isOpen()
+
+	local board = Instance.new("Frame")
+	board.BackgroundTransparency = 1
+	board.Size = UDim2.new(1, -10, 0, 48 + rows * rowHeight + 70)
+	board.LayoutOrder = nextOrder()
+	board.Parent = list
+
+	-- Barra de abajo: qué hace lo que señalas
+	local info = label(board, {
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.fromScale(0, 1),
+		Size = UDim2.new(1, 0, 0, 58),
+		BackgroundTransparency = 0.15,
+		BackgroundColor3 = Color3.fromRGB(14, 16, 22),
+		Text = "Señala una mejora o un talento para ver qué hace",
+		TextSize = 14,
+		TextColor3 = MUTED,
+		TextXAlignment = Enum.TextXAlignment.Center,
+	})
+	round(info, 6)
+	local function describe(target: GuiObject, text: string)
+		target.MouseEnter:Connect(function()
+			info.Text = text
+		end)
 	end
 
-	sectionHeader(`Talentos  ·  {data.TalentPoints} disponible(s)  ·  próximo en el nivel {nextTalent}`)
-	for _, talent in Config.Talents do
+	pixelText(board, { Size = UDim2.new(0.5, -14, 0, 36), Text = `MEJORAS ..........  {data.StatPoints} 💎`, TextSize = 22, TextColor3 = SKY })
+	pixelText(board, { Position = UDim2.new(0.5, 14, 0, 0), Size = UDim2.new(0.5, -14, 0, 36), Text = `💎 {data.TalentPoints}  .......... TALENTOS`, TextSize = 22, TextColor3 = GOLD, TextXAlignment = Enum.TextXAlignment.Right })
+
+	for index, stat in Config.Stats do
+		local points = data.Stats[stat.Id] or 0
+		local line = Instance.new("Frame")
+		line.BackgroundTransparency = 1
+		line.Position = UDim2.fromOffset(0, 48 + (index - 1) * rowHeight)
+		line.Size = UDim2.new(0.5, -14, 0, rowHeight)
+		line.Parent = board
+		pixelText(line, { Size = UDim2.new(0, 160, 1, 0), Text = string.upper(stat.Name), TextSize = 18, TextColor3 = if points > 0 then Color3.new(1, 1, 1) else DIM })
+		-- Barritas: hasta 10; si el máximo es 20, cada barrita vale 2 puntos
+		local pips = math.min(stat.Max, 10)
+		local per = stat.Max / pips
+		for pip = 1, pips do
+			local filled = points >= pip * per
+			local halfFilled = not filled and points >= (pip - 0.5) * per
+			local bar = Instance.new("Frame")
+			bar.BorderSizePixel = 0
+			bar.Position = UDim2.fromOffset(160 + (pip - 1) * 13, 8)
+			bar.Size = UDim2.fromOffset(9, rowHeight - 16)
+			bar.BackgroundColor3 = if filled then PIP_ON elseif halfFilled then PIP_HALF else PIP_OFF
+			bar.Parent = line
+		end
+		local current = if points > 0 then Progression.describeStat(stat.Id, points) else "Sin puntos"
+		local nextText = if points < stat.Max then `  ·  Con +1: {Progression.describeStat(stat.Id, points + 1)}` else "  ·  ¡Al máximo!"
+		describe(line, `{stat.Icon} {stat.Name}: {current} ({points}/{stat.Max}){nextText}`)
+		if open and data.StatPoints > 0 and points < stat.Max then
+			describe(pixelButton(line, "+", UDim2.new(1, 0, 0.5, 0), UDim2.fromOffset(30, 26), PIP_ON, function()
+				runAction("AddStat", stat.Id)
+			end), `{stat.Icon} {stat.Name}: gasta 1 punto  ·  Con +1: {Progression.describeStat(stat.Id, points + 1)}`)
+		end
+	end
+
+	for index, talent in Config.Talents do
 		local learned = Progression.hasTalent(data, talent.Id)
-		row(talent.Icon, talent.Name, talent.Description, {
-			{ Text = if learned then "Aprendido" else "Aprender", Enabled = not learned and data.TalentPoints > 0, OnClick = function()
+		local line = Instance.new("Frame")
+		line.BackgroundTransparency = 1
+		line.Position = UDim2.new(0.5, 14, 0, 48 + (index - 1) * rowHeight)
+		line.Size = UDim2.new(0.5, -14, 0, rowHeight)
+		line.Parent = board
+		pixelText(line, { Size = UDim2.new(1, -120, 1, 0), Text = string.upper(talent.Name), TextSize = 18, TextColor3 = if learned then GOLD else Color3.new(1, 1, 1) })
+		describe(line, `{talent.Icon} {talent.Name}: {talent.Description}`)
+		if learned then
+			pixelText(line, { AnchorPoint = Vector2.new(1, 0), Position = UDim2.fromScale(1, 0), Size = UDim2.new(0, 120, 1, 0), Text = "APRENDIDO", TextSize = 16, TextColor3 = GOLD, TextXAlignment = Enum.TextXAlignment.Right })
+		elseif open and data.TalentPoints > 0 then
+			describe(pixelButton(line, "APRENDER", UDim2.new(1, 0, 0.5, 0), UDim2.fromOffset(110, 26), Color3.fromRGB(200, 100, 30), function()
 				runAction("LearnTalent", talent.Id)
-			end },
-		})
+			end, GOLD), `{talent.Icon} {talent.Name}: {talent.Description}`)
+		else
+			pixelText(line, { AnchorPoint = Vector2.new(1, 0), Position = UDim2.fromScale(1, 0), Size = UDim2.new(0, 120, 1, 0), Text = if data.TalentPoints > 0 then "CERRADO" else `NIVEL {nextTalent}`, TextSize = 16, TextColor3 = DIM, TextXAlignment = Enum.TextXAlignment.Right })
+		end
 	end
 end
 

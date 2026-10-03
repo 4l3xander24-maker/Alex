@@ -18,6 +18,7 @@ local mineConfig = Config.Traps.Mine
 local gateConfig = Config.Traps.Gate
 local IRON = Color3.fromRGB(60, 62, 68)
 local STONE = Props.Colors.Stone
+local makePart, makeProp = Props.makePart, Props.makeProp
 
 type Mine = { Position: Vector3, Owner: Player, Model: Model }
 type Gate = {
@@ -109,6 +110,8 @@ function TrapService.hasGate(id: string): boolean
 	return gates[id] ~= nil
 end
 
+-- Portón de piedra con rastrillo de hierro (como en Guns 'n Goblins): dos
+-- torres de ladrillo, dintel con almenas, escalera, estandarte y farol
 function TrapService.buildGate(id: string): boolean
 	if gates[id] or not gateConfig.Slots[id] then
 		return false
@@ -118,24 +121,55 @@ function TrapService.buildGate(id: string): boolean
 	model.Name = "Gate" .. id
 	local offset = b - a
 	local length = offset.Magnitude
-	local frame = CFrame.lookAt(a, b) -- -Z va de A hacia B
+	local frame = CFrame.lookAt(a, b) -- -Z va de A hacia B; X atraviesa el muro
+	local thickness = 3
+	local wallHeight = 9
+	local opening = 6.5 -- alto del hueco del rastrillo
 
-	for _, point in { a, b } do
-		Props.makePart({ Name = "Pillar", Size = Vector3.new(1.6, 6.5, 1.6), Position = point + Vector3.new(0, 3.25, 0), Material = Enum.Material.Cobblestone, Color = STONE, Parent = model })
-		Props.makeProp({ Name = "PillarCap", Size = Vector3.new(2, 0.5, 2), Position = point + Vector3.new(0, 6.75, 0), Material = Enum.Material.Slate, Color = STONE, Parent = model })
+	-- Torres a los lados y dintel arriba (ladrillo de castillo)
+	for _, along in { 0, length } do
+		makePart({ Name = "GateTower", Size = Vector3.new(thickness, wallHeight, 3), CFrame = frame * CFrame.new(0, wallHeight / 2, -along + (if along == 0 then 1.5 else -1.5)), Material = Enum.Material.Slate, Color = Props.vary(STONE, 0.05, Random.new()), Parent = model })
 	end
-	for _, y in { 0.6, 4.8 } do
-		Props.makePart({ Name = "Rail", Size = Vector3.new(0.3, 0.3, length), CFrame = frame * CFrame.new(0, y, -length / 2), Material = Enum.Material.Metal, Color = IRON, CanQuery = false, Parent = model })
+	makePart({ Name = "GateLintel", Size = Vector3.new(thickness, wallHeight - opening, length), CFrame = frame * CFrame.new(0, opening + (wallHeight - opening) / 2, -length / 2), Material = Enum.Material.Slate, Color = STONE, Parent = model })
+	for along = 1, length - 1, 2.6 do
+		makeProp({ Name = "Merlon", Size = Vector3.new(thickness, 1.4, 1.4), CFrame = frame * CFrame.new(0, wallHeight + 0.7, -along), Material = Enum.Material.Slate, Color = STONE, Parent = model })
 	end
-	local bars = math.floor(length / 0.9)
-	for index = 1, bars - 1 do
-		local bar = Props.makePart({ Name = "Bar", Size = Vector3.new(0.22, 5.4, 0.22), CFrame = frame * CFrame.new(0, 2.7, -index * length / bars), Material = Enum.Material.Metal, Color = IRON, CanQuery = false, Parent = model })
-		-- Puntas arriba de cada barrote
-		Props.makeProp({ Name = "Spike", Size = Vector3.new(0.3, 0.5, 0.3), CFrame = bar.CFrame * CFrame.new(0, 2.95, 0) * CFrame.Angles(0, math.rad(45), 0), Material = Enum.Material.Metal, Color = IRON, Parent = model })
+
+	-- Rastrillo: barrotes verticales con punta y travesaños
+	local inner = length - 6
+	local bars = math.max(2, math.floor(inner / 1.1))
+	for index = 0, bars do
+		local along = 3 + index * inner / bars
+		Props.makePart({ Name = "Bar", Size = Vector3.new(0.3, opening, 0.3), CFrame = frame * CFrame.new(0, opening / 2, -along), Material = Enum.Material.Metal, Color = IRON, CanQuery = false, Parent = model })
+		makeProp({ Name = "Spike", Size = Vector3.new(0.35, 0.5, 0.35), CFrame = frame * CFrame.new(0, 0.1, -along) * CFrame.Angles(0, 0, math.rad(45)), Material = Enum.Material.Metal, Color = IRON, Parent = model })
 	end
+	for _, y in { 1.4, 2.9, 4.4, 5.9 } do
+		Props.makePart({ Name = "Rail", Size = Vector3.new(0.3, 0.3, inner), CFrame = frame * CFrame.new(0, y, -length / 2), Material = Enum.Material.Metal, Color = IRON, CanQuery = false, Parent = model })
+	end
+
+	-- Escalera apoyada en la torre de la izquierda
+	local ladder = frame * CFrame.new(-thickness / 2 - 0.8, 0, -1.5) * CFrame.Angles(0, 0, math.rad(-12))
+	for _, side in { -0.7, 0.7 } do
+		makeProp({ Name = "LadderRail", Size = Vector3.new(0.25, wallHeight, 0.25), CFrame = ladder * CFrame.new(0, wallHeight / 2, side), Material = Enum.Material.Wood, Color = Props.Colors.Wood, Parent = model })
+	end
+	for y = 1, wallHeight - 1, 1.3 do
+		makeProp({ Name = "LadderRung", Size = Vector3.new(0.2, 0.2, 1.4), CFrame = ladder * CFrame.new(0, y, 0), Material = Enum.Material.Wood, Color = Props.Colors.Wood, Parent = model })
+	end
+
+	-- Estandarte verde arriba y farol colgando al costado
+	local top = frame * CFrame.new(0, wallHeight + 1.4, -length * 0.62)
+	makeProp({ Name = "FlagPole", Size = Vector3.new(0.3, 5, 0.3), CFrame = top * CFrame.new(0, 2.5, 0), Material = Enum.Material.Wood, Color = Props.Colors.DarkWood, Parent = model })
+	local hinge = (top * CFrame.new(0, 4.4, 0)).Position
+	for _, piece in {
+		makeProp({ Name = "Flag", Size = Vector3.new(0.12, 3.2, 1.8), CFrame = top * CFrame.new(-0.15, 2.8, 0), Material = Enum.Material.Fabric, Color = Color3.fromRGB(40, 110, 60), Parent = model }),
+		makeProp({ Name = "FlagEmblem", Size = Vector3.new(0.14, 1, 0.8), CFrame = top * CFrame.new(-0.16, 2.9, 0), Material = Enum.Material.Fabric, Color = Color3.fromRGB(220, 200, 90), Parent = model }),
+	} do
+		Props.sway(piece, hinge, 0.15)
+	end
+	Props.hangingLantern(model, (frame * CFrame.new(-thickness - 1.5, 0, -length - 1.5)).Position, frame.RightVector * -1)
 
 	-- Barra de vida flotando sobre la reja
-	local anchor = Props.makeProp({ Name = "HealthAnchor", Size = Vector3.one * 0.2, Position = a:Lerp(b, 0.5) + Vector3.new(0, 7.5, 0), Transparency = 1, Parent = model })
+	local anchor = Props.makeProp({ Name = "HealthAnchor", Size = Vector3.one * 0.2, Position = a:Lerp(b, 0.5) + Vector3.new(0, 12.5, 0), Transparency = 1, Parent = model })
 	local billboard = Instance.new("BillboardGui")
 	billboard.Size = UDim2.fromOffset(120, 12)
 	billboard.MaxDistance = 120

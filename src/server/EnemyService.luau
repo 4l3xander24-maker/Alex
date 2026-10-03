@@ -231,7 +231,14 @@ local function create(typeName: string, healthMultiplier: number, start: Vector3
 	local stopDistance = arena.StopRadius + info.HitRadius + random:NextNumber(0, arena.StopJitter)
 	local target = Vector3.new(math.sin(angle), 0, -math.cos(angle)) * stopDistance + Vector3.new(0, halfHeight, 0)
 
-	local origin = start or (points[1] + laneOffset)
+	local origin = start
+	if not origin then
+		-- Del bosque salen repartidos a lo ancho, como si vinieran de entre los árboles
+		local spread = if Config.Paths[route].Entrance then 0 else Config.PathStyle.SpawnSpread
+		local along = (points[2] - points[1]).Unit
+		local across = Vector3.new(-along.Z, 0, along.X)
+		origin = points[1] + laneOffset + across * random:NextNumber(-spread, spread)
+	end
 	origin = Vector3.new(origin.X, halfHeight, origin.Z)
 	local spawnTime = workspace:GetServerTimeNow()
 
@@ -296,7 +303,8 @@ function EnemyService.damage(enemyId: number, amount: number, player: Player)
 	local before = math.ceil(enemy.Health)
 	enemy.Health -= amount
 	if enemy.Health > 0 then
-		table.insert(pendingHits, enemyId)
+		-- Id y daño (para los números que saltan en los clientes)
+		table.insert(pendingHits, { enemyId, amount })
 		if enemy == shownBoss and math.ceil(enemy.Health) ~= before then
 			GameState.set("BossHealth", math.ceil(enemy.Health))
 		end
@@ -307,7 +315,7 @@ function EnemyService.damage(enemyId: number, amount: number, player: Player)
 	enemies[enemyId] = nil
 	pendingUpdates[enemyId] = nil
 	aliveCount -= 1
-	table.insert(pendingDeaths, enemyId)
+	table.insert(pendingDeaths, { enemyId, amount })
 	if killHandler then
 		killHandler(player, enemy)
 	end

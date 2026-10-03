@@ -8,19 +8,23 @@ local Config = {}
 Config.Theme = "Medieval"
 
 -- Estilo de dibujo del mundo:
---   "Texturado" → cubos con texturas reales (madera, piedra, tela, hojas) sobre el
---                 terreno de Roblox con pasto 3D que se mueve con el viento
+--   "Pixel"     → pixel art 3D como Guns 'n Goblins: cubos con texturas pixeladas
+--                 (assets/textures, hay que subirlas: ver README), terreno con pasto
+--                 3D que se mueve con el viento y enemigos de sprites pixelados
+--   "Texturado" → cubos con las texturas normales de Roblox (madera, piedra, hojas)
 --   "Voxel"     → pixel art 3D: cubos de colores planos y suelo de baldosas
 --   "Realista"  → formas redondas, materiales con textura, desenfoque y fuego de partículas
-Config.ArtStyle = "Texturado"
+Config.ArtStyle = "Pixel"
 
 -- Qué implica cada estilo: Blocky = bolas y cilindros se vuelven bloques (y el
 -- fuego, las nubes y las luciérnagas son de cubitos); Flat = colores planos sin
 -- textura; Tiles = suelo de baldosas en vez del terreno de Roblox
+-- PixelTextures = usa las texturas pixeladas subidas en lugar de las de Roblox
 Config.ArtStyles = {
-	Texturado = { Blocky = true, Flat = false, Tiles = false },
-	Voxel = { Blocky = true, Flat = true, Tiles = true },
-	Realista = { Blocky = false, Flat = false, Tiles = false },
+	Pixel = { Blocky = true, Flat = false, Tiles = false, PixelTextures = true },
+	Texturado = { Blocky = true, Flat = false, Tiles = false, PixelTextures = false },
+	Voxel = { Blocky = true, Flat = true, Tiles = true, PixelTextures = false },
+	Realista = { Blocky = false, Flat = false, Tiles = false, PixelTextures = false },
 }
 Config.Style = Config.ArtStyles[Config.ArtStyle] or Config.ArtStyles.Realista
 
@@ -61,11 +65,12 @@ Config.Themes = {
 		Medieval = true, -- velas, antorchas, casas y ruinas
 		DeadTrees = true, -- mezcla pinos con árboles secos
 		-- Paletas del ciclo de día y noche (los valores de abajo son los de la noche)
+		-- Neblina verdosa como en Guns 'n Goblins
 		Day = {
 			Brightness = 3,
-			Ambient = Color3.fromRGB(150, 150, 160),
-			Atmosphere = Color3.fromRGB(196, 214, 240),
-			Decay = Color3.fromRGB(110, 140, 180),
+			Ambient = Color3.fromRGB(150, 160, 150),
+			Atmosphere = Color3.fromRGB(170, 205, 178),
+			Decay = Color3.fromRGB(100, 135, 110),
 			Density = 0.24,
 			Haze = 0.8,
 			Tint = Color3.fromRGB(255, 252, 244),
@@ -80,12 +85,12 @@ Config.Themes = {
 			Tint = Color3.fromRGB(255, 226, 210),
 		},
 		Brightness = 1.5,
-		Ground = Color3.fromRGB(58, 84, 54),
+		Ground = Color3.fromRGB(66, 104, 58),
 		LeafLitter = Color3.fromRGB(84, 70, 48),
-		Tree = Color3.fromRGB(30, 62, 50),
+		Tree = Color3.fromRGB(44, 92, 62),
 		Mountain = Color3.fromRGB(42, 50, 76),
-		Atmosphere = Color3.fromRGB(86, 96, 150),
-		Decay = Color3.fromRGB(40, 38, 74),
+		Atmosphere = Color3.fromRGB(80, 118, 112),
+		Decay = Color3.fromRGB(36, 58, 62),
 		Density = 0.36,
 		Haze = 1.7,
 		Tint = Color3.fromRGB(226, 222, 255),
@@ -158,9 +163,10 @@ Config.Themes = {
 }
 
 -- Cómo se dibujan los zombis:
---   "3D"    → muñecos 3D con materiales y animación de caminar (va con los gráficos realistas)
---   "Pixel" → sprites pixelados (necesita subir las imágenes, ver README)
-Config.ZombieStyle = "3D"
+--   "Pixel" → sprites pixelados de dos cuadros, como Guns 'n Goblins (hay que subir
+--             las imágenes con tools/upload_assets.py; mientras tanto se ven en 3D)
+--   "3D"    → muñecos 3D de bloques con animación de caminar
+Config.ZombieStyle = "Pixel"
 
 -- Optimización en el cliente
 Config.Graphics = {
@@ -186,13 +192,16 @@ Config.Arena = {
 }
 
 -- Caminos por donde llegan los zombis a la campana (de lejos a cerca; el
--- último tramo siempre termina en la campana). Casi todos van por el
--- principal; Weight es la probabilidad de cada uno. Los jefes voladores no
--- usan caminos: van en línea recta por el aire.
+-- último tramo siempre termina en la campana). Weight es la probabilidad de
+-- cada uno. Los senderos del bosque nacen entre los árboles y se unen al camino
+-- del cementerio o al de las ruinas, así las rejas y las minas también los
+-- frenan. Entrance: qué hay donde empieza (cripta o ruinas; nada = bosque).
+-- Los jefes voladores no usan caminos: van en línea recta por el aire.
 Config.Paths = {
 	Main = {
 		Name = "Camino del cementerio",
-		Weight = 0.75,
+		Entrance = "Crypt",
+		Weight = 0.3,
 		Points = {
 			Vector3.new(-30, 0, -245),
 			Vector3.new(-55, 0, -195),
@@ -205,7 +214,8 @@ Config.Paths = {
 	},
 	Side = {
 		Name = "Camino de las ruinas",
-		Weight = 0.25,
+		Entrance = "Ruins",
+		Weight = 0.15,
 		Points = {
 			Vector3.new(190, 0, -150),
 			Vector3.new(150, 0, -140),
@@ -215,11 +225,51 @@ Config.Paths = {
 			Vector3.new(24, 0, -16),
 		},
 	},
+	ForestNorth = {
+		Name = "Sendero del bosque norte",
+		Weight = 0.25,
+		Points = {
+			Vector3.new(60, 0, -300),
+			Vector3.new(40, 0, -230),
+			Vector3.new(25, 0, -170),
+			Vector3.new(5, 0, -120),
+			Vector3.new(30, 0, -85),
+			Vector3.new(15, 0, -50),
+			Vector3.new(0, 0, -25),
+		},
+	},
+	ForestWest = {
+		Name = "Sendero del bosque oeste",
+		Weight = 0.15,
+		Points = {
+			Vector3.new(-265, 0, -90),
+			Vector3.new(-190, 0, -110),
+			Vector3.new(-120, 0, -135),
+			Vector3.new(-40, 0, -150),
+			Vector3.new(5, 0, -120),
+			Vector3.new(30, 0, -85),
+			Vector3.new(15, 0, -50),
+			Vector3.new(0, 0, -25),
+		},
+	},
+	ForestEast = {
+		Name = "Sendero del bosque este",
+		Weight = 0.15,
+		Points = {
+			Vector3.new(275, 0, -40),
+			Vector3.new(210, 0, -60),
+			Vector3.new(150, 0, -72),
+			Vector3.new(85, 0, -75),
+			Vector3.new(55, 0, -40),
+			Vector3.new(24, 0, -16),
+		},
+	},
 }
-Config.PathOrder = { "Main", "Side" }
+Config.PathOrder = { "Main", "Side", "ForestNorth", "ForestWest", "ForestEast" }
 Config.PathStyle = {
 	Width = 8, -- camino angosto de tierra
 	Lane = 2.5, -- cuánto se puede desviar cada zombi del centro del camino
+	SpawnSpread = 12, -- en los senderos del bosque salen entre los árboles, repartidos a lo ancho
 }
 
 -- Antes de cada partida hay una fase de preparación: es el único momento en
@@ -354,6 +404,7 @@ Config.Enemies = {
 		Coins = 30,
 		IsBoss = true,
 		Size = Vector2.new(26, 30),
+		SpriteSize = Vector2.new(27, 30),
 		HitRadius = 11,
 		Sprite = "",
 		Model = "Fat",
@@ -373,6 +424,7 @@ Config.Enemies = {
 		Coins = 45,
 		IsBoss = true,
 		Size = Vector2.new(20, 30),
+		SpriteSize = Vector2.new(19, 30),
 		HitRadius = 8,
 		Sprite = "",
 		Model = "Zombie",
@@ -395,6 +447,7 @@ Config.Enemies = {
 		Flying = true,
 		FlyHeight = 30, -- altura del centro del cuerpo
 		Size = Vector2.new(48, 24),
+		SpriteSize = Vector2.new(48, 32.5),
 		HitRadius = 12,
 		Sprite = "",
 		Model = "Dragon",
