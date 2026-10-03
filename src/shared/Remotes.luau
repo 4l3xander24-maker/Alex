@@ -2,7 +2,21 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
-local EVENTS = { "EnemySpawned", "EnemyHit", "EnemyDied", "EnemiesCleared", "Shoot" }
+local EVENTS = {
+	-- servidor -> clientes
+	"EnemySpawned",
+	"EnemyHit",
+	"EnemyDied",
+	"EnemiesCleared",
+	"EnemyPathsUpdated",
+	"PowerFx",
+	"LevelUpOffer",
+	-- cliente -> servidor
+	"Shoot",
+	"Reload",
+	"UsePower",
+	"ChooseUpgrade",
+}
 local FUNCTIONS = { "GetSnapshot" }
 
 local Remotes = {}

@@ -1,6 +1,7 @@
--- Los zombis caminan en línea recta hacia el castillo. Como el movimiento es
+-- Los zombis caminan en línea recta hacia la campana. Como el movimiento es
 -- determinista, servidor y clientes calculan la misma posición a partir del
 -- tiempo del servidor sin tener que replicar posiciones cada frame.
+-- Para empujarlos hacia atrás basta con cambiar SpawnTime.
 local EnemyMath = {}
 
 export type Path = {
@@ -27,13 +28,22 @@ function EnemyMath.getTarget(path: Path): Vector3
 	return path.Start + path.Direction * path.Distance
 end
 
+function EnemyMath.getTraveled(path: Path, now: number): number
+	return math.clamp((now - path.SpawnTime) * path.Speed, 0, path.Distance)
+end
+
 function EnemyMath.getPosition(path: Path, now: number): Vector3
-	local traveled = math.clamp((now - path.SpawnTime) * path.Speed, 0, path.Distance)
-	return path.Start + path.Direction * traveled
+	return path.Start + path.Direction * EnemyMath.getTraveled(path, now)
 end
 
 function EnemyMath.hasArrived(path: Path, now: number): boolean
 	return (now - path.SpawnTime) * path.Speed >= path.Distance
+end
+
+-- SpawnTime que deja al enemigo `seconds` de camino más atrás que ahora
+function EnemyMath.pushedBackSpawnTime(path: Path, now: number, seconds: number): number
+	local traveled = math.max(0, EnemyMath.getTraveled(path, now) - path.Speed * seconds)
+	return now - traveled / path.Speed
 end
 
 return EnemyMath

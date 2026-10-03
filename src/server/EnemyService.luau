@@ -14,7 +14,8 @@ export type Enemy = {
 	Path: EnemyMath.Path,
 	Radius: number,
 	DamagePerSecond: number,
-	Gold: number,
+	Coins: number,
+	Xp: number,
 }
 
 local EnemyService = {}
@@ -33,29 +34,34 @@ function EnemyService.getAliveCount(): number
 	return aliveCount
 end
 
+-- Los zombis salen de un arco frente a la campana y caminan hacia ella
 function EnemyService.spawn(typeName: string, healthMultiplier: number)
 	local info = Config.Enemies[typeName]
 	local arena = Config.Arena
 	local halfHeight = info.Size.Y / 2
 
-	local startX = random:NextNumber(-arena.SpawnHalfWidth, arena.SpawnHalfWidth)
-	local limit = arena.CastleWidth / 2 - info.Size.X
-	local targetX = math.clamp(startX + random:NextNumber(-10, 10), -limit, limit)
-	local start = Vector3.new(startX, halfHeight, arena.SpawnZ)
-	local target = Vector3.new(targetX, halfHeight, arena.StopZ - random:NextNumber(0, arena.StopJitter))
+	local halfArc = math.rad(arena.SpawnArc / 2)
+	local angle = random:NextNumber(-halfArc, halfArc)
+	local outward = Vector3.new(math.sin(angle), 0, -math.cos(angle))
+	local targetAngle = angle + random:NextNumber(-0.25, 0.25)
+	local inward = Vector3.new(math.sin(targetAngle), 0, -math.cos(targetAngle))
+
+	local start = outward * arena.SpawnRadius + Vector3.new(0, halfHeight, 0)
+	local stopDistance = arena.StopRadius + info.HitRadius + random:NextNumber(0, arena.StopJitter)
+	local target = inward * stopDistance + Vector3.new(0, halfHeight, 0)
 	local spawnTime = workspace:GetServerTimeNow()
 
 	nextId += 1
-	local enemy: Enemy = {
+	enemies[nextId] = {
 		Id = nextId,
 		Type = typeName,
-		Health = math.ceil(info.MaxHealth * healthMultiplier),
+		Health = info.MaxHealth * healthMultiplier,
 		Path = EnemyMath.newPath(start, target, info.Speed, spawnTime),
 		Radius = info.HitRadius,
 		DamagePerSecond = info.DamagePerSecond,
-		Gold = info.Gold,
+		Coins = info.Coins,
+		Xp = info.Xp,
 	}
-	enemies[nextId] = enemy
 	aliveCount += 1
 
 	Remotes.EnemySpawned:FireAllClients(nextId, typeName, start, target, info.Speed, spawnTime)
@@ -81,24 +87,84 @@ function EnemyService.damage(enemyId: number, amount: number, player: Player)
 	end
 end
 
--- Devuelve el id del zombi más cercano que cruza el rayo, o nil.
+function EnemyService.getPosition(enemyId: number, time: number): Vector3?
+	local enemy = enemies[enemyId]
+	return enemy and EnemyMath.getPosition(enemy.Path, time)
+end
+
+-- Ids de los zombis que cruza el rayo, del más cercano al más lejano.
 -- Cada zombi se trata como una esfera para que sea barato revisar cientos.
-function EnemyService.raycast(origin: Vector3, direction: Vector3, range: number, time: number): number?
-	local bestId, bestDistance = nil, range
+function EnemyService.raycast(
+	origin: Vector3,
+	direction: Vector3,
+	range: number,
+	time: number,
+	maxHits: number,
+	extraRadius: number?
+): { number }
+	local hits = {}
+	local padding = extraRadius or 0
 	for id, enemy in enemies do
 		local offset = EnemyMath.getPosition(enemy.Path, time) - origin
 		local along = offset:Dot(direction)
-		if along > 0 and along < bestDistance then
-			local missSquared = offset:Dot(offset) - along * along
-			if missSquared <= enemy.Radius * enemy.Radius then
-				bestId, bestDistance = id, along
+		if along > 0 and along < range then
+			local radius = enemy.Radius + padding
+			if offset:Dot(offset) - along * along <= radius * radius then
+				table.insert(hits, { Id = id, Along = along })
+			end
+		end
+	end
+	table.sort(hits, function(a, b)
+		return a.Along < b.Along
+	end)
+
+	local ids = {}
+	for index = 1, math.min(maxHits, #hits) do
+		ids[index] = hits[index].Id
+	end
+	return ids
+end
+
+-- Ids de los zombis cuyo cuerpo está a menos de `radius` (medido sobre el suelo)
+function EnemyService.getInRadius(center: Vector3, radius: number, time: number): { number }
+	local ids = {}
+	local flatCenter = Vector3.new(center.X, 0, center.Z)
+	for id, enemy in enemies do
+		local position = EnemyMath.getPosition(enemy.Path, time)
+		if (Vector3.new(position.X, 0, position.Z) - flatCenter).Magnitude <= radius + enemy.Radius then
+			table.insert(ids, id)
+		end
+	end
+	return ids
+end
+
+function EnemyService.findNearest(point: Vector3, maxDistance: number, time: number, exclude: { [number]: boolean }): number?
+	local bestId, bestDistance = nil, maxDistance
+	for id, enemy in enemies do
+		if not exclude[id] then
+			local distance = (EnemyMath.getPosition(enemy.Path, time) - point).Magnitude
+			if distance < bestDistance then
+				bestId, bestDistance = id, distance
 			end
 		end
 	end
 	return bestId
 end
 
-function EnemyService.getCastleDamagePerSecond(now: number): number
+-- Empuja hacia atrás a los zombis cercanos cambiando su SpawnTime
+function EnemyService.knockback(center: Vector3, radius: number, seconds: number, now: number)
+	local updates = {}
+	for _, id in EnemyService.getInRadius(center, radius, now) do
+		local path = enemies[id].Path
+		path.SpawnTime = EnemyMath.pushedBackSpawnTime(path, now, seconds)
+		table.insert(updates, { id, path.SpawnTime })
+	end
+	if #updates > 0 then
+		Remotes.EnemyPathsUpdated:FireAllClients(updates)
+	end
+end
+
+function EnemyService.getBellDamagePerSecond(now: number): number
 	local total = 0
 	for _, enemy in enemies do
 		if EnemyMath.hasArrived(enemy.Path, now) then

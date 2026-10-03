@@ -8,9 +8,9 @@ local function onPlayerAdded(player: Player)
 	local stats = Instance.new("Folder")
 	stats.Name = "leaderstats"
 
-	local gold = Instance.new("IntValue")
-	gold.Name = "Oro"
-	gold.Parent = stats
+	local coins = Instance.new("IntValue")
+	coins.Name = "Monedas"
+	coins.Parent = stats
 
 	local kills = Instance.new("IntValue")
 	kills.Name = "Bajas"
@@ -19,12 +19,12 @@ local function onPlayerAdded(player: Player)
 	stats.Parent = player
 end
 
-function PlayerService.reward(player: Player, gold: number)
+function PlayerService.reward(player: Player, coins: number)
 	local stats = player.Parent and player:FindFirstChild("leaderstats")
 	if not stats then
 		return
 	end
-	stats.Oro.Value += gold
+	stats.Monedas.Value += coins
 	stats.Bajas.Value += 1
 end
 

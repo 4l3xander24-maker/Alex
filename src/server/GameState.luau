@@ -9,15 +9,15 @@ local GameState = {}
 local folder = Instance.new("Folder")
 folder.Name = "GameState"
 
-local castleHealth = Config.Castle.MaxHealth
+local bellHealth = Config.Bell.MaxHealth
 
 function GameState.init()
 	folder:SetAttribute("State", "Waiting")
 	folder:SetAttribute("Wave", 0)
 	folder:SetAttribute("Countdown", 0)
 	folder:SetAttribute("EnemiesLeft", 0)
-	folder:SetAttribute("CastleMaxHealth", Config.Castle.MaxHealth)
-	folder:SetAttribute("CastleHealth", castleHealth)
+	folder:SetAttribute("BellMaxHealth", Config.Bell.MaxHealth)
+	folder:SetAttribute("BellHealth", bellHealth)
 	folder.Parent = ReplicatedStorage
 end
 
@@ -25,25 +25,25 @@ function GameState.set(name: string, value: any)
 	folder:SetAttribute(name, value)
 end
 
-function GameState.damageCastle(amount: number)
-	if castleHealth <= 0 then
+function GameState.damageBell(amount: number)
+	if bellHealth <= 0 then
 		return
 	end
-	castleHealth = math.max(0, castleHealth - amount)
+	bellHealth = math.max(0, bellHealth - amount)
 	-- Solo replicamos cuando cambia el número entero que ve el jugador
-	local shown = math.ceil(castleHealth)
-	if shown ~= folder:GetAttribute("CastleHealth") then
-		folder:SetAttribute("CastleHealth", shown)
+	local shown = math.ceil(bellHealth)
+	if shown ~= folder:GetAttribute("BellHealth") then
+		folder:SetAttribute("BellHealth", shown)
 	end
 end
 
-function GameState.isCastleDestroyed(): boolean
-	return castleHealth <= 0
+function GameState.isBellDestroyed(): boolean
+	return bellHealth <= 0
 end
 
-function GameState.resetCastle()
-	castleHealth = Config.Castle.MaxHealth
-	folder:SetAttribute("CastleHealth", castleHealth)
+function GameState.resetBell()
+	bellHealth = Config.Bell.MaxHealth
+	folder:SetAttribute("BellHealth", bellHealth)
 end
 
 return GameState
