@@ -39,6 +39,8 @@ type Visual = {
 	Pieces: { Piece },
 	Decal: Decal?,
 	Path: EnemyMath.Path,
+	Speed: number,
+	Facing: Vector3, -- última dirección en que caminó (por si queda quieto)
 	FlashUntil: number,
 	Phase: number,
 }
@@ -122,6 +124,8 @@ local function addEnemy(id: number, typeName: string, start: Vector3, target: Ve
 		Pieces = pieces,
 		Decal = decal,
 		Path = EnemyMath.newPath(start, target, speed, spawnTime),
+		Speed = speed,
+		Facing = Vector3.new(0, 0, 1),
 		FlashUntil = 0,
 		Phase = id * 0.37,
 	}
@@ -175,17 +179,20 @@ local function render()
 	for _, visual in visuals do
 		local wave = math.sin(clock * SWAY_SPEED + visual.Phase)
 		local position = EnemyMath.getPosition(visual.Path, now) + Vector3.new(0, math.abs(wave) * BOB_HEIGHT, 0)
+		if visual.Path.Direction.Magnitude > 0.01 then
+			visual.Facing = visual.Path.Direction
+		end
 
 		local root
 		if visual.Decal then
 			-- El sprite gira para mirar siempre a la cámara (solo en horizontal)
 			local facing = Vector3.new(cameraPosition.X, position.Y, cameraPosition.Z)
 			if (facing - position).Magnitude < 0.01 then
-				facing = position - visual.Path.Direction
+				facing = position - visual.Facing
 			end
 			root = CFrame.lookAt(position, facing) * CFrame.Angles(0, 0, wave * SPRITE_SWAY)
 		else
-			root = CFrame.lookAt(position, position + visual.Path.Direction) * CFrame.Angles(0, 0, wave * BLOCK_SWAY)
+			root = CFrame.lookAt(position, position + visual.Facing) * CFrame.Angles(0, 0, wave * BLOCK_SWAY)
 		end
 
 		for _, piece in visual.Pieces do
@@ -210,11 +217,12 @@ function EnemyRenderer.init()
 	Remotes.EnemyDied.OnClientEvent:Connect(function(id)
 		removeEnemy(id, true)
 	end)
+	-- Cambios de camino: persiguen a un jugador, vuelven a la campana o los empujan
 	Remotes.EnemyPathsUpdated.OnClientEvent:Connect(function(updates)
 		for _, update in updates do
 			local visual = visuals[update[1]]
 			if visual then
-				visual.Path.SpawnTime = update[2]
+				visual.Path = EnemyMath.newPath(update[2], update[3], visual.Speed, update[4])
 			end
 		end
 	end)

@@ -4,12 +4,16 @@ local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
-local Config = require(ReplicatedStorage:WaitForChild("Shared").Config)
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Config = require(Shared.Config)
+local Progression = require(Shared.Progression)
+local Profile = require(script.Parent.Profile)
 
 local player = Players.LocalPlayer
 
 local HEALTH_FULL = Color3.fromRGB(80, 200, 90)
 local HEALTH_EMPTY = Color3.fromRGB(220, 60, 50)
+local GOLD = Color3.fromRGB(255, 215, 100)
 local XP_COLOR = Color3.fromRGB(120, 200, 255)
 local CROSSHAIR_COLOR = Color3.new(1, 1, 1)
 local HIT_COLOR = Color3.fromRGB(255, 70, 70)
@@ -17,11 +21,18 @@ local PANEL_COLOR = Color3.fromRGB(20, 24, 26)
 
 export type Actions = {
 	setTrigger: (boolean) -> (),
+	setAiming: (boolean) -> (),
 	reload: () -> (),
+	cycleWeapon: () -> (),
 	usePower: (string) -> (),
+	setSprint: (boolean) -> (),
+	dash: () -> (),
 	getAmmo: () -> (number, number, number?),
-	getPowerLevel: (string) -> number,
+	getEquipped: () -> string,
+	isAiming: () -> boolean,
+	isScoped: () -> boolean,
 	getCooldown: (string) -> (number, number),
+	getDashCooldown: () -> number,
 }
 
 local Hud = {}
@@ -35,9 +46,15 @@ local function makeLabel(props): TextLabel
 	label.TextColor3 = Color3.new(1, 1, 1)
 	label.TextStrokeTransparency = 0.4
 	for key, value in props do
-		label[key] = value
+		(label :: any)[key] = value
 	end
 	return label
+end
+
+local function round(parent: Instance, radius: UDim)
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = radius
+	corner.Parent = parent
 end
 
 local function makeBar(parent: Instance, position: UDim2, size: UDim2): (Frame, Frame, TextLabel)
@@ -56,13 +73,13 @@ local function makeBar(parent: Instance, position: UDim2, size: UDim2): (Frame, 
 	return back, fill, text
 end
 
-local function round(parent: Instance, radius: UDim)
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = radius
-	corner.Parent = parent
-end
-
-local function buildCrosshair(parent: Instance)
+local function buildCrosshair(parent: Instance): Frame
+	local holder = Instance.new("Frame")
+	holder.AnchorPoint = Vector2.new(0.5, 0.5)
+	holder.Position = UDim2.fromScale(0.5, 0.5)
+	holder.Size = UDim2.fromOffset(40, 40)
+	holder.BackgroundTransparency = 1
+	holder.Parent = parent
 	local gap, length, thickness = 6, 8, 2
 	local offsets = {
 		{ Vector2.new(0, -(gap + length / 2)), Vector2.new(thickness, length) },
@@ -77,13 +94,45 @@ local function buildCrosshair(parent: Instance)
 		bar.Size = UDim2.fromOffset(data[2].X, data[2].Y)
 		bar.BackgroundColor3 = CROSSHAIR_COLOR
 		bar.BorderSizePixel = 0
-		bar.Parent = parent
+		bar.Parent = holder
 		table.insert(crosshairBars, bar)
 	end
+	return holder
 end
 
--- Botón que se mantiene presionado (disparar en celular). Seguimos el dedo
--- exacto que lo tocó para que no se quede trabado si el dedo se desliza fuera.
+-- Vista del visor del francotirador: todo negro menos un círculo
+local function buildScope(parent: Instance): Frame
+	local scope = Instance.new("Frame")
+	scope.Size = UDim2.fromScale(1, 1)
+	scope.BackgroundTransparency = 1
+	scope.Visible = false
+	scope.Parent = parent
+	local circle = Instance.new("Frame")
+	circle.AnchorPoint = Vector2.new(0.5, 0.5)
+	circle.Position = UDim2.fromScale(0.5, 0.5)
+	circle.Size = UDim2.fromScale(0.8, 0.8)
+	circle.SizeConstraint = Enum.SizeConstraint.RelativeYY
+	circle.BackgroundTransparency = 1
+	circle.Parent = scope
+	round(circle, UDim.new(1, 0))
+	local ring = Instance.new("UIStroke")
+	ring.Thickness = 2000
+	ring.Color = Color3.new(0, 0, 0)
+	ring.Parent = circle
+	for _, horizontal in { true, false } do
+		local line = Instance.new("Frame")
+		line.AnchorPoint = Vector2.new(0.5, 0.5)
+		line.Position = UDim2.fromScale(0.5, 0.5)
+		line.Size = if horizontal then UDim2.new(1, 0, 0, 1) else UDim2.new(0, 1, 1, 0)
+		line.BackgroundColor3 = Color3.new(0, 0, 0)
+		line.BorderSizePixel = 0
+		line.Parent = circle
+	end
+	return scope
+end
+
+-- Botón que se mantiene presionado en celular. Seguimos el dedo exacto que
+-- lo tocó para que no se quede trabado si el dedo se desliza fuera.
 local function bindHoldButton(button: GuiButton, setHeld: (boolean) -> ())
 	local activeTouch: InputObject? = nil
 	button.InputBegan:Connect(function(input)
@@ -115,72 +164,51 @@ local function makeRoundButton(parent: Instance, text: string, position: UDim2, 
 	return button
 end
 
-type PowerSlot = { Frame: GuiButton, Cooldown: Frame, Timer: TextLabel, Level: TextLabel }
+type Slot = { Frame: GuiButton, Cooldown: Frame, Timer: TextLabel, Level: TextLabel }
 
-local function buildPowerSlots(parent: Instance, actions: Actions): { [string]: PowerSlot }
+local function makeSlot(parent: Instance, order: number, icon: string, key: string): Slot
+	local slot = Instance.new("TextButton")
+	slot.LayoutOrder = order
+	slot.Size = UDim2.fromOffset(62, 62)
+	slot.BackgroundColor3 = PANEL_COLOR
+	slot.BackgroundTransparency = 0.2
+	slot.Text = icon
+	slot.TextSize = 28
+	slot.AutoButtonColor = false
+	slot.ClipsDescendants = true
+	slot.Visible = false
+	slot.Parent = parent
+	round(slot, UDim.new(0, 10))
+
+	local cooldown = Instance.new("Frame")
+	cooldown.AnchorPoint = Vector2.new(0, 1)
+	cooldown.Position = UDim2.fromScale(0, 1)
+	cooldown.BackgroundColor3 = Color3.new(0, 0, 0)
+	cooldown.BackgroundTransparency = 0.35
+	cooldown.BorderSizePixel = 0
+	cooldown.Size = UDim2.fromScale(1, 0)
+	cooldown.Parent = slot
+
+	local timer = makeLabel({ Size = UDim2.fromScale(1, 1), TextSize = 20, ZIndex = 2, Parent = slot })
+	makeLabel({ Position = UDim2.fromOffset(4, 2), Size = UDim2.fromOffset(30, 14), Text = if UserInputService.TouchEnabled then "" else key, TextSize = 12, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 2, Parent = slot })
+	local level = makeLabel({ AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -4, 1, -2), Size = UDim2.fromOffset(40, 14), TextSize = 11, TextXAlignment = Enum.TextXAlignment.Right, ZIndex = 2, Parent = slot })
+	return { Frame = slot, Cooldown = cooldown, Timer = timer, Level = level }
+end
+
+local function makeRow(parent: Instance, anchor: Vector2, position: UDim2, size: Vector2): Frame
 	local bar = Instance.new("Frame")
-	bar.AnchorPoint = Vector2.new(0, 1)
-	bar.Position = UDim2.new(0, 16, 1, -16)
-	bar.Size = UDim2.fromOffset(240, 72)
+	bar.AnchorPoint = anchor
+	bar.Position = position
+	bar.Size = UDim2.fromOffset(size.X, size.Y)
 	bar.BackgroundTransparency = 1
 	bar.Parent = parent
-
 	local layout = Instance.new("UIListLayout")
 	layout.FillDirection = Enum.FillDirection.Horizontal
-	layout.Padding = UDim.new(0, 8)
+	layout.HorizontalAlignment = if anchor.X > 0.5 then Enum.HorizontalAlignment.Right else Enum.HorizontalAlignment.Left
+	layout.Padding = UDim.new(0, 6)
 	layout.SortOrder = Enum.SortOrder.LayoutOrder
 	layout.Parent = bar
-
-	local slots = {}
-	for order, name in Config.PowerOrder do
-		local power = Config.Powers[name]
-		local slot = Instance.new("TextButton")
-		slot.LayoutOrder = order
-		slot.Size = UDim2.fromOffset(68, 68)
-		slot.BackgroundColor3 = PANEL_COLOR
-		slot.BackgroundTransparency = 0.2
-		slot.Text = power.Icon
-		slot.TextSize = 32
-		slot.AutoButtonColor = false
-		slot.ClipsDescendants = true
-		slot.Visible = false
-		slot.Parent = bar
-		round(slot, UDim.new(0, 10))
-		slot.Activated:Connect(function()
-			actions.usePower(name)
-		end)
-
-		local cooldown = Instance.new("Frame")
-		cooldown.AnchorPoint = Vector2.new(0, 1)
-		cooldown.Position = UDim2.fromScale(0, 1)
-		cooldown.BackgroundColor3 = Color3.new(0, 0, 0)
-		cooldown.BackgroundTransparency = 0.35
-		cooldown.BorderSizePixel = 0
-		cooldown.Size = UDim2.fromScale(1, 0)
-		cooldown.Parent = slot
-
-		local timer = makeLabel({ Size = UDim2.fromScale(1, 1), TextSize = 22, ZIndex = 2, Parent = slot })
-		makeLabel({
-			Position = UDim2.fromOffset(4, 2),
-			Size = UDim2.fromOffset(20, 16),
-			Text = if UserInputService.TouchEnabled then "" else power.Key.Name,
-			TextSize = 13,
-			TextXAlignment = Enum.TextXAlignment.Left,
-			ZIndex = 2,
-			Parent = slot,
-		})
-		local level = makeLabel({
-			AnchorPoint = Vector2.new(1, 1),
-			Position = UDim2.new(1, -4, 1, -2),
-			Size = UDim2.fromOffset(40, 16),
-			TextSize = 12,
-			TextXAlignment = Enum.TextXAlignment.Right,
-			ZIndex = 2,
-			Parent = slot,
-		})
-		slots[name] = { Frame = slot, Cooldown = cooldown, Timer = timer, Level = level }
-	end
-	return slots
+	return bar
 end
 
 function Hud.flashHitMarker()
@@ -192,73 +220,100 @@ end
 
 function Hud.init(actions: Actions)
 	local gameState = ReplicatedStorage:WaitForChild("GameState")
+	local touch = UserInputService.TouchEnabled
 
 	local gui = Instance.new("ScreenGui")
 	gui.Name = "Hud"
 	gui.ResetOnSpawn = false
 	gui.IgnoreGuiInset = true
 
+	local scope = buildScope(gui)
+	local lowHealth = Instance.new("Frame")
+	lowHealth.Size = UDim2.fromScale(1, 1)
+	lowHealth.BackgroundColor3 = HEALTH_EMPTY
+	lowHealth.BackgroundTransparency = 1
+	lowHealth.Parent = gui
+
 	-- Arriba: oleada, estado y vida de la campana
 	local top = Instance.new("Frame")
 	top.AnchorPoint = Vector2.new(0.5, 0)
 	top.Position = UDim2.new(0.5, 0, 0, 12)
-	top.Size = UDim2.fromOffset(360, 76)
+	top.Size = UDim2.fromOffset(380, 76)
 	top.BackgroundTransparency = 1
 	top.Parent = gui
-
 	local waveLabel = makeLabel({ Size = UDim2.new(1, 0, 0, 30), TextSize = 28, Parent = top })
-	local statusLabel = makeLabel({
-		Position = UDim2.fromOffset(0, 30),
-		Size = UDim2.new(1, 0, 0, 22),
-		TextSize = 18,
-		Font = Enum.Font.GothamBold,
-		Parent = top,
-	})
+	local statusLabel = makeLabel({ AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 30), Size = UDim2.fromOffset(640, 22), TextSize = 17, Font = Enum.Font.GothamBold, Parent = top })
 	local _, bellFill, bellText = makeBar(top, UDim2.fromOffset(0, 56), UDim2.new(1, 0, 0, 18))
 
-	local coinsLabel = makeLabel({
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -16, 0, 12),
-		Size = UDim2.fromOffset(180, 30),
-		TextSize = 24,
-		TextXAlignment = Enum.TextXAlignment.Right,
-		Parent = gui,
-	})
+	-- Arriba a la derecha: monedas, nivel de cuenta y XP de la partida
+	local coinsLabel = makeLabel({ AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -16, 0, 10), Size = UDim2.fromOffset(200, 30), TextSize = 24, TextXAlignment = Enum.TextXAlignment.Right, Parent = gui })
+	local levelLabel = makeLabel({ AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -16, 0, 40), Size = UDim2.fromOffset(240, 20), TextSize = 15, TextColor3 = XP_COLOR, TextXAlignment = Enum.TextXAlignment.Right, Parent = gui })
+	local matchLabel = makeLabel({ AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -16, 0, 60), Size = UDim2.fromOffset(240, 18), TextSize = 13, Font = Enum.Font.GothamBold, TextXAlignment = Enum.TextXAlignment.Right, Parent = gui })
 
-	-- Abajo al centro: nivel y barra de experiencia
-	local xpPanel = Instance.new("Frame")
-	xpPanel.AnchorPoint = Vector2.new(0.5, 1)
-	xpPanel.Position = UDim2.new(0.5, 0, 1, -14)
-	xpPanel.Size = UDim2.fromOffset(420, 34)
-	xpPanel.BackgroundTransparency = 1
-	xpPanel.Parent = gui
-	local levelLabel = makeLabel({ Size = UDim2.new(1, 0, 0, 18), TextSize = 16, Parent = xpPanel })
-	local _, xpFill, xpText = makeBar(xpPanel, UDim2.fromOffset(0, 20), UDim2.new(1, 0, 0, 12))
-	xpFill.BackgroundColor3 = XP_COLOR
-	xpText.TextSize = 10
+	-- Abajo a la izquierda: vida del jugador y poderes
+	local healthBack, healthFill, healthText = makeBar(gui, UDim2.new(0, 16, 1, -100), UDim2.fromOffset(220, 16))
+	local powerRow = makeRow(gui, Vector2.new(0, 1), UDim2.new(0, 16, 1, -14), Vector2.new(320, 62))
+	local powerSlots: { [string]: Slot } = {}
+	for order, name in Config.PowerOrder do
+		local power = Config.Powers[name]
+		local slot = makeSlot(powerRow, order, power.Icon, power.Key.Name)
+		slot.Frame.Activated:Connect(function()
+			actions.usePower(name)
+		end)
+		powerSlots[name] = slot
+	end
+	local dashSlot = makeSlot(powerRow, 10, "💨", "C")
+	dashSlot.Frame.Activated:Connect(actions.dash)
 
-	-- Abajo a la derecha: munición
-	local ammoLabel = makeLabel({
-		AnchorPoint = Vector2.new(1, 1),
-		Position = UDim2.new(1, -20, 1, -30),
-		Size = UDim2.fromOffset(220, 44),
-		TextSize = 40,
-		TextXAlignment = Enum.TextXAlignment.Right,
-		Parent = gui,
-	})
-	local reloadBack, reloadFill = makeBar(gui, UDim2.new(1, -140, 1, -24), UDim2.fromOffset(120, 6))
-	reloadFill.BackgroundColor3 = Color3.fromRGB(255, 220, 90)
+	-- Abajo a la derecha: armas y munición
+	local weaponRow = makeRow(gui, Vector2.new(1, 1), UDim2.new(1, -16, 1, -82), Vector2.new(360, 34))
+	local weaponSlots: { [string]: TextLabel } = {}
+	for slotIndex, id in Config.WeaponOrder do
+		local slot = makeLabel({
+			LayoutOrder = slotIndex,
+			Size = UDim2.fromOffset(64, 34),
+			BackgroundTransparency = 0.3,
+			BackgroundColor3 = PANEL_COLOR,
+			Text = if touch then Config.Weapons[id].Icon else `{slotIndex} {Config.Weapons[id].Icon}`,
+			TextSize = 16,
+			Visible = false,
+			Parent = weaponRow,
+		})
+		round(slot, UDim.new(0, 8))
+		local stroke = Instance.new("UIStroke")
+		stroke.Color = GOLD
+		stroke.Thickness = 2
+		stroke.Parent = slot
+		weaponSlots[id] = slot
+	end
+	local weaponName = makeLabel({ AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -20, 1, -54), Size = UDim2.fromOffset(260, 22), TextSize = 16, Font = Enum.Font.GothamBold, TextXAlignment = Enum.TextXAlignment.Right, Parent = gui })
+	local ammoLabel = makeLabel({ AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -20, 1, -12), Size = UDim2.fromOffset(240, 42), TextSize = 38, TextXAlignment = Enum.TextXAlignment.Right, Parent = gui })
+	local reloadBack, reloadFill = makeBar(gui, UDim2.new(1, -140, 1, -8), UDim2.fromOffset(120, 5))
+	reloadFill.BackgroundColor3 = GOLD
 
-	local powerSlots = buildPowerSlots(gui, actions)
-	buildCrosshair(gui)
+	local crosshair = buildCrosshair(gui)
 
-	if UserInputService.TouchEnabled then
-		local fire = makeRoundButton(gui, "🔫", UDim2.new(1, -40, 1, -150), 110, Color3.fromRGB(220, 60, 50))
+	local aimButton, sprintButton
+	if touch then
+		local fire = makeRoundButton(gui, "🔫", UDim2.new(1, -40, 1, -170), 110, Color3.fromRGB(220, 60, 50))
 		bindHoldButton(fire, actions.setTrigger)
-		local reload = makeRoundButton(gui, "🔄", UDim2.new(1, -160, 1, -170), 64, PANEL_COLOR)
+		local reload = makeRoundButton(gui, "🔄", UDim2.new(1, -165, 1, -190), 60, PANEL_COLOR)
 		reload.Activated:Connect(actions.reload)
-		ammoLabel.Position = UDim2.new(1, -20, 1, -270)
-		reloadBack.Position = UDim2.new(1, -140, 1, -264)
+		local swap = makeRoundButton(gui, "🔁", UDim2.new(1, -165, 1, -260), 54, PANEL_COLOR)
+		swap.Activated:Connect(actions.cycleWeapon)
+		aimButton = makeRoundButton(gui, "🔭", UDim2.new(1, -60, 1, -290), 60, PANEL_COLOR)
+		local aiming = false
+		aimButton.Activated:Connect(function()
+			aiming = not aiming
+			actions.setAiming(aiming)
+		end)
+		sprintButton = makeRoundButton(gui, "🏃", UDim2.new(0, 250, 1, -110), 60, PANEL_COLOR)
+		sprintButton.AnchorPoint = Vector2.new(0, 1)
+		bindHoldButton(sprintButton, actions.setSprint)
+		-- Arriba de los botones de disparo y apuntar para que no se encimen
+		weaponRow.Position = UDim2.new(1, -16, 1, -370)
+		weaponName.Position = UDim2.new(1, -20, 1, -402)
+		healthBack.Position = UDim2.new(0, 16, 1, -100)
 	end
 
 	local function refreshState()
@@ -268,7 +323,7 @@ function Hud.init(actions: Actions)
 		waveLabel.Text = if wave > 0 then `OLEADA {wave}{if isBossWave then " 💀" else ""}` else "PREPÁRATE"
 
 		if state == "Intermission" then
-			statusLabel.Text = `Siguiente oleada en {gameState:GetAttribute("Countdown")}`
+			statusLabel.Text = `Siguiente oleada en {gameState:GetAttribute("Countdown")} · ¡compra en el campamento!`
 		elseif state == "Wave" then
 			statusLabel.Text = `Zombis restantes: {gameState:GetAttribute("EnemiesLeft")}`
 		elseif state == "GameOver" then
@@ -285,39 +340,52 @@ function Hud.init(actions: Actions)
 		bellText.Text = `🔔 {health} / {maxHealth}`
 	end
 
-	local function refreshXp()
-		local xp = player:GetAttribute("Xp") or 0
-		local needed = player:GetAttribute("XpNeeded") or 1
-		levelLabel.Text = `NIVEL {player:GetAttribute("Level") or 1}`
-		xpFill.Size = UDim2.fromScale(math.clamp(xp / needed, 0, 1), 1)
-		xpText.Text = `{xp} / {needed} XP`
+	local function refreshProfile()
+		local data = Profile.get()
+		coinsLabel.Text = `🪙 {Profile.coins()}`
+		local points = data.StatPoints + data.TalentPoints
+		levelLabel.Text = `⭐ Nivel {data.Level} · {data.Xp}/{Progression.xpNeeded(data.Level)} XP{if points > 0 then "  (¡puntos!)" else ""}`
+		local matchXp = player:GetAttribute("MatchXp") or 0
+		matchLabel.Text = if matchXp > 0 then `+{matchXp} XP al terminar la partida` else ""
+		for id, slot in weaponSlots do
+			slot.Visible = data.Weapons[id] ~= nil
+		end
+		if aimButton then
+			aimButton.Visible = Profile.hasTalent("Aim")
+		end
+		if sprintButton then
+			sprintButton.Visible = Profile.hasTalent("Sprint")
+		end
 	end
 
 	gameState.AttributeChanged:Connect(refreshState)
-	player.AttributeChanged:Connect(refreshXp)
+	player.AttributeChanged:Connect(refreshProfile)
+	Profile.Changed:Connect(refreshProfile)
 	refreshState()
-	refreshXp()
+	refreshProfile()
 
-	task.spawn(function()
-		local coins = player:WaitForChild("leaderstats"):WaitForChild("Monedas")
-		local function updateCoins()
-			coinsLabel.Text = `🪙 {coins.Value}`
-		end
-		coins.Changed:Connect(updateCoins)
-		updateCoins()
-	end)
-
-	-- Lo que cambia cada frame: munición y enfriamiento de poderes
+	-- Lo que cambia cada frame
 	RunService.RenderStepped:Connect(function()
+		local data = Profile.get()
+
 		local ammo, magazine, reloadProgress = actions.getAmmo()
 		ammoLabel.Text = if reloadProgress then "RECARGANDO" else `{ammo} / {magazine}`
-		ammoLabel.TextSize = if reloadProgress then 24 else 40
+		ammoLabel.TextSize = if reloadProgress then 24 else 38
 		ammoLabel.TextColor3 = if ammo == 0 and not reloadProgress then HEALTH_EMPTY else Color3.new(1, 1, 1)
 		reloadBack.Visible = reloadProgress ~= nil
 		reloadFill.Size = UDim2.fromScale(reloadProgress or 0, 1)
 
+		local equipped = actions.getEquipped()
+		weaponName.Text = `{Config.Weapons[equipped].DisplayName}{if (data.Weapons[equipped] or 0) > 0 then ` +{data.Weapons[equipped]}` else ""}`
+		for id, slot in weaponSlots do
+			local stroke = slot:FindFirstChildOfClass("UIStroke")
+			if stroke then
+				stroke.Enabled = id == equipped
+			end
+		end
+
 		for name, slot in powerSlots do
-			local level = actions.getPowerLevel(name)
+			local level = data.Powers[name] or 0
 			slot.Frame.Visible = level > 0
 			if level > 0 then
 				local remaining, total = actions.getCooldown(name)
@@ -326,6 +394,24 @@ function Hud.init(actions: Actions)
 				slot.Level.Text = `Nv{level}`
 			end
 		end
+		dashSlot.Frame.Visible = Progression.hasTalent(data, "Dash")
+		local dashRemaining = actions.getDashCooldown()
+		dashSlot.Cooldown.Size = UDim2.fromScale(1, math.clamp(dashRemaining / Config.TalentValues.DashCooldown, 0, 1))
+		dashSlot.Timer.Text = if dashRemaining > 0 then tostring(math.ceil(dashRemaining)) else ""
+
+		local character = player.Character
+		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+		local health = humanoid and humanoid.Health or 0
+		local maxHealth = humanoid and humanoid.MaxHealth or 100
+		local ratio = math.clamp(health / maxHealth, 0, 1)
+		healthFill.Size = UDim2.fromScale(ratio, 1)
+		healthFill.BackgroundColor3 = HEALTH_EMPTY:Lerp(HEALTH_FULL, ratio)
+		healthText.Text = `❤️ {math.ceil(health)} / {math.floor(maxHealth)}`
+		lowHealth.BackgroundTransparency = if ratio < 0.3 and health > 0 then 0.8 + math.sin(os.clock() * 6) * 0.08 else 1
+
+		local scoped = actions.isScoped()
+		scope.Visible = scoped
+		crosshair.Visible = not scoped
 	end)
 
 	gui.Parent = player:WaitForChild("PlayerGui")

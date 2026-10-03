@@ -37,6 +37,15 @@ function GameState.damageBell(amount: number)
 	end
 end
 
+function GameState.repairBell(amount: number): boolean
+	if bellHealth <= 0 or bellHealth >= Config.Bell.MaxHealth then
+		return false
+	end
+	bellHealth = math.min(Config.Bell.MaxHealth, bellHealth + amount)
+	folder:SetAttribute("BellHealth", math.ceil(bellHealth))
+	return true
+end
+
 function GameState.isBellDestroyed(): boolean
 	return bellHealth <= 0
 end

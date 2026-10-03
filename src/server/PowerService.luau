@@ -1,19 +1,21 @@
--- Poderes activos: Granada (Q), Rayo en cadena (E) y Campanazo (F).
--- Se desbloquean y mejoran eligiéndolos al subir de nivel.
+-- Poderes activos: Granada (G), Rayo en cadena (Q) y Campanazo (F).
+-- Se compran y mejoran con la Bruja del campamento.
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage.Shared
-local Config = require(Shared.Config)
+local Progression = require(Shared.Progression)
 local Remotes = require(Shared.Remotes)
-local Upgrades = require(Shared.Upgrades)
 local CombatService = require(script.Parent.CombatService)
+local DataService = require(script.Parent.DataService)
 local EnemyService = require(script.Parent.EnemyService)
-local ProgressionService = require(script.Parent.ProgressionService)
 
 local COOLDOWN_TOLERANCE = 0.25
 local BELL_CENTER = Vector3.zero
 
 local PowerService = {}
+
+local cooldowns: { [Player]: { [string]: number } } = {}
 
 -- Punto del suelo al que apunta el jugador, limitado por el alcance
 local function getGroundTarget(origin: Vector3, direction: Vector3, range: number): Vector3
@@ -52,7 +54,7 @@ end
 
 function handlers.Chain(player: Player, stats, origin: Vector3, aim: Vector3, time: number)
 	local points = { origin }
-	local first = EnemyService.raycast(origin, aim, Config.Weapon.Range, time, 1, 2)[1]
+	local first = EnemyService.raycast(origin, aim, 400, time, 1, 2)[1]
 	if not first then
 		table.insert(points, origin + aim * 40)
 		Remotes.PowerFx:FireAllClients("Chain", points)
@@ -75,7 +77,10 @@ function handlers.Chain(player: Player, stats, origin: Vector3, aim: Vector3, ti
 
 	-- Primero guardamos las posiciones: al dañar, algunos mueren y desaparecen
 	for _, enemyId in targets do
-		table.insert(points, EnemyService.getPosition(enemyId, time))
+		local position = EnemyService.getPosition(enemyId, time)
+		if position then
+			table.insert(points, position)
+		end
 	end
 	Remotes.PowerFx:FireAllClients("Chain", points)
 	for _, enemyId in targets do
@@ -87,6 +92,7 @@ function handlers.Bell(player: Player, stats)
 	local now = workspace:GetServerTimeNow()
 	local affected = EnemyService.getInRadius(BELL_CENTER, stats.Radius, now)
 	EnemyService.knockback(BELL_CENTER, stats.Radius, stats.KnockbackSeconds, now)
+	EnemyService.flushUpdates()
 	Remotes.PowerFx:FireAllClients("Bell", BELL_CENTER, stats.Radius)
 	for _, enemyId in affected do
 		EnemyService.damage(enemyId, stats.Damage, player)
@@ -97,14 +103,15 @@ local function onUsePower(player: Player, name: any, origin: any, direction: any
 	if typeof(name) ~= "string" or not handlers[name] then
 		return
 	end
-	local run = ProgressionService.getRun(player)
-	local level = run and run.Stats.Powers[name] or 0
-	if not run or level < 1 then
+	local data = DataService.get(player)
+	if not data or (data.Powers[name] or 0) < 1 then
 		return
 	end
 
+	local playerCooldowns = cooldowns[player] or {}
+	cooldowns[player] = playerCooldowns
 	local now = os.clock()
-	if (run.Cooldowns[name] or 0) > now + COOLDOWN_TOLERANCE then
+	if (playerCooldowns[name] or 0) > now + COOLDOWN_TOLERANCE then
 		return
 	end
 
@@ -113,13 +120,22 @@ local function onUsePower(player: Player, name: any, origin: any, direction: any
 		return
 	end
 
-	local stats = Upgrades.getPowerStats(name, level)
-	run.Cooldowns[name] = now + stats.Cooldown
+	local stats = Progression.getPowerStats(data, name)
+	playerCooldowns[name] = now + stats.Cooldown
 	handlers[name](player, stats, origin, aim, time)
 end
 
 function PowerService.init()
 	Remotes.UsePower.OnServerEvent:Connect(onUsePower)
+	Players.PlayerRemoving:Connect(function(player)
+		cooldowns[player] = nil
+	end)
+	-- Al reaparecer los poderes están listos
+	Players.PlayerAdded:Connect(function(player)
+		player.CharacterAdded:Connect(function()
+			cooldowns[player] = nil
+		end)
+	end)
 end
 
 return PowerService

@@ -1,0 +1,2 @@
+-- Reemplaza el script "Health" que Roblox pone en cada personaje para que la
+-- vida no se regenere sola. Solo se cura con el talento Regeneración o Vampiro.

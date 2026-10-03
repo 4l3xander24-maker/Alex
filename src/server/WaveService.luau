@@ -4,12 +4,15 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
 local EnemyService = require(script.Parent.EnemyService)
 local GameState = require(script.Parent.GameState)
-local ProgressionService = require(script.Parent.ProgressionService)
+local MatchService = require(script.Parent.MatchService)
+local PlayerService = require(script.Parent.PlayerService)
 
 local waves = Config.Waves
 local random = Random.new()
 
 local WaveService = {}
+
+local currentWave = 0
 
 function WaveService.getEnemyCount(wave: number): number
 	return math.floor(waves.FirstWaveCount * waves.CountGrowth ^ (wave - 1))
@@ -23,6 +26,10 @@ function WaveService.getHealthMultiplier(wave: number): number
 	return 1 + waves.HealthGrowth * (wave - 1)
 end
 
+function WaveService.getCurrentWave(): number
+	return currentWave
+end
+
 -- Elige un tipo de zombi según la oleada. Los tipos especiales se vuelven
 -- más comunes mientras más oleadas pasan desde que aparecieron.
 function WaveService.pickType(wave: number): string
@@ -31,24 +38,24 @@ function WaveService.pickType(wave: number): string
 	for _, entry in waves.Mix do
 		if wave >= entry.FromWave then
 			local weight = entry.Weight * (1 + 0.1 * (wave - entry.FromWave))
-			table.insert(weights, { entry.Type, weight })
+			table.insert(weights, { Type = entry.Type, Weight = weight })
 			total += weight
 		end
 	end
 	local roll = random:NextNumber(0, total)
-	for _, pair in weights do
-		roll -= pair[2]
+	for _, entry in weights do
+		roll -= entry.Weight
 		if roll <= 0 then
-			return pair[1]
+			return entry.Type
 		end
 	end
-	return weights[#weights][1]
+	return weights[#weights].Type
 end
 
-local function runIntermission()
+local function runIntermission(seconds: number)
 	GameState.set("State", "Intermission")
-	for seconds = waves.Intermission, 1, -1 do
-		GameState.set("Countdown", seconds)
+	for remaining = seconds, 1, -1 do
+		GameState.set("Countdown", remaining)
 		task.wait(1)
 	end
 	GameState.set("Countdown", 0)
@@ -56,8 +63,10 @@ end
 
 -- Devuelve true si la campana sobrevivió la oleada
 local function runWave(wave: number): boolean
+	currentWave = wave
 	GameState.set("Wave", wave)
 	GameState.set("State", "Wave")
+	PlayerService.onWaveStart()
 
 	local healthMultiplier = WaveService.getHealthMultiplier(wave)
 	if wave % waves.BossEvery == 0 then
@@ -85,6 +94,7 @@ local function runWave(wave: number): boolean
 
 		GameState.set("EnemiesLeft", toSpawn + EnemyService.getAliveCount())
 	end
+	MatchService.onWaveCleared()
 	return true
 end
 
@@ -97,17 +107,18 @@ function WaveService.start()
 			end
 
 			GameState.resetBell()
-			ProgressionService.resetAll()
 			local wave = 0
 			repeat
 				wave += 1
-				runIntermission()
+				runIntermission(if wave == 1 then waves.FirstIntermission else waves.Intermission)
 			until not runWave(wave)
 
 			GameState.set("State", "GameOver")
 			EnemyService.clear()
 			GameState.set("EnemiesLeft", 0)
+			MatchService.endMatch(wave)
 			task.wait(waves.GameOverDelay)
+			currentWave = 0
 			GameState.set("Wave", 0)
 		end
 	end)

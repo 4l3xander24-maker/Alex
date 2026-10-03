@@ -1,138 +1,147 @@
 -- Construye el mapa por código para que el juego funcione en un lugar vacío:
--- un campanario en el centro de un claro, rodeado de bosque y montañas,
--- de noche, con niebla de color y una luna enorme.
+-- un claro en el bosque con el campanario al frente y el campamento detrás
+-- (fogata, tiendas, empalizada y los NPC). De noche, con niebla de color y
+-- una luna enorme.
 local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local CampBuilder = require(script.Parent.CampBuilder)
+local Props = require(script.Parent.Props)
 
-local STONE = Color3.fromRGB(110, 116, 118)
-local WOOD = Color3.fromRGB(120, 80, 48)
-local DARK_WOOD = Color3.fromRGB(74, 50, 32)
+local STONE = Props.Colors.Stone
+local WOOD = Props.Colors.Wood
+local DARK_WOOD = Props.Colors.DarkWood
 local BRASS = Color3.fromRGB(205, 165, 70)
-local LANTERN = Color3.fromRGB(255, 170, 80)
 local MOON_DIRECTION = Vector3.new(0, 0.42, -1).Unit
 
 local theme = Config.Themes[Config.Theme] or Config.Themes.Verde
 local random = Random.new(7)
+local makePart, makeProp = Props.makePart, Props.makeProp
 
 local MapBuilder = {}
 
-local function makePart(props, className: string?): BasePart
-	local part = Instance.new(className or "Part") :: BasePart
-	part.Anchored = true
-	part.TopSurface = Enum.SurfaceType.Smooth
-	part.BottomSurface = Enum.SurfaceType.Smooth
-	for key, value in props do
-		part[key] = value
+local function buildTerrain()
+	local terrain = workspace.Terrain
+	local arena = Config.Arena
+	terrain:Clear()
+	terrain:SetMaterialColor(Enum.Material.Grass, theme.Ground)
+	terrain:SetMaterialColor(Enum.Material.LeafyGrass, theme.Ground:Lerp(Color3.new(1, 1, 1), 0.08))
+	terrain:SetMaterialColor(Enum.Material.Ground, theme.Ground:Lerp(Color3.fromRGB(80, 60, 40), 0.65))
+	terrain:SetMaterialColor(Enum.Material.Mud, theme.Ground:Lerp(Color3.fromRGB(50, 38, 28), 0.7))
+
+	-- Suelo de pasto con la parte de arriba en y = 0
+	terrain:FillBlock(CFrame.new(0, -4, 0), Vector3.new(arena.GroundSize, 8, arena.GroundSize), Enum.Material.Grass)
+
+	-- Manchas de pasto alto y lodo en el campo de batalla
+	for _ = 1, 40 do
+		local angle = random:NextNumber(0, math.pi * 2)
+		local radius = random:NextNumber(30, 230)
+		local material = if random:NextNumber() < 0.6 then Enum.Material.LeafyGrass else Enum.Material.Mud
+		terrain:FillBall(Vector3.new(math.cos(angle) * radius, -3.2, math.sin(angle) * radius), random:NextNumber(4, 9), material)
 	end
-	return part
-end
 
--- Decoración que no debe estorbar a los disparos ni a los jugadores
-local function makeProp(props, className: string?): BasePart
-	props.CanCollide = false
-	props.CanQuery = false
-	props.CanTouch = false
-	return makePart(props, className)
-end
+	-- Tierra pisada en el campamento y el camino hacia la campana
+	local camp = arena.CampCenter
+	terrain:FillCylinder(CFrame.new(camp.X, -2, camp.Z), 4.1, arena.CampRadius, Enum.Material.Ground)
+	terrain:FillBlock(CFrame.new(0, -2, camp.Z / 2), Vector3.new(8, 4.1, camp.Z), Enum.Material.Ground)
 
-local function vary(color: Color3, amount: number): Color3
-	local factor = 1 + random:NextNumber(-amount, amount)
-	return Color3.new(math.min(color.R * factor, 1), math.min(color.G * factor, 1), math.min(color.B * factor, 1))
-end
-
-local function addLantern(map: Instance, position: Vector3)
-	makePart({ Name = "LanternPost", Size = Vector3.new(0.4, 4, 0.4), Position = position + Vector3.new(0, 2, 0), Material = Enum.Material.Wood, Color = DARK_WOOD, Parent = map })
-	local lantern = makeProp({
-		Name = "Lantern",
-		Size = Vector3.new(0.9, 1.1, 0.9),
-		Position = position + Vector3.new(0, 4.5, 0),
-		Material = Enum.Material.Neon,
-		Color = LANTERN,
-		Parent = map,
-	})
-	local light = Instance.new("PointLight")
-	light.Color = LANTERN
-	light.Range = 22
-	light.Brightness = 1.6
-	light.Shadows = true
-	light.Parent = lantern
+	-- Pasto 3D animado (si Roblox lo permite desde un script)
+	pcall(function()
+		(terrain :: any).Decoration = true
+	end)
 end
 
 local function buildTower(map: Instance)
 	local arena = Config.Arena
 	local size, height = arena.TowerSize, arena.TowerHeight
 
-	makePart({ Name = "TowerBase", Size = Vector3.new(size, height, size), Position = Vector3.new(0, height / 2, 0), Material = Enum.Material.Slate, Color = STONE, Parent = map })
+	makePart({ Name = "TowerBase", Size = Vector3.new(size, height, size), Position = Vector3.new(0, height / 2, 0), Material = Enum.Material.Cobblestone, Color = STONE, Parent = map })
 	makePart({ Name = "Deck", Size = Vector3.new(size - 1, 0.4, size - 1), Position = Vector3.new(0, height + 0.2, 0), Material = Enum.Material.WoodPlanks, Color = WOOD, Parent = map })
 	local top = height + 0.4
 	local edge = size / 2 - 0.5
 
-	-- Baranda de madera
+	-- Rampa hacia el campamento (lado +Z)
+	makePart({
+		Name = "Ramp",
+		Size = Vector3.new(5, height, 13),
+		CFrame = CFrame.new(0, height / 2, size / 2 + 6.5) * CFrame.Angles(0, math.pi, 0),
+		Material = Enum.Material.WoodPlanks,
+		Color = WOOD,
+		Parent = map,
+	}, "WedgePart")
+
+	-- Baranda con hueco donde llega la rampa
+	makePart({ Name = "Rail", Size = Vector3.new(size, 0.4, 0.4), Position = Vector3.new(0, top + 2.2, -edge), Material = Enum.Material.Wood, Color = DARK_WOOD, Parent = map })
 	for _, side in { -1, 1 } do
-		makePart({ Name = "Rail", Size = Vector3.new(size, 0.4, 0.4), Position = Vector3.new(0, top + 2.2, side * edge), Material = Enum.Material.Wood, Color = DARK_WOOD, Parent = map })
 		makePart({ Name = "Rail", Size = Vector3.new(0.4, 0.4, size), Position = Vector3.new(side * edge, top + 2.2, 0), Material = Enum.Material.Wood, Color = DARK_WOOD, Parent = map })
+		makePart({ Name = "Rail", Size = Vector3.new(size / 2 - 3, 0.4, 0.4), Position = Vector3.new(side * (size / 4 + 1.5), top + 2.2, edge), Material = Enum.Material.Wood, Color = DARK_WOOD, Parent = map })
 	end
-	for offset = -edge, edge, 3 do
-		for _, spot in { Vector3.new(offset, 0, -edge), Vector3.new(offset, 0, edge), Vector3.new(-edge, 0, offset), Vector3.new(edge, 0, offset) } do
+	for offset = -edge, edge, 2.6 do
+		local spots = { Vector3.new(offset, 0, -edge), Vector3.new(-edge, 0, offset), Vector3.new(edge, 0, offset) }
+		if math.abs(offset) > 3 then
+			table.insert(spots, Vector3.new(offset, 0, edge))
+		end
+		for _, spot in spots do
 			makePart({ Name = "Post", Size = Vector3.new(0.5, 2.4, 0.5), Position = spot + Vector3.new(0, top + 1.2, 0), Material = Enum.Material.Wood, Color = DARK_WOOD, Parent = map })
 		end
 	end
 	for _, corner in { Vector3.new(-1, 0, -1), Vector3.new(1, 0, -1), Vector3.new(-1, 0, 1), Vector3.new(1, 0, 1) } do
-		addLantern(map, corner * (edge - 0.6) + Vector3.new(0, top, 0))
+		Props.lantern(map, corner * (edge - 0.6) + Vector3.new(0, top, 0))
 	end
 
 	-- Estructura que sostiene la campana
-	local frameHeight = 12
+	local frameHeight = 11
 	for _, corner in { Vector3.new(-1, 0, -1), Vector3.new(1, 0, -1), Vector3.new(-1, 0, 1), Vector3.new(1, 0, 1) } do
-		makePart({ Name = "Pillar", Size = Vector3.new(1, frameHeight, 1), Position = corner * 3.5 + Vector3.new(0, top + frameHeight / 2, 0), Material = Enum.Material.Wood, Color = DARK_WOOD, Parent = map })
+		makePart({ Name = "Pillar", Size = Vector3.new(1, frameHeight, 1), Position = corner * 3.2 + Vector3.new(0, top + frameHeight / 2, 0), Material = Enum.Material.Wood, Color = DARK_WOOD, Parent = map })
 	end
 	for _, side in { -1, 1 } do
-		makePart({ Name = "Beam", Size = Vector3.new(8, 0.8, 1), Position = Vector3.new(0, top + frameHeight, side * 3.5), Material = Enum.Material.Wood, Color = DARK_WOOD, Parent = map })
-		makePart({ Name = "Beam", Size = Vector3.new(1, 0.8, 8), Position = Vector3.new(side * 3.5, top + frameHeight, 0), Material = Enum.Material.Wood, Color = DARK_WOOD, Parent = map })
+		makePart({ Name = "Beam", Size = Vector3.new(7.4, 0.8, 1), Position = Vector3.new(0, top + frameHeight, side * 3.2), Material = Enum.Material.Wood, Color = DARK_WOOD, Parent = map })
+		makePart({ Name = "Beam", Size = Vector3.new(1, 0.8, 7.4), Position = Vector3.new(side * 3.2, top + frameHeight, 0), Material = Enum.Material.Wood, Color = DARK_WOOD, Parent = map })
 	end
 	local roofY = top + frameHeight + 1.9
-	makePart({ Name = "Roof", Size = Vector3.new(9.5, 3, 5), CFrame = CFrame.new(0, roofY, -2.5), Material = Enum.Material.WoodPlanks, Color = DARK_WOOD, Parent = map }, "WedgePart")
-	makePart({ Name = "Roof", Size = Vector3.new(9.5, 3, 5), CFrame = CFrame.new(0, roofY, 2.5) * CFrame.Angles(0, math.pi, 0), Material = Enum.Material.WoodPlanks, Color = DARK_WOOD, Parent = map }, "WedgePart")
+	for _, side in { -1, 1 } do
+		makePart({
+			Name = "Roof",
+			Size = Vector3.new(9, 3, 4.6),
+			CFrame = CFrame.new(0, roofY, side * 2.3) * CFrame.Angles(0, if side > 0 then math.pi else 0, 0),
+			Material = Enum.Material.WoodPlanks,
+			Color = DARK_WOOD,
+			Parent = map,
+		}, "WedgePart")
+	end
 
 	-- La campana
 	local bell = Instance.new("Model")
 	bell.Name = "Bell"
 	local bellTop = top + frameHeight - 0.6
 	makePart({ Name = "Yoke", Size = Vector3.new(3, 0.6, 1), Position = Vector3.new(0, bellTop, 0), Material = Enum.Material.Wood, Color = DARK_WOOD, Parent = bell })
-	local layers = {
-		{ Size = 1.6, Height = 0.8 },
-		{ Size = 2.6, Height = 1.6 },
-		{ Size = 3.4, Height = 1.4 },
-		{ Size = 4, Height = 0.5 },
-	}
 	local y = bellTop - 0.3
-	for _, layer in layers do
-		y -= layer.Height / 2
-		makePart({ Name = "BellBody", Size = Vector3.new(layer.Size, layer.Height, layer.Size), Position = Vector3.new(0, y, 0), Material = Enum.Material.Metal, Color = BRASS, Parent = bell })
-		y -= layer.Height / 2
+	for _, layer in { { 1.6, 0.8 }, { 2.6, 1.6 }, { 3.4, 1.4 }, { 4, 0.5 } } do
+		y -= layer[2] / 2
+		makePart({ Name = "BellBody", Size = Vector3.new(layer[1], layer[2], layer[1]), Position = Vector3.new(0, y, 0), Material = Enum.Material.Metal, Color = BRASS, Parent = bell })
+		y -= layer[2] / 2
 	end
 	makePart({ Name = "Clapper", Size = Vector3.new(0.6, 0.8, 0.6), Position = Vector3.new(0, y - 0.3, 0), Material = Enum.Material.Metal, Color = BRASS:Lerp(Color3.new(0, 0, 0), 0.4), Parent = bell })
 	bell.Parent = map
 
-	local spawn = Instance.new("SpawnLocation")
-	spawn.Name = "TowerSpawn"
-	spawn.Anchored = true
-	spawn.Neutral = true
-	spawn.Duration = 0
-	spawn.Size = Vector3.new(10, 1, 4)
-	spawn.CFrame = CFrame.new(0, top + 0.5, -6)
-	spawn.Transparency = 1
-	spawn.CanCollide = false
-	spawn.Parent = map
+	-- Talento Reparador: mantener E junto a la base
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.Name = "RepairPrompt"
+	prompt.ActionText = "Reparar campana"
+	prompt.ObjectText = "Campana"
+	prompt.HoldDuration = 1
+	prompt.MaxActivationDistance = 14
+	prompt.RequiresLineOfSight = false
+	prompt:SetAttribute("Repair", true)
+	prompt.Parent = map:FindFirstChild("TowerBase")
 end
 
 local function buildPine(map: Instance, position: Vector3, scale: number)
 	local tree = Instance.new("Model")
 	tree.Name = "Pine"
 	makeProp({ Name = "Trunk", Size = Vector3.new(1.4, 4, 1.4) * scale, Position = position + Vector3.new(0, 2 * scale, 0), Material = Enum.Material.Wood, Color = DARK_WOOD, Parent = tree })
-	local color = vary(theme.Tree, 0.15)
+	local color = Props.vary(theme.Tree, 0.15, random)
 	local y = 4 * scale
 	for index, width in { 9, 7, 5, 3 } do
 		local layerHeight = (if index == 4 then 2.5 else 3.2) * scale
@@ -140,7 +149,7 @@ local function buildPine(map: Instance, position: Vector3, scale: number)
 			Name = "Leaves",
 			Size = Vector3.new(width * scale, layerHeight, width * scale),
 			CFrame = CFrame.new(position + Vector3.new(0, y + layerHeight / 2, 0)) * CFrame.Angles(0, random:NextNumber(0, math.pi / 2), 0),
-			Material = Enum.Material.SmoothPlastic,
+			Material = Enum.Material.Grass,
 			Color = color:Lerp(Color3.new(1, 1, 1), index * 0.03),
 			Parent = tree,
 		})
@@ -158,20 +167,6 @@ end
 local function buildScenery(map: Instance)
 	local arena = Config.Arena
 
-	makePart({ Name = "Ground", Size = Vector3.new(arena.GroundSize, 2, arena.GroundSize), Position = Vector3.new(0, -1, 0), Material = Enum.Material.Grass, Color = theme.Ground, Parent = map })
-
-	for _ = 1, 30 do
-		local position = randomRingPoint(20, 200)
-		makeProp({ Name = "Dirt", Size = Vector3.new(random:NextNumber(6, 16), 0.1, random:NextNumber(6, 16)), CFrame = CFrame.new(position + Vector3.new(0, 0.05, 0)) * CFrame.Angles(0, random:NextNumber(0, math.pi), 0), Material = Enum.Material.Ground, Color = vary(theme.Ground:Lerp(Color3.fromRGB(70, 50, 35), 0.6), 0.1), Parent = map })
-	end
-
-	local grass = theme.Ground:Lerp(Color3.new(1, 1, 1), 0.15)
-	for _ = 1, 350 do
-		local position = randomRingPoint(14, 230)
-		local height = random:NextNumber(0.4, 1)
-		makeProp({ Name = "Grass", Size = Vector3.new(0.6, height, 0.25), Position = position + Vector3.new(0, height / 2, 0), Material = Enum.Material.SmoothPlastic, Color = vary(grass, 0.15), CastShadow = false, Parent = map })
-	end
-
 	-- Lápidas donde nacen los zombis
 	local halfArc = math.rad(arena.SpawnArc / 2 + 10)
 	for _ = 1, 40 do
@@ -184,19 +179,34 @@ local function buildScenery(map: Instance)
 			CFrame = CFrame.new(math.sin(angle) * radius, height / 2, -math.cos(angle) * radius)
 				* CFrame.Angles(random:NextNumber(-0.15, 0.15), -angle, random:NextNumber(-0.15, 0.15)),
 			Material = Enum.Material.Slate,
-			Color = vary(Color3.fromRGB(105, 108, 112), 0.1),
+			Color = Props.vary(Color3.fromRGB(105, 108, 112), 0.1, random),
+			Parent = map,
+		})
+	end
+
+	-- Rocas sueltas
+	for _ = 1, 45 do
+		local position = randomRingPoint(40, 260)
+		local size = random:NextNumber(2, 6)
+		makePart({
+			Name = "Rock",
+			Size = Vector3.new(size * 1.3, size * 0.7, size),
+			CFrame = CFrame.new(position + Vector3.new(0, size * 0.25, 0)) * CFrame.Angles(random:NextNumber(-0.3, 0.3), random:NextNumber(0, math.pi), random:NextNumber(-0.3, 0.3)),
+			Material = Enum.Material.Slate,
+			Color = Props.vary(Color3.fromRGB(96, 100, 104), 0.12, random),
 			Parent = map,
 		})
 	end
 
 	-- Bosque alrededor del claro
-	for _ = 1, 140 do
+	for _ = 1, 150 do
 		buildPine(map, randomRingPoint(225, 430), random:NextNumber(1, 1.8))
 	end
-	for _ = 1, 25 do
-		local position = randomRingPoint(40, 200)
-		if position.Z > 25 then -- solo detrás de la campana, para no tapar la horda
-			buildPine(map, position, random:NextNumber(0.9, 1.4))
+	-- Algunos pinos sueltos a los lados y detrás del campamento
+	for _ = 1, 40 do
+		local position = randomRingPoint(95, 210)
+		if position.Z > 0 or math.abs(position.X) > 120 then
+			buildPine(map, position, random:NextNumber(0.9, 1.5))
 		end
 	end
 
@@ -210,10 +220,25 @@ local function buildScenery(map: Instance)
 		for step = 1, 3 do
 			local layerWidth = width * (1 - (step - 1) * 0.3)
 			local layerHeight = random:NextNumber(50, 80)
-			makeProp({ Name = "Mountain", Size = Vector3.new(layerWidth, layerHeight, layerWidth), CFrame = CFrame.new(base + Vector3.new(0, y + layerHeight / 2, 0)) * CFrame.Angles(0, math.rad(45), 0), Material = Enum.Material.Slate, Color = vary(theme.Mountain, 0.08), CastShadow = false, Parent = map })
+			makeProp({ Name = "Mountain", Size = Vector3.new(layerWidth, layerHeight, layerWidth), CFrame = CFrame.new(base + Vector3.new(0, y + layerHeight / 2, 0)) * CFrame.Angles(0, math.rad(45), 0), Material = Enum.Material.Slate, Color = Props.vary(theme.Mountain, 0.08, random), CastShadow = false, Parent = map })
 			y += layerHeight * 0.9
 		end
 	end
+
+	-- Luciérnagas flotando sobre el campo
+	local fireflies = makeProp({ Name = "Fireflies", Size = Vector3.new(260, 8, 200), Position = Vector3.new(0, 4, -40), Transparency = 1, Parent = map })
+	local emitter = Instance.new("ParticleEmitter")
+	emitter.Shape = Enum.ParticleEmitterShape.Box
+	emitter.ShapeStyle = Enum.ParticleEmitterShapeStyle.Volume
+	emitter.Rate = 25
+	emitter.Lifetime = NumberRange.new(5, 9)
+	emitter.Speed = NumberRange.new(0.3, 1)
+	emitter.SpreadAngle = Vector2.new(180, 180)
+	emitter.Size = NumberSequence.new(0.25)
+	emitter.LightEmission = 1
+	emitter.Color = ColorSequence.new(Color3.fromRGB(220, 255, 140))
+	emitter.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(0.3, 0), NumberSequenceKeypoint.new(0.7, 0), NumberSequenceKeypoint.new(1, 1) })
+	emitter.Parent = fireflies
 end
 
 -- Busca hora y latitud para que la luna quede grande, de noche y justo
@@ -255,7 +280,7 @@ local function setupLighting()
 	sky.Parent = Lighting
 
 	local atmosphere = Instance.new("Atmosphere")
-	atmosphere.Density = 0.38
+	atmosphere.Density = 0.36
 	atmosphere.Offset = 0.15
 	atmosphere.Color = theme.Atmosphere
 	atmosphere.Decay = theme.Decay
@@ -278,20 +303,23 @@ local function setupLighting()
 	aimMoon()
 end
 
-function MapBuilder.build()
+function MapBuilder.build(): Folder
 	for _, child in workspace:GetChildren() do
 		if child.Name == "Baseplate" or child:IsA("SpawnLocation") then
 			child:Destroy()
 		end
 	end
 
+	buildTerrain()
 	local map = Instance.new("Folder")
 	map.Name = "Map"
 	buildScenery(map)
 	buildTower(map)
+	CampBuilder.build(map)
 	map.Parent = workspace
 
 	setupLighting()
+	return map
 end
 
 return MapBuilder

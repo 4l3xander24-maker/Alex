@@ -1,5 +1,6 @@
 -- Poderes: lee las teclas, lleva el enfriamiento local y dibuja los efectos
 -- que manda el servidor (para que todos los jugadores los vean).
+-- Los poderes se compran con la Bruja; el nivel sale del perfil.
 local Debris = game:GetService("Debris")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -10,7 +11,8 @@ local UserInputService = game:GetService("UserInputService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
 local Remotes = require(Shared.Remotes)
-local Upgrades = require(Shared.Upgrades)
+local Progression = require(Shared.Progression)
+local Profile = require(script.Parent.Profile)
 local Viewmodel = require(script.Parent.Viewmodel)
 
 local EXPLOSION_COLOR = Color3.fromRGB(255, 140, 50)
@@ -122,10 +124,19 @@ local function bellFx(center: Vector3, radius: number)
 	end
 end
 
+-- Talento Balas explosivas: explosión pequeña
+local function bulletExplosionFx(position: Vector3, radius: number)
+	local ball = newFxPart(Vector3.one, EXPLOSION_COLOR)
+	ball.Shape = Enum.PartType.Ball
+	ball.Position = position
+	fadeOut(ball, 0.25, { Size = Vector3.one * radius * 2 })
+end
+
 local fxHandlers = {
 	Grenade = grenadeFx,
 	Chain = chainFx,
 	Bell = bellFx,
+	Explosion = bulletExplosionFx,
 }
 
 local function isAlive(): boolean
@@ -135,7 +146,7 @@ local function isAlive(): boolean
 end
 
 function PowerController.getLevel(name: string): number
-	return player:GetAttribute("Power_" .. name) or 0
+	return Profile.get().Powers[name] or 0
 end
 
 function PowerController.use(name: string)
@@ -143,7 +154,7 @@ function PowerController.use(name: string)
 	if level < 1 or os.clock() < (readyAt[name] or 0) or not isAlive() then
 		return
 	end
-	local stats = Upgrades.getPowerStats(name, level)
+	local stats = Progression.getPowerStats(Profile.get(), name)
 	readyAt[name] = os.clock() + stats.Cooldown
 	totalCooldown[name] = stats.Cooldown
 
@@ -170,7 +181,8 @@ function PowerController.init()
 		end
 	end)
 
-	player:GetAttributeChangedSignal("RunId"):Connect(function()
+	-- Al reaparecer los poderes están listos (igual que en el servidor)
+	player.CharacterAdded:Connect(function()
 		table.clear(readyAt)
 	end)
 

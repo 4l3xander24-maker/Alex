@@ -10,14 +10,16 @@ local EVENTS = {
 	"EnemiesCleared",
 	"EnemyPathsUpdated",
 	"PowerFx",
-	"LevelUpOffer",
+	"ProfileUpdated",
+	"MatchSummary",
+	"Notify",
 	-- cliente -> servidor
 	"Shoot",
 	"Reload",
 	"UsePower",
-	"ChooseUpgrade",
+	"EquipWeapon",
 }
-local FUNCTIONS = { "GetSnapshot" }
+local FUNCTIONS = { "GetSnapshot", "ShopAction" }
 
 local Remotes = {}
 

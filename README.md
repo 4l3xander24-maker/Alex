@@ -1,7 +1,7 @@
 # Campana Maldita 🔔🧟
 
-Juego de Roblox en primera persona: defiende la campana de hordas de muertos vivientes.
-Sube de nivel, elige mejoras, desbloquea poderes y aguanta todas las oleadas que puedas.
+Juego de Roblox en primera persona: defiende la campana de tu campamento de hordas de muertos vivientes.
+Muévete por el mapa, compra armas y poderes a los NPC, sube de nivel tu cuenta y aprende talentos.
 
 ![Vista previa](docs/preview.png)
 
@@ -10,13 +10,18 @@ _Vista previa: recreación con las medidas, colores y sprites del juego, no es c
 Más vistas previas en [`docs/capturas/`](docs/capturas/). El diseño completo está en [`docs/DISENO.md`](docs/DISENO.md).
 
 ## Qué tiene ya
-- Campanario en un claro del bosque, de noche, con luna enorme, niebla verde y faroles.
-- Zombis pixelados en 4 tipos: Caminante, Corredor, Bruto y Abominación (jefe cada 5 oleadas).
-- Arma con manos en primera persona, retroceso, destello y munición (recarga con **R**).
-- XP y niveles: al subir eliges 1 de 3 mejoras con clic o con las teclas **1 / 2 / 3**.
-- Poderes: **Q** Granada, **E** Rayo en cadena, **F** Campanazo.
-- Monedas por cada baja.
-- Cooperativo, y funciona en celular (botones de disparo, recarga y poderes).
+- **Mapa abierto**: campanario al frente, campamento detrás (fogata, tiendas, empalizada) y bosque alrededor.
+- **3 NPC** en el campamento (habla con **E**):
+  - **Bruno, el Armero**: 5 armas (pistola, escopeta, rifle, francotirador, ametralladora) y sus mejoras.
+  - **Morgana, la Bruja**: poderes (granada, rayo en cadena, campanazo) y sus mejoras.
+  - **Don Ramiro, el Veterano**: gasta tus puntos de mejora y aprende talentos.
+- **Zombis que te persiguen** si te acercas, y vuelven a atacar la campana si te alejas. Tienes vida y reapareces.
+- **4 tipos de zombi** pixelados y una Abominación (jefe) cada 5 oleadas.
+- **Nivel de cuenta**: al terminar la partida ganas XP. Cada nivel da 1 punto de mejora (daño, vida, velocidad,
+  recarga, cadencia, munición, crítico, botín, poder) y cada 5 niveles un **talento** (apuntar, correr,
+  regeneración, vampiro, doble salto, esquivar, último aliento, balas explosivas, codicia, reparador).
+- **Todo se guarda** (monedas, nivel, armas, poderes, talentos) con DataStore.
+- Cooperativo, y funciona en celular.
 
 ## Cómo probarlo en tu Mac
 
@@ -29,8 +34,11 @@ Más vistas previas en [`docs/capturas/`](docs/capturas/). El diseño completo e
    ```
 2. **Arranca Rojo**: `rojo serve`
 3. En Roblox Studio abre un **Baseplate** nuevo → **Plugins** → **Rojo** → **Connect** → **Play**.
-4. Recomendado: en el panel Explorer selecciona **Lighting** y pon `Technology = Future`
-   para que los faroles den sombras.
+4. **Para que se guarde el progreso en Studio**: Home → Game Settings → Security →
+   **Enable Studio Access to API Services** (el juego tiene que estar publicado).
+5. **Mejores gráficos** (recomendado), en el panel Explorer:
+   - **Lighting** → `Technology = Future` (sombras de la fogata y los faroles).
+   - **Terrain** → `Decoration = true` (pasto 3D que se mueve con el viento).
 
 ## Subir los sprites de los zombis
 
@@ -51,41 +59,54 @@ Para cambiar o crear sprites, edita `tools/make_sprites.py` y ejecuta `python3 t
 |---|---|---|
 | Disparar | Clic izquierdo (mantener) | Botón 🔫 |
 | Recargar | R | Botón 🔄 |
-| Poderes | Q / E / F | Botones abajo a la izquierda |
-| Elegir mejora | Clic o 1 / 2 / 3 | Tocar la carta |
+| Cambiar de arma | 1 - 5 | Botón 🔁 |
+| Hablar con NPC / reparar campana | E | Tocar el aviso |
+| Poderes | G granada · Q rayo · F campanazo | Botones abajo a la izquierda |
+| Apuntar (talento Puntería) | Clic derecho | Botón 🔭 |
+| Correr (talento Correr) | Shift | Botón 🏃 |
+| Esquivar (talento Esquivar) | C | Botón 💨 |
 
 ## Estructura
 
 ```
 src/
-  shared/                  → ReplicatedStorage.Shared (servidor y cliente)
-    Config.luau            ← TODOS los números del juego (balance, enemigos, poderes, tema)
-    Upgrades.luau          ← mejoras al subir de nivel y fuerza de los poderes
-    EnemyMath.luau         ← movimiento determinista de los zombis
-    Remotes.luau           ← comunicación servidor ↔ cliente
-  server/                  → ServerScriptService.Server
-    MapBuilder.luau        ← campanario, bosque, montañas, luna y niebla
-    GameState.luau         ← vida de la campana, oleada, estado
-    EnemyService.luau      ← zombis (daño, impactos, empuje)
-    WaveService.luau       ← oleadas, mezcla de enemigos y jefes
-    ProgressionService.luau← XP, niveles, cartas de mejora, munición
-    CombatService.luau     ← valida disparos y recargas (anti-trampas)
-    PowerService.luau      ← granada, rayo y campanazo
-    PlayerService.luau     ← monedas, bajas, cámara
-  client/                  → StarterPlayerScripts.Client
-    EnemyRenderer.luau     ← dibuja los zombis (sprites o bloques)
-    Viewmodel.luau         ← arma y manos en primera persona
-    WeaponController.luau  ← disparo, munición, recarga
-    PowerController.luau   ← teclas de poderes y sus efectos
-    UpgradeMenu.luau       ← cartas de "¡subiste de nivel!"
-    Hud.luau               ← interfaz
-assets/sprites/            ← PNG de los zombis
-tools/make_sprites.py      ← generador de los sprites
+  shared/                   → ReplicatedStorage.Shared (servidor y cliente)
+    Config.luau             ← TODOS los números del juego (enemigos, armas, poderes, mejoras, talentos)
+    Progression.luau        ← perfil, nivel de cuenta y cálculo de estadísticas
+    EnemyMath.luau          ← movimiento de los zombis
+    Remotes.luau            ← comunicación servidor ↔ cliente
+  server/                   → ServerScriptService.Server
+    MapBuilder.luau         ← terreno, campanario, bosque, luna y niebla
+    CampBuilder.luau        ← fogata, tiendas, empalizada, puestos y NPC
+    Props.luau              ← piezas del mapa (faroles, cajas, letreros…)
+    DataService.luau        ← guardado del perfil (DataStore)
+    ShopService.luau        ← compras del Armero, la Bruja y el Veterano
+    MatchService.luau       ← estadísticas de la partida y XP final
+    EnemyService.luau       ← zombis (persecución, daño, empuje)
+    WaveService.luau        ← oleadas y jefes
+    CombatService.luau      ← valida disparos y munición (anti-trampas)
+    PowerService.luau       ← granada, rayo y campanazo
+    PlayerService.luau      ← vida, velocidad y talentos del servidor
+    GameState.luau          ← vida de la campana y estado
+  client/                   → StarterPlayerScripts.Client
+    Profile.luau            ← copia local del perfil
+    ShopUI.luau             ← ventanas de los NPC
+    MatchSummary.luau       ← pantalla de fin de partida
+    Hud.luau / Notify.luau  ← interfaz y avisos
+    WeaponController.luau   ← disparo, munición, cambio de arma, apuntar
+    MovementController.luau ← correr, doble salto, esquivar
+    PowerController.luau    ← poderes y sus efectos
+    Viewmodel.luau          ← armas y manos en primera persona
+    EnemyRenderer.luau      ← dibuja los zombis
+  character/Health.server.luau ← quita la regeneración automática de Roblox
+assets/sprites/             ← PNG de los zombis
+tools/make_sprites.py       ← generador de los sprites
 ```
 
 ## Balance rápido
 Todo está en `src/shared/Config.luau`:
 - ¿Muy fácil? Sube `Waves.CountGrowth` o la `Speed` de los enemigos.
-- ¿La campana cae muy rápido? Sube `Bell.MaxHealth`.
-- ¿Subes de nivel muy lento? Baja `Progression.XpBase`.
+- ¿Los zombis pegan muy fuerte? Baja `PlayerDamage` de cada enemigo.
+- ¿Subes de nivel muy lento? Baja `Progression.XpBase` o sube `XpPerKill`.
+- ¿Las armas son muy caras? Cambia `Price` en `Config.Weapons`.
 - ¿Otro ambiente? Cambia `Theme` a `"Morado"` o `"Ambar"`.

@@ -1,5 +1,10 @@
 -- Los enemigos no son Humanoids: son datos en el servidor. Los clientes los
 -- dibujan, así aguantamos cientos de zombis a la vez.
+--
+-- Cada zombi camina en línea recta hacia un objetivo. Por defecto es la
+-- campana; si un jugador se acerca, el zombi cambia de objetivo y lo persigue
+-- (se recalcula su línea recta varias veces por segundo).
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage.Shared
@@ -7,31 +12,73 @@ local Config = require(Shared.Config)
 local EnemyMath = require(Shared.EnemyMath)
 local Remotes = require(Shared.Remotes)
 
+local hunt = Config.Hunt
+local RETARGET_DISTANCE = 3 -- solo recalculamos si el jugador se movió más que esto
+-- Los jugadores sobre el campanario están fuera del alcance de los zombis
+-- (el HumanoidRootPart de alguien parado en el suelo está a ~3 studs)
+local MAX_REACHABLE_HEIGHT = 7
+
 export type Enemy = {
 	Id: number,
 	Type: string,
 	Health: number,
 	Path: EnemyMath.Path,
 	Radius: number,
+	HalfHeight: number,
+	BellTarget: Vector3,
+	Chasing: Player?,
 	DamagePerSecond: number,
+	PlayerDamage: number,
 	Coins: number,
-	Xp: number,
+	IsBoss: boolean,
 }
 
 local EnemyService = {}
 
 local enemies: { [number]: Enemy } = {}
 local aliveCount = 0
+local chaserCount = 0
 local nextId = 0
 local random = Random.new()
+local pendingUpdates = {}
 local killHandler: ((Player, Enemy) -> ())? = nil
+local playerDamageHandler: ((Player, number) -> ())? = nil
 
 function EnemyService.setKillHandler(handler: (Player, Enemy) -> ())
 	killHandler = handler
 end
 
+function EnemyService.setPlayerDamageHandler(handler: (Player, number) -> ())
+	playerDamageHandler = handler
+end
+
 function EnemyService.getAliveCount(): number
 	return aliveCount
+end
+
+local function flatDistance(a: Vector3, b: Vector3): number
+	return Vector3.new(a.X - b.X, 0, a.Z - b.Z).Magnitude
+end
+
+-- Cambia la línea recta del zombi y la anota para mandarla a los clientes
+local function setPath(enemy: Enemy, start: Vector3, target: Vector3, now: number)
+	enemy.Path = EnemyMath.newPath(start, target, enemy.Path.Speed, now)
+	pendingUpdates[enemy.Id] = enemy
+end
+
+local function stopChasing(enemy: Enemy)
+	if enemy.Chasing then
+		enemy.Chasing = nil
+		chaserCount -= 1
+	end
+end
+
+-- Punto junto al jugador, del lado por donde viene el zombi
+local function chasePoint(enemy: Enemy, from: Vector3, playerPosition: Vector3): Vector3
+	local offset = Vector3.new(from.X - playerPosition.X, 0, from.Z - playerPosition.Z)
+	local direction = if offset.Magnitude > 0.01 then offset.Unit else Vector3.new(0, 0, -1)
+	local point = playerPosition + direction * (enemy.Radius + 1)
+	return Vector3.new(point.X, enemy.HalfHeight, point.Z)
 end
 
 -- Los zombis salen de un arco frente a la campana y caminan hacia ella
@@ -58,9 +105,13 @@ function EnemyService.spawn(typeName: string, healthMultiplier: number)
 		Health = info.MaxHealth * healthMultiplier,
 		Path = EnemyMath.newPath(start, target, info.Speed, spawnTime),
 		Radius = info.HitRadius,
+		HalfHeight = halfHeight,
+		BellTarget = target,
+		Chasing = nil,
 		DamagePerSecond = info.DamagePerSecond,
+		PlayerDamage = info.PlayerDamage,
 		Coins = info.Coins,
-		Xp = info.Xp,
+		IsBoss = info.IsBoss == true,
 	}
 	aliveCount += 1
 
@@ -79,7 +130,9 @@ function EnemyService.damage(enemyId: number, amount: number, player: Player)
 		return
 	end
 
+	stopChasing(enemy)
 	enemies[enemyId] = nil
+	pendingUpdates[enemyId] = nil
 	aliveCount -= 1
 	Remotes.EnemyDied:FireAllClients(enemyId)
 	if killHandler then
@@ -128,10 +181,8 @@ end
 -- Ids de los zombis cuyo cuerpo está a menos de `radius` (medido sobre el suelo)
 function EnemyService.getInRadius(center: Vector3, radius: number, time: number): { number }
 	local ids = {}
-	local flatCenter = Vector3.new(center.X, 0, center.Z)
 	for id, enemy in enemies do
-		local position = EnemyMath.getPosition(enemy.Path, time)
-		if (Vector3.new(position.X, 0, position.Z) - flatCenter).Magnitude <= radius + enemy.Radius then
+		if flatDistance(EnemyMath.getPosition(enemy.Path, time), center) <= radius + enemy.Radius then
 			table.insert(ids, id)
 		end
 	end
@@ -151,14 +202,85 @@ function EnemyService.findNearest(point: Vector3, maxDistance: number, time: num
 	return bestId
 end
 
--- Empuja hacia atrás a los zombis cercanos cambiando su SpawnTime
+-- Empuja hacia atrás a los zombis cercanos: dejan de perseguir y retroceden
+-- en dirección contraria a la campana.
 function EnemyService.knockback(center: Vector3, radius: number, seconds: number, now: number)
-	local updates = {}
 	for _, id in EnemyService.getInRadius(center, radius, now) do
-		local path = enemies[id].Path
-		path.SpawnTime = EnemyMath.pushedBackSpawnTime(path, now, seconds)
-		table.insert(updates, { id, path.SpawnTime })
+		local enemy = enemies[id]
+		local position = EnemyMath.getPosition(enemy.Path, now)
+		local away = Vector3.new(position.X - center.X, 0, position.Z - center.Z)
+		local direction = if away.Magnitude > 0.01 then away.Unit else Vector3.new(0, 0, -1)
+		local pushed = position + direction * enemy.Path.Speed * seconds
+		stopChasing(enemy)
+		-- Arranca más atrás y vuelve a caminar hacia la campana
+		setPath(enemy, Vector3.new(pushed.X, enemy.HalfHeight, pushed.Z), enemy.BellTarget, now)
 	end
+end
+
+-- Jugadores vivos que los zombis pueden alcanzar, con su posición
+local function getLivePlayers(): { [Player]: Vector3 }
+	local positions = {}
+	for _, player in Players:GetPlayers() do
+		local character = player.Character
+		local root = character and character:FindFirstChild("HumanoidRootPart")
+		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+		local position = root and (root :: BasePart).Position
+		if position and humanoid and humanoid.Health > 0 and position.Y < MAX_REACHABLE_HEIGHT then
+			positions[player] = position
+		end
+	end
+	return positions
+end
+
+-- Decide a quién persigue cada zombi y aplica el daño cuerpo a cuerpo
+function EnemyService.think(now: number, dt: number)
+	local players = getLivePlayers()
+
+	for _, enemy in enemies do
+		local position = EnemyMath.getPosition(enemy.Path, now)
+		local target = enemy.Chasing
+		local targetPosition = target and players[target]
+
+		if target then
+			if not targetPosition or flatDistance(position, targetPosition) > hunt.LeashRadius then
+				stopChasing(enemy)
+				setPath(enemy, position, enemy.BellTarget, now)
+			else
+				local desired = chasePoint(enemy, position, targetPosition)
+				if (desired - EnemyMath.getTarget(enemy.Path)).Magnitude > RETARGET_DISTANCE then
+					setPath(enemy, position, desired, now)
+				end
+				if flatDistance(position, targetPosition) <= enemy.Radius + hunt.MeleeRange and playerDamageHandler then
+					playerDamageHandler(target, enemy.PlayerDamage * dt)
+				end
+			end
+		elseif chaserCount < hunt.MaxChasers then
+			local closest, closestDistance = nil, hunt.AggroRadius
+			for player, playerPosition in players do
+				local distance = flatDistance(position, playerPosition)
+				if distance < closestDistance then
+					closest, closestDistance = player, distance
+				end
+			end
+			if closest then
+				enemy.Chasing = closest
+				chaserCount += 1
+				setPath(enemy, position, chasePoint(enemy, position, players[closest]), now)
+			end
+		end
+	end
+
+	EnemyService.flushUpdates()
+end
+
+-- Manda a los clientes todos los cambios de camino juntos
+function EnemyService.flushUpdates()
+	local updates = {}
+	for id, enemy in pendingUpdates do
+		local path = enemy.Path
+		table.insert(updates, { id, path.Start, EnemyMath.getTarget(path), path.SpawnTime })
+	end
+	table.clear(pendingUpdates)
 	if #updates > 0 then
 		Remotes.EnemyPathsUpdated:FireAllClients(updates)
 	end
@@ -167,7 +289,7 @@ end
 function EnemyService.getBellDamagePerSecond(now: number): number
 	local total = 0
 	for _, enemy in enemies do
-		if EnemyMath.hasArrived(enemy.Path, now) then
+		if not enemy.Chasing and EnemyMath.hasArrived(enemy.Path, now) then
 			total += enemy.DamagePerSecond
 		end
 	end
@@ -176,7 +298,9 @@ end
 
 function EnemyService.clear()
 	table.clear(enemies)
+	table.clear(pendingUpdates)
 	aliveCount = 0
+	chaserCount = 0
 	Remotes.EnemiesCleared:FireAllClients()
 end
 
