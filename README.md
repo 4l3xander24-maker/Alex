@@ -7,7 +7,7 @@ Sube de nivel, elige mejoras, desbloquea poderes y aguanta todas las oleadas que
 
 _Vista previa: recreación con las medidas, colores y sprites del juego, no es captura de Roblox._
 
-El diseño completo está en [`docs/DISENO.md`](docs/DISENO.md).
+Más vistas previas en [`docs/capturas/`](docs/capturas/). El diseño completo está en [`docs/DISENO.md`](docs/DISENO.md).
 
 ## Qué tiene ya
 - Campanario en un claro del bosque, de noche, con luna enorme, niebla verde y faroles.
