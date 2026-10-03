@@ -69,6 +69,8 @@ RunService.Heartbeat:Connect(function(dt)
 	for gateId, gateDamage in EnemyService.getBarrierDamage(now) do
 		TrapService.damageGate(gateId, gateDamage * dt)
 	end
+	-- Un solo mensaje por tipo de evento de zombis en cada cuadro
+	EnemyService.flushEvents()
 end)
 
 task.spawn(function()

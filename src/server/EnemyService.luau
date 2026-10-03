@@ -43,6 +43,10 @@ local chaserCount = 0
 local nextId = 0
 local random = Random.new()
 local pendingUpdates = {}
+-- Eventos del cuadro: se mandan juntos en flushEvents para ahorrar red
+local pendingSpawns = {}
+local pendingHits = {}
+local pendingDeaths = {}
 local killHandler: ((Player, Enemy) -> ())? = nil
 local playerDamageHandler: ((Player, number) -> ())? = nil
 
@@ -165,7 +169,7 @@ function EnemyService.spawn(typeName: string, healthMultiplier: number)
 	pendingUpdates[nextId] = nil
 
 	local path = enemy.Path
-	Remotes.EnemySpawned:FireAllClients(nextId, typeName, start, EnemyMath.getTarget(path), info.Speed, spawnTime)
+	table.insert(pendingSpawns, { nextId, typeName, start, EnemyMath.getTarget(path), info.Speed, spawnTime })
 end
 
 function EnemyService.damage(enemyId: number, amount: number, player: Player)
@@ -176,7 +180,7 @@ function EnemyService.damage(enemyId: number, amount: number, player: Player)
 
 	enemy.Health -= amount
 	if enemy.Health > 0 then
-		Remotes.EnemyHit:FireAllClients(enemyId)
+		table.insert(pendingHits, enemyId)
 		return
 	end
 
@@ -184,7 +188,7 @@ function EnemyService.damage(enemyId: number, amount: number, player: Player)
 	enemies[enemyId] = nil
 	pendingUpdates[enemyId] = nil
 	aliveCount -= 1
-	Remotes.EnemyDied:FireAllClients(enemyId)
+	table.insert(pendingDeaths, enemyId)
 	if killHandler then
 		killHandler(player, enemy)
 	end
@@ -326,6 +330,24 @@ function EnemyService.think(now: number, dt: number)
 	EnemyService.flushUpdates()
 end
 
+-- Manda a los clientes, en un mensaje por tipo, todo lo que pasó en el cuadro:
+-- nacimientos, cambios de camino, golpes y muertes (en ese orden)
+function EnemyService.flushEvents()
+	if #pendingSpawns > 0 then
+		Remotes.EnemySpawned:FireAllClients(pendingSpawns)
+		pendingSpawns = {}
+	end
+	EnemyService.flushUpdates()
+	if #pendingHits > 0 then
+		Remotes.EnemyHit:FireAllClients(pendingHits)
+		pendingHits = {}
+	end
+	if #pendingDeaths > 0 then
+		Remotes.EnemyDied:FireAllClients(pendingDeaths)
+		pendingDeaths = {}
+	end
+end
+
 -- Manda a los clientes todos los cambios de camino juntos
 function EnemyService.flushUpdates()
 	local updates = {}
@@ -404,6 +426,9 @@ end
 function EnemyService.clear()
 	table.clear(enemies)
 	table.clear(pendingUpdates)
+	pendingSpawns = {}
+	pendingHits = {}
+	pendingDeaths = {}
 	aliveCount = 0
 	chaserCount = 0
 	Remotes.EnemiesCleared:FireAllClients()

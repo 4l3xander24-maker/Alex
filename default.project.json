@@ -23,6 +23,26 @@
           "$path": "src/character/Health.server.luau"
         }
       }
+    },
+    "Lighting": {
+      "$properties": {
+        "Technology": "Future",
+        "ShadowSoftness": 0.35,
+        "EnvironmentDiffuseScale": 1,
+        "EnvironmentSpecularScale": 1
+      }
+    },
+    "Workspace": {
+      "$properties": {
+        "StreamingEnabled": true,
+        "StreamingTargetRadius": 600,
+        "StreamingMinRadius": 160
+      },
+      "Terrain": {
+        "$properties": {
+          "Decoration": true
+        }
+      }
     }
   }
 }

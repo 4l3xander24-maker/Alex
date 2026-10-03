@@ -8,7 +8,7 @@ comprando armas, mejoras, poderes y trampas a los NPC del campamento.
 
 _Vista previa: recreación con las medidas, colores y sprites del juego, no es captura de Roblox._
 
-Más vistas previas en [`docs/capturas/`](docs/capturas/). El diseño completo está en [`docs/DISENO.md`](docs/DISENO.md).
+Más vistas previas en [`docs/capturas/otono/`](docs/capturas/otono/) (ambiente de otoño) y [`docs/capturas/`](docs/capturas/) (noche). El diseño completo está en [`docs/DISENO.md`](docs/DISENO.md).
 
 ## Qué tiene ya
 - **Mapa abierto**: campanario al frente, campamento detrás (fogata, tiendas, empalizada) al borde de un
@@ -25,7 +25,9 @@ Más vistas previas en [`docs/capturas/`](docs/capturas/). El diseño completo e
   - **Gustavo, el Intendente**: **cartuchera** (más balas máximas y más balas al empezar) y **trampas**:
     hasta 8 **minas** en el camino de los zombis y 2 **rejas** que los detienen hasta que las rompen.
 - **Zombis que te persiguen** si te acercas, y vuelven a atacar la campana si te alejas. Tienes vida y reapareces.
-- **4 tipos de zombi** pixelados y una Abominación (jefe) cada 5 oleadas.
+- **4 tipos de zombi** en 3D (caminan, balancean los brazos y golpean) y una Abominación (jefe) cada 5 oleadas.
+- **Ambiente de otoño** realista: iluminación Future con sombras suaves, árboles naranjas y rojos, molino,
+  camino de piedra, hojas que caen, bruma y rayos de sol. También hay ambientes de noche.
 - **Nivel de cuenta**: al terminar la partida ganas XP. Cada nivel da 1 punto de mejora (daño, vida, velocidad,
   recarga, cadencia, munición, crítico, botín, poder) y cada 5 niveles un **talento** (apuntar, correr,
   regeneración, vampiro, doble salto, esquivar, último aliento, balas explosivas, codicia, reparador).
@@ -45,13 +47,25 @@ Más vistas previas en [`docs/capturas/`](docs/capturas/). El diseño completo e
 3. En Roblox Studio abre un **Baseplate** nuevo → **Plugins** → **Rojo** → **Connect** → **Play**.
 4. **Para que se guarde el progreso en Studio**: Home → Game Settings → Security →
    **Enable Studio Access to API Services** (el juego tiene que estar publicado).
-5. **Mejores gráficos** (recomendado), en el panel Explorer:
-   - **Lighting** → `Technology = Future` (sombras de la fogata y los faroles).
-   - **Terrain** → `Decoration = true` (pasto 3D que se mueve con el viento).
 
-## Subir los sprites de los zombis
+Los gráficos ya vienen configurados en `default.project.json`: iluminación **Future**, pasto 3D
+(`Terrain.Decoration`) y **StreamingEnabled**. No tienes que tocar nada en Studio.
 
-Mientras no subas los sprites, los zombis se ven como muñecos de bloques.
+## Gráficos y rendimiento
+- **Ambiente**: `Config.Theme` = `"Otono"` (día de otoño, por defecto), `"Verde"`, `"Morado"` o `"Ambar"` (noches).
+- **Zombis**: `Config.ZombieStyle` = `"3D"` (por defecto) o `"Pixel"` (sprites 2D, aún más ligero).
+- **Optimización**:
+  - **StreamingEnabled**: cada jugador carga solo lo que tiene cerca; las montañas del fondo siempre se ven.
+  - Los avisos de zombis (nacer, recibir daño, morir) se juntan en **un mensaje por fotograma**
+    en vez de uno por zombi.
+  - Los zombis que están detrás de ti no se dibujan, y los lejanos no se animan (`Config.Graphics`).
+  - El molino y las partículas corren solo en cada cliente.
+  - En **calidad gráfica baja o celular** se apagan el desenfoque, los rayos de sol y las hojas.
+
+## Subir los sprites de los zombis (solo estilo `"Pixel"`)
+
+Con `ZombieStyle = "3D"` no hace falta. En estilo `"Pixel"`, mientras no subas los sprites,
+los zombis se ven como muñecos de bloques.
 
 1. En Studio: **View → Asset Manager → Bulk Import** y elige los 4 PNG de `assets/sprites/`.
 2. Clic derecho en cada imagen → **Copy Asset ID**.
@@ -85,7 +99,7 @@ src/
     EnemyMath.luau          ← movimiento de los zombis
     Remotes.luau            ← comunicación servidor ↔ cliente
   server/                   → ServerScriptService.Server
-    MapBuilder.luau         ← terreno, campanario, bosque, luna y niebla
+    MapBuilder.luau         ← terreno, campanario, bosque de otoño, molino, montañas, luz y bruma
     CampBuilder.luau        ← fogata, tiendas, empalizada, mirador, puestos y NPC
     Props.luau              ← piezas del mapa (faroles, cajas, letreros…)
     DataService.luau        ← guardado del perfil (DataStore)
@@ -107,7 +121,8 @@ src/
     MovementController.luau ← correr, doble salto, esquivar
     PowerController.luau    ← poderes y sus efectos
     Viewmodel.luau          ← armas y manos en primera persona
-    EnemyRenderer.luau      ← dibuja los zombis
+    EnemyRenderer.luau      ← dibuja y anima los zombis (3D o pixel, con recorte por distancia)
+    WorldFx.luau            ← molino y efectos según la calidad gráfica
   character/Health.server.luau ← quita la regeneración automática de Roblox
 assets/sprites/             ← PNG de los zombis
 tools/make_sprites.py       ← generador de los sprites
@@ -121,4 +136,4 @@ Todo está en `src/shared/Config.luau`:
 - ¿Las armas son muy caras? Cambia `Price` en `Config.Weapons`.
 - ¿Te quedas sin balas muy rápido? Sube `AmmoPerKill` o `StartReserve` del arma.
 - ¿La preparación es muy larga? Cambia `Match.LobbyTime`.
-- ¿Otro ambiente? Cambia `Theme` a `"Morado"` o `"Ambar"`.
+- ¿Otro ambiente? Cambia `Theme` a `"Verde"`, `"Morado"` o `"Ambar"` (noches).

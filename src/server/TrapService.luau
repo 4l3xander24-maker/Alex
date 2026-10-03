@@ -33,6 +33,15 @@ local TrapService = {}
 local mines: { [number]: Mine } = {}
 local gates: { [string]: Gate } = {}
 local folder: Folder
+-- Lista de rejas en pie, guardada para no crearla en cada consulta de los zombis
+local barriers: { EnemyService.Barrier } = {}
+
+local function refreshBarriers()
+	barriers = {}
+	for id, gate in gates do
+		table.insert(barriers, { Id = id, A = gate.A, B = gate.B })
+	end
+end
 
 local function publish()
 	local count = 0
@@ -60,11 +69,7 @@ end
 
 -- Para EnemyService: tramos de reja que siguen en pie
 function TrapService.getBarriers(): { EnemyService.Barrier }
-	local list = {}
-	for id, gate in gates do
-		table.insert(list, { Id = id, A = gate.A, B = gate.B })
-	end
-	return list
+	return barriers
 end
 
 function TrapService.canPlaceMine(): boolean
@@ -142,6 +147,7 @@ function TrapService.buildGate(id: string): boolean
 
 	model.Parent = folder
 	gates[id] = { Id = id, A = a, B = b, Health = gateConfig.Health, Model = model, Fill = fill }
+	refreshBarriers()
 	publish()
 	return true
 end
@@ -162,6 +168,7 @@ function TrapService.damageGate(id: string, amount: number)
 	end
 
 	gates[id] = nil
+	refreshBarriers()
 	Remotes.PowerFx:FireAllClients("Explosion", gate.A:Lerp(gate.B, 0.5) + Vector3.new(0, 2, 0), 8)
 	gate.Model:Destroy()
 	publish()
@@ -197,6 +204,7 @@ function TrapService.reset()
 	end
 	table.clear(mines)
 	table.clear(gates)
+	refreshBarriers()
 	publish()
 end
 

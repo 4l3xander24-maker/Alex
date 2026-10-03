@@ -406,9 +406,15 @@ function ShopUI.init()
 			ShopUI.render()
 		end
 	end)
+	-- Con StreamingEnabled el aviso puede llegar después: lo revisamos cuando aparece
 	task.spawn(function()
-		workspace:WaitForChild("Map")
+		local map = workspace:WaitForChild("Map")
 		updateRepairPrompt()
+		map.DescendantAdded:Connect(function(descendant)
+			if descendant.Name == "RepairPrompt" then
+				updateRepairPrompt()
+			end
+		end)
 	end)
 
 	-- Se cierra sola si te alejas del NPC

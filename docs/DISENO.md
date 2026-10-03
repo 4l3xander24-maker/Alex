@@ -7,10 +7,15 @@ compras armas, mejoras, poderes y trampas a los NPC, y al terminar ganas **XP de
 mejorar tus estadísticas y aprender talentos.
 
 ## Estilo visual
-- Mundo 3D de **bloques** sobre **Terrain** de Roblox con pasto (con decoración 3D si está activada).
-- Enemigos como **sprites pixelados 2D** que siempre miran a la cámara (`assets/sprites/`).
-- Noche con **luna enorme**, niebla de color, fogata, faroles y luciérnagas.
-- Paletas por mapa: verde (bosque), morado (pantano), ámbar (atardecer) con `Config.Theme`.
+- Mundo 3D de **bloques** sobre **Terrain** de Roblox con pasto 3D (`Terrain.Decoration`).
+- Iluminación **Future** (sombras suaves y luces reales), `Atmosphere` con bruma, rayos de sol y
+  desenfoque de fondo.
+- Por defecto, **otoño de día** (`Config.Theme = "Otono"`), inspirado en la imagen "Super Upsampler" de Roblox:
+  árboles naranjas, rojos y amarillos, alfombras de hojas, camino de piedra, molino con aspas que giran,
+  calabazas y hojas que caen.
+- Noches con **luna enorme**, niebla de color y luciérnagas: verde (bosque), morado (pantano), ámbar (atardecer).
+- Zombis en **3D de bloques** (`Config.ZombieStyle = "3D"`): caminan, balancean los brazos, se inclinan
+  al golpear y tienen ojos que brillan. Alternativa: sprites pixelados 2D (`"Pixel"`, `assets/sprites/`).
 - 5 armas de bloques en primera persona con manos, retroceso, destello y mira telescópica.
 
 ## El mapa
@@ -109,11 +114,16 @@ Cada arma se mejora 5 veces (+20% daño, +15% cargador, recarga más rápida). C
 - Caminan en línea recta hacia un objetivo; servidor y clientes calculan la posición con el reloj del servidor.
   Solo se envía "nació", "recibió daño", "murió" y "cambió de camino" (persigue, vuelve o lo empujaron).
 - Máximo 40 zombis persiguiendo a la vez, y se recalcula su camino 4 veces por segundo.
-- El cliente mueve todos los sprites de golpe con `workspace:BulkMoveTo`.
+- El cliente mueve todos los zombis de golpe con `workspace:BulkMoveTo`.
+- Los avisos de nacer, daño y muerte se juntan en un solo mensaje por fotograma.
+- El cliente no dibuja los zombis que están detrás de la cámara y no anima los lejanos.
+- **StreamingEnabled**: cada jugador recibe solo lo cercano; las montañas son `Persistent`.
+- Efectos según la calidad gráfica: en calidad baja o celular se apagan el desenfoque, los rayos y las hojas.
 
 ## Plan
 - **Fase 2 (hecha)**: campana, estilo pixelado, enemigos, jefe, poderes.
 - **Fase 3 (hecha)**: movimiento libre, campamento con NPC, armas, tiendas, nivel de cuenta, mejoras, talentos, guardado.
 - **Fase 3.5 (hecha)**: machete, munición de reserva y balas por baja, Intendente (cartuchera y trampas),
   colores por mejora, acantilado y mar, preparación antes de la partida.
+- **Fase 3.6 (hecha)**: gráficos de otoño, zombis 3D animados y optimización.
 - **Fase 4**: sonidos y música, más mapas (paletas morado/ámbar), más jefes, misiones diarias, pases de juego y lanzamiento.

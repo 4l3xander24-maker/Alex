@@ -1,37 +1,91 @@
 -- Todos los números del juego en un solo lugar para balancear fácil.
 local Config = {}
 
--- Paleta del mapa: "Verde", "Morado" o "Ambar"
-Config.Theme = "Verde"
+-- Paleta y hora del mapa:
+--   "Otono"  → atardecer dorado de otoño (árboles naranjas, camino de adoquines)
+--   "Verde", "Morado", "Ambar" → de noche con luna enorme
+Config.Theme = "Otono"
 
+-- Night: de noche (luna) o de día (sol bajo). Foliage: colores de las copas
+-- de los árboles (si no hay, solo pinos). LeafLitter: color de las manchas
+-- de hojas caídas en el suelo.
 Config.Themes = {
+	Otono = {
+		Night = false,
+		ClockTime = 17.4,
+		Brightness = 2.6,
+		Ground = Color3.fromRGB(104, 122, 52),
+		LeafLitter = Color3.fromRGB(196, 110, 40),
+		Tree = Color3.fromRGB(44, 86, 56),
+		Foliage = {
+			Color3.fromRGB(222, 104, 34),
+			Color3.fromRGB(238, 156, 44),
+			Color3.fromRGB(196, 62, 34),
+			Color3.fromRGB(246, 196, 70),
+			Color3.fromRGB(170, 120, 40),
+		},
+		Mountain = Color3.fromRGB(110, 124, 150),
+		Atmosphere = Color3.fromRGB(255, 205, 160),
+		Decay = Color3.fromRGB(150, 110, 100),
+		Density = 0.28,
+		Haze = 1.4,
+		Tint = Color3.fromRGB(255, 242, 225),
+		Ambient = Color3.fromRGB(120, 100, 90),
+	},
 	Verde = {
+		Night = true,
+		Brightness = 1.4,
 		Ground = Color3.fromRGB(46, 96, 60),
+		LeafLitter = Color3.fromRGB(56, 110, 64),
 		Tree = Color3.fromRGB(28, 80, 64),
 		Mountain = Color3.fromRGB(30, 70, 66),
 		Atmosphere = Color3.fromRGB(80, 150, 128),
 		Decay = Color3.fromRGB(30, 76, 66),
+		Density = 0.36,
+		Haze = 1.8,
 		Tint = Color3.fromRGB(205, 255, 232),
 		Ambient = Color3.fromRGB(60, 100, 90),
 	},
 	Morado = {
+		Night = true,
+		Brightness = 1.4,
 		Ground = Color3.fromRGB(92, 52, 80),
+		LeafLitter = Color3.fromRGB(110, 60, 90),
 		Tree = Color3.fromRGB(58, 36, 72),
 		Mountain = Color3.fromRGB(60, 40, 80),
 		Atmosphere = Color3.fromRGB(150, 90, 160),
 		Decay = Color3.fromRGB(70, 40, 90),
+		Density = 0.36,
+		Haze = 1.8,
 		Tint = Color3.fromRGB(255, 220, 255),
 		Ambient = Color3.fromRGB(95, 70, 110),
 	},
 	Ambar = {
+		Night = true,
+		Brightness = 1.4,
 		Ground = Color3.fromRGB(70, 82, 48),
+		LeafLitter = Color3.fromRGB(150, 100, 50),
 		Tree = Color3.fromRGB(60, 60, 40),
 		Mountain = Color3.fromRGB(90, 70, 50),
 		Atmosphere = Color3.fromRGB(200, 150, 100),
 		Decay = Color3.fromRGB(120, 80, 50),
+		Density = 0.36,
+		Haze = 1.8,
 		Tint = Color3.fromRGB(255, 235, 205),
 		Ambient = Color3.fromRGB(110, 95, 70),
 	},
+}
+
+-- Cómo se dibujan los zombis:
+--   "3D"    → muñecos 3D con materiales y animación de caminar (va con los gráficos realistas)
+--   "Pixel" → sprites pixelados (necesita subir las imágenes, ver README)
+Config.ZombieStyle = "3D"
+
+-- Optimización en el cliente
+Config.Graphics = {
+	CullBehindDistance = 40, -- zombis detrás de la cámara a más de esto no se mueven en pantalla
+	AnimateDistance = 120, -- más lejos que esto no se anima caminar
+	FarDistance = 170, -- más lejos que esto se actualizan cada 3 cuadros
 }
 
 -- El campanario está en el origen. El campamento queda detrás (+Z), al
@@ -97,6 +151,7 @@ Config.Enemies = {
 		Skin = Color3.fromRGB(128, 168, 112),
 		Shirt = Color3.fromRGB(72, 92, 138),
 		Pants = Color3.fromRGB(82, 66, 54),
+		Eyes = Color3.fromRGB(255, 70, 50),
 	},
 	Runner = {
 		DisplayName = "Corredor",
@@ -111,6 +166,7 @@ Config.Enemies = {
 		Skin = Color3.fromRGB(160, 172, 150),
 		Shirt = Color3.fromRGB(150, 50, 46),
 		Pants = Color3.fromRGB(60, 66, 80),
+		Eyes = Color3.fromRGB(255, 220, 80),
 	},
 	Brute = {
 		DisplayName = "Bruto",
@@ -125,6 +181,7 @@ Config.Enemies = {
 		Skin = Color3.fromRGB(150, 160, 90),
 		Shirt = Color3.fromRGB(190, 180, 150),
 		Pants = Color3.fromRGB(70, 60, 80),
+		Eyes = Color3.fromRGB(255, 80, 40),
 	},
 	Giant = {
 		DisplayName = "Abominación",
@@ -140,6 +197,7 @@ Config.Enemies = {
 		Skin = Color3.fromRGB(130, 100, 140),
 		Shirt = Color3.fromRGB(110, 30, 40),
 		Pants = Color3.fromRGB(40, 40, 50),
+		Eyes = Color3.fromRGB(110, 255, 120),
 	},
 }
 
