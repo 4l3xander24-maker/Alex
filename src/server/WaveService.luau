@@ -48,7 +48,7 @@ local function runWave(wave: number): boolean
 		local dt = task.wait()
 		budget = math.min(budget + dt * spawnRate, spawnRate)
 		while budget >= 1 and toSpawn > 0 and EnemyService.getAliveCount() < waves.MaxAlive do
-			EnemyService.spawn("Goblin", healthMultiplier)
+			EnemyService.spawn("Zombie", healthMultiplier)
 			toSpawn -= 1
 			budget -= 1
 		end

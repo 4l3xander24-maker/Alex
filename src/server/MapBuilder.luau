@@ -5,8 +5,17 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
 
 local STONE = Color3.fromRGB(120, 120, 128)
+local TORCH_COLOR = Color3.fromRGB(255, 150, 60)
 
 local MapBuilder = {}
+
+local function rangeList(from: number, to: number, step: number): { number }
+	local list = {}
+	for value = from, to, step do
+		table.insert(list, value)
+	end
+	return list
+end
 
 local function makePart(props)
 	local part = Instance.new("Part")
@@ -37,19 +46,36 @@ function MapBuilder.build()
 		Size = Vector3.new(arena.GroundSize, 2, arena.GroundSize),
 		Position = Vector3.new(0, -1, 0),
 		Material = Enum.Material.Grass,
-		Color = Color3.fromRGB(86, 125, 70),
+		Color = Color3.fromRGB(62, 72, 50),
 		Parent = map,
 	})
 
 	makePart({
-		Name = "GoblinSpawn",
-		Size = Vector3.new(arena.SpawnHalfWidth * 2 + 10, 0.2, 12),
-		Position = Vector3.new(0, 0.1, arena.SpawnZ),
+		Name = "Graveyard",
+		Size = Vector3.new(arena.SpawnHalfWidth * 2 + 10, 0.2, 24),
+		Position = Vector3.new(0, 0.1, arena.SpawnZ - 4),
 		Material = Enum.Material.Ground,
-		Color = Color3.fromRGB(90, 40, 40),
+		Color = Color3.fromRGB(52, 42, 36),
 		CanCollide = false,
 		Parent = map,
 	})
+
+	-- Lápidas detrás de la línea donde salen los zombis
+	local random = Random.new(7)
+	for x = -arena.SpawnHalfWidth, arena.SpawnHalfWidth, 8 do
+		local height = random:NextNumber(2.5, 4)
+		makePart({
+			Name = "Tombstone",
+			Size = Vector3.new(2.2, height, 0.6),
+			CFrame = CFrame.new(x + random:NextNumber(-2, 2), height / 2, arena.SpawnZ - random:NextNumber(6, 14))
+				* CFrame.Angles(random:NextNumber(-0.12, 0.12), 0, random:NextNumber(-0.12, 0.12)),
+			Material = Enum.Material.Slate,
+			Color = Color3.fromRGB(105, 105, 110),
+			CanCollide = false,
+			CanQuery = false,
+			Parent = map,
+		})
+	end
 
 	makePart({
 		Name = "CastleWall",
@@ -69,7 +95,7 @@ function MapBuilder.build()
 		Parent = map,
 	})
 
-	for x = -width / 2 + 2, width / 2 - 2, 6 do
+	for index, x in rangeList(-width / 2 + 2, width / 2 - 2, 6) do
 		makePart({
 			Name = "Merlon",
 			Size = Vector3.new(3, 3, 1.5),
@@ -78,6 +104,23 @@ function MapBuilder.build()
 			Color = STONE,
 			Parent = map,
 		})
+		if index % 3 == 1 then
+			local torch = makePart({
+				Name = "Torch",
+				Size = Vector3.new(0.6, 1.2, 0.6),
+				Position = Vector3.new(x, height + 3.6, -depth / 2 + 0.75),
+				Material = Enum.Material.Neon,
+				Color = TORCH_COLOR,
+				CanCollide = false,
+				CanQuery = false,
+				Parent = map,
+			})
+			local light = Instance.new("PointLight")
+			light.Color = TORCH_COLOR
+			light.Range = 24
+			light.Brightness = 2
+			light.Parent = torch
+		end
 	end
 
 	makePart({
@@ -114,7 +157,14 @@ function MapBuilder.build()
 
 	map.Parent = workspace
 
-	Lighting.ClockTime = 16.5
+	-- Noche con niebla: los zombis aparecen de la oscuridad
+	Lighting.ClockTime = 0
+	Lighting.Brightness = 1
+	Lighting.Ambient = Color3.fromRGB(70, 70, 95)
+	Lighting.OutdoorAmbient = Color3.fromRGB(90, 90, 120)
+	Lighting.FogColor = Color3.fromRGB(25, 28, 38)
+	Lighting.FogStart = 60
+	Lighting.FogEnd = 260
 end
 
 return MapBuilder

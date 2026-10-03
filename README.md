@@ -1,15 +1,15 @@
-# Castle Blasters 🏰🔫👺
+# Castle Blasters 🏰🔫🧟
 
-Juego de Roblox: defiende tu castillo de hordas de goblins que crecen en cada oleada.
+Juego de Roblox: defiende tu castillo de hordas de zombis que crecen en cada oleada.
 Inspirado en el género "horde survivor FPS".
 
 ## Fase 1: prototipo (lo que ya funciona)
 
-- El mapa se genera solo: pasto, muro del castillo con almenas, torres y puerta.
+- El mapa se genera solo, de noche y con niebla: muro del castillo con almenas, antorchas, torres, puerta y un cementerio de donde salen los zombis.
 - Cámara en primera persona con mira.
 - Pistola con disparo automático mientras mantienes el clic. En celular hay un botón 🔫.
-- Goblins que caminan hacia el castillo y le hacen daño al llegar al muro.
-- Oleadas infinitas: cada una trae más goblins, más rápido y con más vida.
+- Zombis (piernas, torso, cabeza y brazos al frente) que se tambalean hacia el castillo y le hacen daño al llegar al muro.
+- Oleadas infinitas: cada una trae más zombis, más rápido y con más vida.
 - El castillo tiene vida. Si llega a 0 → Game Over y se reinicia solo.
 - Oro y bajas en la tabla de jugadores.
 - Multijugador cooperativo desde el inicio.
@@ -41,26 +41,26 @@ Cada vez que cambies código en el repo, Rojo lo actualiza en Studio en vivo.
 src/
   shared/              → ReplicatedStorage.Shared (servidor y cliente)
     Config.luau        ← TODOS los números del juego (balance)
-    EnemyMath.luau     ← movimiento determinista de los goblins
+    EnemyMath.luau     ← movimiento determinista de los zombis
     Remotes.luau       ← comunicación servidor ↔ cliente
   server/              → ServerScriptService.Server
     init.server.luau   ← arranque
     MapBuilder.luau    ← construye el mapa
     GameState.luau     ← vida del castillo, oleada, estado
-    EnemyService.luau  ← goblins (datos, daño, detección de impactos)
+    EnemyService.luau  ← zombis (datos, daño, detección de impactos)
     WaveService.luau   ← ciclo de oleadas
     CombatService.luau ← valida disparos (anti-trampas)
     PlayerService.luau ← oro, bajas, cámara
   client/              → StarterPlayerScripts.Client
     init.client.luau   ← arranque
-    EnemyRenderer.luau ← dibuja los goblins
+    EnemyRenderer.luau ← dibuja los zombis
     WeaponController.luau ← disparo e input
     Hud.luau           ← interfaz
 ```
 
-## Cómo funciona por dentro (para aguantar cientos de goblins)
+## Cómo funciona por dentro (para aguantar cientos de zombis)
 
-- Los goblins **no son personajes de Roblox** (Humanoid). Son solo datos en el servidor.
+- Los zombis **no son personajes de Roblox** (Humanoid). Son solo datos en el servidor.
 - Caminan en línea recta, así que servidor y clientes calculan la misma posición con el reloj del servidor.
   Solo se envía "nació", "recibió daño" y "murió". No se mandan posiciones cada frame.
 - El cliente los mueve todos de golpe con `workspace:BulkMoveTo`.
@@ -70,12 +70,12 @@ src/
 ## Balance rápido
 
 Todo está en `src/shared/Config.luau`. Ejemplos:
-- ¿El juego es muy fácil? Sube `Waves.CountGrowth` o `Enemies.Goblin.Speed`.
+- ¿El juego es muy fácil? Sube `Waves.CountGrowth` o `Enemies.Zombie.Speed`.
 - ¿El castillo cae muy rápido? Sube `Castle.MaxHealth`.
 - ¿La pistola se siente lenta? Sube `Weapon.FireRate`.
 
 ## Próximas fases
 
-- **Fase 2 – Diversión:** subir de nivel con XP y elegir 1 de 3 mejoras, 5 armas, 4 tipos de enemigo, jefe cada 5 oleadas, sprites pixelados.
+- **Fase 2 – Diversión:** subir de nivel con XP y elegir 1 de 3 mejoras, 5 armas, 4 tipos de enemigo, jefe cada 5 oleadas, modelos de zombi mejorados.
 - **Fase 3 – Juego completo:** lobby, mejoras permanentes con gemas, guardado de datos.
 - **Fase 4 – Lanzamiento:** tienda, pases de juego, pulido y publicación.

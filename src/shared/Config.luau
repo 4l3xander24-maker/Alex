@@ -6,9 +6,9 @@ Config.Arena = {
 	CastleWidth = 90,
 	CastleHeight = 20,
 	CastleDepth = 16,
-	SpawnZ = -280,
+	SpawnZ = -220,
 	SpawnHalfWidth = 80,
-	-- Los goblins se detienen justo frente al muro (el frente está en z = -CastleDepth / 2)
+	-- Los zombis se detienen justo frente al muro (el frente está en z = -CastleDepth / 2)
 	StopZ = -10,
 	StopJitter = 4,
 }
@@ -25,24 +25,27 @@ Config.Weapon = {
 }
 
 Config.Enemies = {
-	Goblin = {
+	Zombie = {
 		MaxHealth = 3,
-		Speed = 10,
+		Speed = 7, -- lentos pero muchos
 		DamagePerSecond = 2, -- daño al castillo cuando llega al muro
 		Gold = 1,
-		Size = Vector3.new(2, 3, 2),
-		Color = Color3.fromRGB(96, 168, 64),
+		Size = Vector3.new(2, 5, 1.2), -- caja total del cuerpo
+		HitRadius = 1.8, -- esfera de impacto centrada en el torso
+		Skin = Color3.fromRGB(122, 150, 104),
+		Shirt = Color3.fromRGB(70, 82, 110),
+		Pants = Color3.fromRGB(58, 48, 40),
 	},
 }
 
 Config.Waves = {
 	Intermission = 8,
 	FirstWaveCount = 15,
-	CountGrowth = 1.3, -- cada oleada trae 30% más goblins
-	FirstSpawnRate = 4, -- goblins por segundo
+	CountGrowth = 1.3, -- cada oleada trae 30% más zombis
+	FirstSpawnRate = 4, -- zombis por segundo
 	SpawnRateGrowth = 1.5,
 	MaxSpawnRate = 40,
-	MaxAlive = 400,
+	MaxAlive = 300,
 	HealthGrowth = 0.15, -- +15% de vida por oleada
 	GameOverDelay = 8,
 }

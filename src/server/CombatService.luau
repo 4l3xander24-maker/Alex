@@ -1,5 +1,5 @@
 -- El cliente solo dice "disparé desde aquí hacia allá"; el servidor decide si
--- le dio a algo. Así no se puede hacer trampa mandando "maté al goblin 5".
+-- le dio a algo. Así no se puede hacer trampa mandando "maté al zombi 5".
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 

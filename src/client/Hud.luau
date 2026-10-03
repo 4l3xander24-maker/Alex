@@ -146,9 +146,9 @@ function Hud.init(setTrigger: (boolean) -> ())
 		if state == "Intermission" then
 			statusLabel.Text = `Siguiente oleada en {gameState:GetAttribute("Countdown")}`
 		elseif state == "Wave" then
-			statusLabel.Text = `Goblins restantes: {gameState:GetAttribute("EnemiesLeft")}`
+			statusLabel.Text = `Zombis restantes: {gameState:GetAttribute("EnemiesLeft")}`
 		elseif state == "GameOver" then
-			statusLabel.Text = "¡EL CASTILLO CAYÓ! Reiniciando..."
+			statusLabel.Text = "¡LOS ZOMBIS TOMARON EL CASTILLO! Reiniciando..."
 		else
 			statusLabel.Text = "Esperando jugadores..."
 		end

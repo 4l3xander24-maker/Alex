@@ -1,4 +1,4 @@
--- Dibuja los goblins localmente. La posición sale de EnemyMath con el tiempo
+-- Dibuja los zombis localmente. La posición sale de EnemyMath con el tiempo
 -- del servidor, y se mueven todos de una vez con BulkMoveTo.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -11,13 +11,30 @@ local Remotes = require(Shared.Remotes)
 
 local FLASH_COLOR = Color3.new(1, 1, 1)
 local FLASH_TIME = 0.08
-local BOB_HEIGHT = 0.4
-local BOB_SPEED = 10
+local SWAY_ANGLE = 0.12
+local SWAY_SPEED = 4
+local BOB_HEIGHT = 0.15
+
+-- Piezas del zombi relativas al centro de su caja (mirando hacia -Z).
+-- Color es el nombre del campo de color en Config.Enemies.
+local BODY_PARTS = {
+	{ Name = "Legs", Size = Vector3.new(1.8, 2, 1), Offset = CFrame.new(0, -1.5, 0), Color = "Pants" },
+	{ Name = "Torso", Size = Vector3.new(2, 2, 1), Offset = CFrame.new(0, 0.5, 0), Color = "Shirt" },
+	{ Name = "Head", Size = Vector3.new(1.1, 1.1, 1.1), Offset = CFrame.new(0, 2.05, 0), Color = "Skin" },
+	-- Brazos estirados al frente, pose clásica de zombi
+	{ Name = "LeftArm", Size = Vector3.new(0.5, 0.5, 1.8), Offset = CFrame.new(-0.75, 1.1, -1.1), Color = "Skin" },
+	{ Name = "RightArm", Size = Vector3.new(0.5, 0.5, 1.8), Offset = CFrame.new(0.75, 1.1, -1.1), Color = "Skin" },
+}
+
+type Piece = {
+	Part: BasePart,
+	Offset: CFrame,
+	Color: Color3,
+}
 
 type Visual = {
-	Part: BasePart,
+	Pieces: { Piece },
 	Path: EnemyMath.Path,
-	Color: Color3,
 	FlashUntil: number,
 	Phase: number,
 }
@@ -36,18 +53,29 @@ local deadIds: { [number]: boolean } = {}
 local parts: { BasePart } = {}
 local cframes: { CFrame } = {}
 
-local function createPart(typeName: string, info): BasePart
-	local part = Instance.new("Part")
-	part.Name = typeName
-	part.Size = info.Size
-	part.Color = info.Color
-	part.Material = Enum.Material.SmoothPlastic
-	part.Anchored = true
-	part.CanCollide = false
-	part.CanTouch = false
-	part.CastShadow = false
-	part.Parent = folder
-	return part
+local function createPieces(info): { Piece }
+	local pieces = {}
+	for _, spec in BODY_PARTS do
+		local color = info[spec.Color]
+		local part = Instance.new("Part")
+		part.Name = spec.Name
+		part.Size = spec.Size
+		part.Color = color
+		part.Material = Enum.Material.SmoothPlastic
+		part.Anchored = true
+		part.CanCollide = false
+		part.CanTouch = false
+		part.CastShadow = false
+		part.Parent = folder
+		table.insert(pieces, { Part = part, Offset = spec.Offset, Color = color })
+	end
+	return pieces
+end
+
+local function setColor(visual: Visual, color: Color3?)
+	for _, piece in visual.Pieces do
+		piece.Part.Color = color or piece.Color
+	end
 end
 
 local function addEnemy(id: number, typeName: string, start: Vector3, target: Vector3, speed: number, spawnTime: number)
@@ -59,9 +87,8 @@ local function addEnemy(id: number, typeName: string, start: Vector3, target: Ve
 		return
 	end
 	visuals[id] = {
-		Part = createPart(typeName, info),
+		Pieces = createPieces(info),
 		Path = EnemyMath.newPath(start, target, speed, spawnTime),
-		Color = info.Color,
 		FlashUntil = 0,
 		Phase = id * 0.37,
 	}
@@ -75,23 +102,25 @@ local function removeEnemy(id: number, animate: boolean)
 	end
 	visuals[id] = nil
 
-	local part = visual.Part
-	if not animate then
-		part:Destroy()
-		return
+	for _, piece in visual.Pieces do
+		local part = piece.Part
+		if animate then
+			part.Color = FLASH_COLOR
+			local tween = TweenService:Create(part, TweenInfo.new(0.2), { Size = part.Size * 1.4, Transparency = 1 })
+			tween.Completed:Once(function()
+				part:Destroy()
+			end)
+			tween:Play()
+		else
+			part:Destroy()
+		end
 	end
-	part.Color = FLASH_COLOR
-	local tween = TweenService:Create(part, TweenInfo.new(0.15), { Size = part.Size * 1.6, Transparency = 1 })
-	tween.Completed:Once(function()
-		part:Destroy()
-	end)
-	tween:Play()
 end
 
 local function flashEnemy(id: number)
 	local visual = visuals[id]
 	if visual then
-		visual.Part.Color = FLASH_COLOR
+		setColor(visual, FLASH_COLOR)
 		visual.FlashUntil = os.clock() + FLASH_TIME
 	end
 end
@@ -103,14 +132,18 @@ local function render()
 	table.clear(cframes)
 
 	for _, visual in visuals do
-		local bob = Vector3.new(0, math.abs(math.sin(clock * BOB_SPEED + visual.Phase)) * BOB_HEIGHT, 0)
-		local position = EnemyMath.getPosition(visual.Path, now) + bob
-		table.insert(parts, visual.Part)
-		table.insert(cframes, CFrame.lookAt(position, position + visual.Path.Direction))
+		local wave = math.sin(clock * SWAY_SPEED + visual.Phase)
+		local position = EnemyMath.getPosition(visual.Path, now) + Vector3.new(0, math.abs(wave) * BOB_HEIGHT, 0)
+		-- Se tambalean de lado a lado al caminar
+		local root = CFrame.lookAt(position, position + visual.Path.Direction) * CFrame.Angles(0, 0, wave * SWAY_ANGLE)
+		for _, piece in visual.Pieces do
+			table.insert(parts, piece.Part)
+			table.insert(cframes, root * piece.Offset)
+		end
 
 		if visual.FlashUntil > 0 and clock >= visual.FlashUntil then
 			visual.FlashUntil = 0
-			visual.Part.Color = visual.Color
+			setColor(visual, nil)
 		end
 	end
 

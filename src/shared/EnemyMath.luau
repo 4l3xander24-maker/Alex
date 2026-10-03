@@ -1,4 +1,4 @@
--- Los goblins caminan en línea recta hacia el castillo. Como el movimiento es
+-- Los zombis caminan en línea recta hacia el castillo. Como el movimiento es
 -- determinista, servidor y clientes calculan la misma posición a partir del
 -- tiempo del servidor sin tener que replicar posiciones cada frame.
 local EnemyMath = {}

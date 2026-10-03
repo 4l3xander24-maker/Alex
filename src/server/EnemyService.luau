@@ -1,5 +1,5 @@
 -- Los enemigos no son Humanoids: son datos en el servidor. Los clientes los
--- dibujan, así aguantamos cientos de goblins a la vez.
+-- dibujan, así aguantamos cientos de zombis a la vez.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage.Shared
@@ -51,7 +51,7 @@ function EnemyService.spawn(typeName: string, healthMultiplier: number)
 		Type = typeName,
 		Health = math.ceil(info.MaxHealth * healthMultiplier),
 		Path = EnemyMath.newPath(start, target, info.Speed, spawnTime),
-		Radius = halfHeight,
+		Radius = info.HitRadius,
 		DamagePerSecond = info.DamagePerSecond,
 		Gold = info.Gold,
 	}
@@ -81,8 +81,8 @@ function EnemyService.damage(enemyId: number, amount: number, player: Player)
 	end
 end
 
--- Devuelve el id del goblin más cercano que cruza el rayo, o nil.
--- Cada goblin se trata como una esfera para que sea barato revisar cientos.
+-- Devuelve el id del zombi más cercano que cruza el rayo, o nil.
+-- Cada zombi se trata como una esfera para que sea barato revisar cientos.
 function EnemyService.raycast(origin: Vector3, direction: Vector3, range: number, time: number): number?
 	local bestId, bestDistance = nil, range
 	for id, enemy in enemies do
