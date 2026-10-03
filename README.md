@@ -3,6 +3,10 @@
 Juego de Roblox: defiende tu castillo de hordas de zombis que crecen en cada oleada.
 Inspirado en el género "horde survivor FPS".
 
+![Vista previa](docs/preview.png)
+
+_Vista previa: recreación con las medidas y colores del código, no es captura de Roblox._
+
 ## Fase 1: prototipo (lo que ya funciona)
 
 - El mapa se genera solo, de noche y con niebla: muro del castillo con almenas, antorchas, torres, puerta y un cementerio de donde salen los zombis.

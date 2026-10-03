@@ -98,8 +98,9 @@ function MapBuilder.build()
 	for index, x in rangeList(-width / 2 + 2, width / 2 - 2, 6) do
 		makePart({
 			Name = "Merlon",
-			Size = Vector3.new(3, 3, 1.5),
-			Position = Vector3.new(x, height + 1.5, -depth / 2 + 0.75),
+			-- Bajas (a la cintura) para que no tapen la vista al disparar
+			Size = Vector3.new(3, 1.6, 1.5),
+			Position = Vector3.new(x, height + 0.8, -depth / 2 + 0.75),
 			Material = Enum.Material.Slate,
 			Color = STONE,
 			Parent = map,
@@ -108,7 +109,7 @@ function MapBuilder.build()
 			local torch = makePart({
 				Name = "Torch",
 				Size = Vector3.new(0.6, 1.2, 0.6),
-				Position = Vector3.new(x, height + 3.6, -depth / 2 + 0.75),
+				Position = Vector3.new(x, height + 2.2, -depth / 2 + 0.75),
 				Material = Enum.Material.Neon,
 				Color = TORCH_COLOR,
 				CanCollide = false,
@@ -125,8 +126,8 @@ function MapBuilder.build()
 
 	makePart({
 		Name = "BackRail",
-		Size = Vector3.new(width, 3, 1),
-		Position = Vector3.new(0, height + 1.5, depth / 2 - 0.5),
+		Size = Vector3.new(width, 1.6, 1),
+		Position = Vector3.new(0, height + 0.8, depth / 2 - 0.5),
 		Material = Enum.Material.Slate,
 		Color = STONE,
 		Parent = map,
