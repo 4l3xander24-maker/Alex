@@ -398,6 +398,13 @@ function CampBuilder.build(map: Instance)
 	Props.barrel(map, camp + Vector3.new(-30, 0, 8))
 	Props.barrel(map, camp + Vector3.new(30, 0, 12))
 
+	-- Noche medieval: velas junto a los puestos y la fogata
+	if (Config.Themes[Config.Theme] or {}).Medieval then
+		for _, offset in { Vector3.new(-17, 0, 3), Vector3.new(17, 0, 3), Vector3.new(-16, 0, -19), Vector3.new(-6, 0, 21), Vector3.new(6, 0, 21), Vector3.new(-5, 0, -6), Vector3.new(5, 0, 6) } do
+			Props.candles(map, camp + offset, nil, true)
+		end
+	end
+
 	local spawn = Instance.new("SpawnLocation")
 	spawn.Name = "CampSpawn"
 	spawn.Anchored = true

@@ -67,78 +67,115 @@ class Sprite:
         return image.resize((width * SCALE, height * SCALE), Image.NEAREST)
 
 
-def walker():
-    skin, shirt, pants = (128, 168, 112), (72, 92, 138), (82, 66, 54)
-    blood, eye, mouth = (150, 32, 32), (255, 90, 60), (40, 18, 18)
-    s = Sprite(18, 26)
-    s.glow.add(eye)
-    s.rect(5, 0, 8, 8, skin)
-    s.rect(5, 0, 3, 1, (52, 70, 48))
-    s.rect(5, 1, 1, 2, (52, 70, 48))
-    s.rect(6, 3, 2, 1, eye)
-    s.rect(10, 3, 2, 1, eye)
-    s.rect(6, 4, 2, 1, (96, 128, 84))
-    s.rect(10, 4, 2, 1, (96, 128, 84))
-    s.px(9, 5, (96, 128, 84))
-    s.rect(7, 6, 4, 1, mouth)
-    s.px(7, 6, (225, 220, 190))
-    s.px(9, 6, (225, 220, 190))
-    s.rect(8, 7, 2, 1, mouth)
-    s.px(12, 1, blood)
-    s.px(12, 2, blood)
-    s.rect(8, 8, 2, 1, skin)
-    s.rect(4, 9, 10, 8, shirt)
-    for x, y in ((6, 11), (7, 12), (7, 13), (11, 10)):
-        s.px(x, y, blood)
-    s.rect(9, 14, 2, 2, skin)
-    for x in (5, 8, 12):
-        s.clear(x, 16)
-    s.rect(1, 9, 3, 4, shirt)
-    s.rect(0, 13, 3, 3, skin)
-    s.px(0, 16, skin)
-    s.px(2, 16, skin)
-    s.rect(14, 9, 3, 3, shirt)
-    s.rect(15, 12, 3, 3, skin)
-    s.px(15, 15, skin)
-    s.px(17, 15, skin)
-    s.rect(5, 17, 3, 7, pants)
-    s.rect(10, 17, 3, 7, pants)
-    s.px(6, 19, blood)
-    s.px(11, 21, skin)
-    s.rect(4, 24, 4, 2, (40, 34, 30))
-    s.rect(10, 24, 4, 2, (40, 34, 30))
+# Colores del estilo de dibujo animado (como las imágenes de referencia)
+WHITE = (246, 246, 240)
+PUPIL = (18, 18, 22)
+MOUTH = (140, 18, 30)
+BLOOD = (120, 22, 26)
+
+
+def cartoon_face(s, x, y, skin):
+    """Ojos blancos enormes (uno más grande), pupilas y boca abierta con dientes."""
+    s.glow.update({WHITE, PUPIL})
+    s.rect(x, y, 4, 4, WHITE)
+    s.rect(x + 1, y + 1, 2, 2, PUPIL)
+    s.rect(x + 6, y, 3, 3, WHITE)
+    s.px(x + 7, y + 1, PUPIL)
+    s.rect(x + 2, y + 4, 6, 2, MOUTH)
+    s.px(x + 3, y + 4, WHITE)
+    s.px(x + 6, y + 4, WHITE)
+    s.px(x - 1, y - 1, tuple(int(c * 0.8) for c in skin))
+
+
+def walker(skin=(104, 186, 64), shirt=WHITE, pants=(46, 92, 168), top=0):
+    """Zombi clásico: cabezón verde, camisa blanca rota y jean azul."""
+    s = Sprite(18, 26 + top)
+    y = top
+    s.rect(3, y, 12, 9, skin)
+    cartoon_face(s, 4, y + 2, skin)
+    s.rect(7, y + 9, 4, 1, skin)
+    s.rect(4, y + 10, 10, 7, shirt)
+    # Camisa rota y manchada
+    s.rect(5, y + 14, 2, 2, skin)
+    s.px(11, y + 12, skin)
+    for px, py in ((8, 11), (9, 12), (12, 15)):
+        s.px(px, py + y, BLOOD)
+    # Brazos estirados hacia adelante
+    s.rect(1, y + 10, 3, 2, shirt)
+    s.rect(0, y + 12, 3, 4, skin)
+    s.px(0, y + 16, skin)
+    s.px(2, y + 16, skin)
+    s.rect(14, y + 10, 3, 2, shirt)
+    s.rect(15, y + 12, 3, 4, skin)
+    s.px(15, y + 16, skin)
+    s.px(17, y + 16, skin)
+    s.rect(4, y + 17, 10, 1, (70, 44, 30))
+    s.rect(4, y + 18, 4, 5, pants)
+    s.rect(10, y + 18, 4, 5, pants)
+    s.px(5, y + 20, skin)
+    s.rect(3, y + 23, 5, 3, skin)
+    s.rect(10, y + 23, 5, 3, skin)
     return s
 
 
 def runner():
-    skin, shirt, pants = (160, 172, 150), (150, 50, 46), (60, 66, 80)
-    blood, eye, mouth = (110, 20, 20), (255, 230, 90), (40, 18, 18)
+    """Corredor: flaco, sin camisa, encorvado y con jean oscuro."""
+    skin, pants = (70, 160, 70), (70, 74, 120)
     s = Sprite(16, 24)
+    s.rect(2, 2, 11, 8, skin)
+    cartoon_face(s, 3, 4, skin)
+    s.rect(4, 10, 8, 7, tuple(int(c * 0.88) for c in skin))
+    for px, py in ((5, 12), (7, 12), (9, 12)):
+        s.px(px, py, tuple(int(c * 0.7) for c in skin))
+    s.px(10, 14, BLOOD)
+    s.rect(1, 10, 3, 2, skin)
+    s.rect(0, 12, 2, 4, skin)
+    s.rect(12, 10, 3, 2, skin)
+    s.rect(14, 12, 2, 4, skin)
+    s.rect(4, 17, 3, 4, pants)
+    s.rect(3, 21, 3, 1, pants)
+    s.rect(9, 17, 3, 3, pants)
+    s.rect(10, 20, 3, 2, pants)
+    s.rect(2, 22, 4, 2, skin)
+    s.rect(10, 22, 4, 2, skin)
+    return s
+
+
+def cone():
+    """Zombi con un cono de tránsito naranja con franja blanca."""
+    s = walker(skin=(120, 196, 72), pants=(40, 100, 180), top=8)
+    orange = (242, 112, 24)
+    s.rect(8, 0, 2, 2, orange)
+    s.rect(7, 2, 4, 2, orange)
+    s.rect(6, 4, 6, 1, WHITE)
+    s.rect(6, 5, 6, 2, orange)
+    s.rect(3, 7, 12, 1, orange)
+    s.glow.add(WHITE)
+    return s
+
+
+def knight():
+    """Caballero zombi: yelmo de hierro, ojos rojos que brillan y túnica."""
+    skin, tunic, iron, eye = (96, 150, 70), (120, 36, 40), (138, 142, 150), (255, 70, 50)
+    s = Sprite(18, 26)
     s.glow.add(eye)
-    s.rect(5, 2, 7, 7, skin)
-    s.rect(5, 2, 7, 1, (60, 40, 30))
-    s.px(5, 3, (60, 40, 30))
-    s.px(11, 3, (60, 40, 30))
-    s.rect(6, 5, 2, 1, eye)
-    s.rect(9, 5, 2, 1, eye)
-    s.rect(7, 7, 4, 1, mouth)
-    s.px(8, 7, (225, 220, 190))
-    s.px(10, 7, (225, 220, 190))
-    s.rect(4, 9, 8, 7, shirt)
-    for x, y in ((6, 10), (9, 12), (10, 12)):
-        s.px(x, y, blood)
-    s.clear(4, 15)
-    s.clear(11, 14)
-    s.rect(2, 9, 2, 3, shirt)
-    s.rect(1, 12, 2, 4, skin)
-    s.rect(12, 9, 2, 2, shirt)
-    s.rect(13, 11, 2, 3, skin)
-    s.rect(4, 16, 3, 4, pants)
-    s.rect(3, 20, 3, 2, pants)
-    s.rect(9, 16, 3, 3, pants)
-    s.rect(10, 19, 3, 3, pants)
-    s.rect(2, 22, 4, 2, (40, 34, 30))
-    s.rect(10, 22, 4, 2, (40, 34, 30))
+    s.rect(3, 0, 12, 9, skin)
+    s.rect(3, 0, 12, 4, iron)
+    s.rect(8, 4, 2, 3, iron)
+    s.rect(5, 4, 2, 1, eye)
+    s.rect(11, 4, 2, 1, eye)
+    s.rect(6, 7, 6, 1, MOUTH)
+    s.rect(4, 10, 10, 7, tunic)
+    s.rect(5, 10, 8, 4, iron)
+    s.rect(1, 10, 3, 2, iron)
+    s.rect(0, 12, 3, 4, skin)
+    s.rect(14, 10, 3, 2, iron)
+    s.rect(15, 12, 3, 4, skin)
+    s.rect(4, 17, 10, 1, (60, 40, 25))
+    s.rect(4, 18, 4, 5, (60, 56, 64))
+    s.rect(10, 18, 4, 5, (60, 56, 64))
+    s.rect(3, 23, 5, 3, iron)
+    s.rect(10, 23, 5, 3, iron)
     return s
 
 
@@ -174,11 +211,13 @@ def brute(skin, top, pants, eye, spikes=None):
     return s
 
 
+# Los jefes (Gordo, Rey y Dragón) siempre usan el modelo 3D
 SPRITES = {
     "Walker": walker(),
     "Runner": runner(),
-    "Brute": brute((150, 160, 90), (190, 180, 150), (70, 60, 80), (255, 90, 60)),
-    "Giant": brute((130, 100, 140), (110, 30, 40), (40, 40, 50), (120, 255, 120), spikes=(220, 215, 190)),
+    "Cone": cone(),
+    "Knight": knight(),
+    "Brute": brute((130, 176, 70), (214, 206, 180), (86, 66, 52), WHITE),
 }
 
 if __name__ == "__main__":

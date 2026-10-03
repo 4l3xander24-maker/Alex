@@ -1,20 +1,22 @@
 -- Dibuja los zombis localmente. La posición sale de EnemyMath con el tiempo
 -- del servidor, y se mueven todos de una vez con BulkMoveTo.
 --
--- Estilo "3D": muñeco de bloques con materiales, ojos que brillan y
--- animación de caminar (y de golpear cuando llegan). Estilo "Pixel": sprite
--- que siempre mira a la cámara (si el enemigo tiene Sprite).
+-- Estilo "3D": muñecos de bloques de dibujo animado (ZombieModels) con
+-- animación de caminar, golpear y, en el dragón, aletear y escupir fuego.
+-- Estilo "Pixel": sprite que siempre mira a la cámara (si tiene Sprite).
+-- Al morir revientan en cubitos (DeathFx).
 --
 -- Optimización: los zombis detrás de la cámara no se mueven en pantalla, los
 -- lejanos no se animan y los muy lejanos se actualizan cada 3 cuadros.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
 local EnemyMath = require(Shared.EnemyMath)
 local Remotes = require(Shared.Remotes)
+local DeathFx = require(script.Parent.DeathFx)
+local ZombieModels = require(script.Parent.ZombieModels)
 
 local FLASH_COLOR = Color3.new(1, 1, 1)
 local FLASH_TINT = Color3.new(1, 0.35, 0.35)
@@ -22,45 +24,34 @@ local FLASH_TIME = 0.08
 local SWAY_SPEED = 4
 local SPRITE_SWAY = 0.06
 local BOB_HEIGHT = 0.12
+local BREATH_DISTANCE = 320
+local BLOOD = Color3.fromRGB(120, 22, 26)
 local graphics = Config.Graphics
 
--- Piezas del zombi 3D para uno de 5 studs de alto (se escala por tipo).
--- Pivot: punto de giro (cadera u hombro). Hang: dónde queda el centro de la
--- pieza respecto al pivote. Role: qué animación usa.
-type PartSpec = {
-	Name: string,
-	Size: Vector3,
-	Pivot: Vector3,
-	Hang: Vector3,
-	Tilt: number,
-	Color: string,
-	Material: Enum.Material,
-	Role: string?,
-}
-
-local BODY_PARTS: { PartSpec } = {
-	{ Name = "LeftLeg", Size = Vector3.new(0.8, 2, 0.9), Pivot = Vector3.new(-0.45, -0.5, 0), Hang = Vector3.new(0, -1, 0), Tilt = 0, Color = "Pants", Material = Enum.Material.Fabric, Role = "LegL" },
-	{ Name = "RightLeg", Size = Vector3.new(0.8, 2, 0.9), Pivot = Vector3.new(0.45, -0.5, 0), Hang = Vector3.new(0, -1, 0), Tilt = 0, Color = "Pants", Material = Enum.Material.Fabric, Role = "LegR" },
-	{ Name = "Torso", Size = Vector3.new(2, 2, 1), Pivot = Vector3.new(0, -0.5, 0), Hang = Vector3.new(0, 1, 0), Tilt = 0.18, Color = "Shirt", Material = Enum.Material.Fabric },
-	{ Name = "Head", Size = Vector3.new(1.15, 1.15, 1.15), Pivot = Vector3.new(0, 1.5, -0.25), Hang = Vector3.new(0, 0.55, 0), Tilt = 0.3, Color = "Skin", Material = Enum.Material.SmoothPlastic },
-	{ Name = "LeftArm", Size = Vector3.new(0.5, 0.5, 1.9), Pivot = Vector3.new(-1.25, 1.15, -0.2), Hang = Vector3.new(0, 0, -0.9), Tilt = 0, Color = "Skin", Material = Enum.Material.SmoothPlastic, Role = "ArmL" },
-	{ Name = "RightArm", Size = Vector3.new(0.5, 0.5, 1.9), Pivot = Vector3.new(1.25, 1.15, -0.2), Hang = Vector3.new(0, 0, -0.9), Tilt = 0, Color = "Skin", Material = Enum.Material.SmoothPlastic, Role = "ArmR" },
-	{ Name = "LeftEye", Size = Vector3.new(0.24, 0.16, 0.06), Pivot = Vector3.new(-0.25, 2.1, -0.92), Hang = Vector3.zero, Tilt = 0.3, Color = "Eyes", Material = Enum.Material.Neon },
-	{ Name = "RightEye", Size = Vector3.new(0.24, 0.16, 0.06), Pivot = Vector3.new(0.25, 2.1, -0.92), Hang = Vector3.zero, Tilt = 0.3, Color = "Eyes", Material = Enum.Material.Neon },
-}
+type PartSpec = ZombieModels.PartSpec
 
 type Piece = {
 	Part: BasePart,
 	Spec: PartSpec?,
 	Color: Color3,
+	Glows: boolean,
+	-- Pose fija ya escalada (para piezas sin animación)
+	Static: CFrame?,
+	Pivot: Vector3,
+	Hang: Vector3,
 }
 
 type Visual = {
+	Type: string,
 	Pieces: { Piece },
 	Decal: Decal?,
+	Breath: ParticleEmitter?,
+	BreathLight: PointLight?,
 	Path: EnemyMath.Path,
 	Speed: number,
 	Scale: number,
+	Extent: number, -- medio tamaño, para no ocultar a los jefes grandes antes de tiempo
+	Flying: boolean,
 	Facing: Vector3, -- última dirección en que caminó (por si queda quieto)
 	FlashUntil: number,
 	Phase: number,
@@ -81,6 +72,7 @@ local deadIds: { [number]: boolean } = {}
 local parts: { BasePart } = {}
 local cframes: { CFrame } = {}
 local frame = 0
+local random = Random.new()
 
 local function newPart(name: string, size: Vector3, material: Enum.Material): Part
 	local part = Instance.new("Part")
@@ -90,31 +82,75 @@ local function newPart(name: string, size: Vector3, material: Enum.Material): Pa
 	part.Anchored = true
 	part.CanCollide = false
 	part.CanTouch = false
+	part.CanQuery = false
 	part.CastShadow = false
 	return part
 end
 
 local function createSprite(typeName: string, info): ({ Piece }, Decal)
-	local part = newPart(typeName, Vector3.new(info.Size.X, info.Size.Y, 0.05), Enum.Material.SmoothPlastic)
+	local size = info.SpriteSize or info.Size
+	local part = newPart(typeName, Vector3.new(size.X, size.Y, 0.05), Enum.Material.SmoothPlastic)
 	part.Transparency = 1
 	local decal = Instance.new("Decal")
 	decal.Texture = info.Sprite
 	decal.Face = Enum.NormalId.Front
 	decal.Parent = part
 	part.Parent = folder
-	return { { Part = part, Spec = nil, Color = FLASH_COLOR } }, decal
+	return { { Part = part, Spec = nil, Color = info.Skin, Glows = false, Pivot = Vector3.zero, Hang = Vector3.zero } }, decal
 end
 
-local function createBody(info, scale: number): { Piece }
+-- Fuego del dragón: llamas verdes y naranjas que salen de la boca
+local function addBreath(part: BasePart, scale: number): (ParticleEmitter, PointLight)
+	local fire = Instance.new("ParticleEmitter")
+	fire.Texture = "rbxasset://textures/particles/fire_main.dds"
+	fire.EmissionDirection = Enum.NormalId.Front
+	fire.Rate = 70
+	fire.Lifetime = NumberRange.new(0.5, 0.8)
+	fire.Speed = NumberRange.new(9 * scale, 13 * scale)
+	fire.SpreadAngle = Vector2.new(10, 10)
+	fire.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.6 * scale), NumberSequenceKeypoint.new(1, 2.2 * scale) })
+	fire.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.1), NumberSequenceKeypoint.new(1, 1) })
+	fire.Color = ColorSequence.new(Color3.fromRGB(150, 255, 120), Color3.fromRGB(255, 140, 40))
+	fire.LightEmission = 1
+	fire.Enabled = false
+	fire.Parent = part
+	local light = Instance.new("PointLight")
+	light.Color = Color3.fromRGB(150, 255, 110)
+	light.Range = math.min(12 * scale, 60)
+	light.Brightness = 3
+	light.Enabled = false
+	light.Parent = part
+	return fire, light
+end
+
+local function createBody(typeName: string, info, scale: number): ({ Piece }, ParticleEmitter?, PointLight?)
 	local pieces = {}
-	for _, spec in BODY_PARTS do
-		local color = info[spec.Color]
-		local part = newPart(spec.Name, spec.Size * scale, spec.Material)
+	local breath, breathLight = nil, nil
+	for _, spec in ZombieModels.get(typeName, info) do
+		local color, glows = ZombieModels.resolveColor(info, spec.Color)
+		local material = if glows then Enum.Material.Neon else spec.Material
+		local part = newPart(spec.Name, spec.Size * scale, material)
 		part.Color = color
+		if spec.Transparent then
+			part.Transparency = 1
+			breath, breathLight = addBreath(part, scale)
+		end
 		part.Parent = folder
-		table.insert(pieces, { Part = part, Spec = spec, Color = color })
+		local pivot, hang = spec.Pivot * scale, spec.Hang * scale
+		local piece: Piece = {
+			Part = part,
+			Spec = spec,
+			Color = color,
+			Glows = material == Enum.Material.Neon,
+			Pivot = pivot,
+			Hang = hang,
+		}
+		if not spec.Role then
+			piece.Static = CFrame.new(pivot) * CFrame.Angles(-spec.Tilt, 0, 0) * CFrame.new(hang)
+		end
+		table.insert(pieces, piece)
 	end
-	return pieces
+	return pieces, breath, breathLight
 end
 
 local function setFlash(visual: Visual, flashing: boolean)
@@ -123,13 +159,13 @@ local function setFlash(visual: Visual, flashing: boolean)
 		return
 	end
 	for _, piece in visual.Pieces do
-		if piece.Spec and piece.Spec.Material ~= Enum.Material.Neon then
+		if not piece.Glows then
 			piece.Part.Color = if flashing then FLASH_COLOR else piece.Color
 		end
 	end
 end
 
-local function addEnemy(id: number, typeName: string, start: Vector3, target: Vector3, speed: number, spawnTime: number)
+local function addEnemy(id: number, typeName: string, points: { Vector3 }, speed: number, spawnTime: number)
 	if visuals[id] or deadIds[id] then
 		return
 	end
@@ -139,23 +175,115 @@ local function addEnemy(id: number, typeName: string, start: Vector3, target: Ve
 	end
 
 	local scale = info.Size.Y / 5
-	local pieces, decal
+	local pieces, decal, breath, breathLight
 	if Config.ZombieStyle == "Pixel" and info.Sprite ~= "" then
 		pieces, decal = createSprite(typeName, info)
 	else
-		pieces = createBody(info, scale)
+		pieces, breath, breathLight = createBody(typeName, info, scale)
 	end
 	visuals[id] = {
+		Type = typeName,
 		Pieces = pieces,
 		Decal = decal,
-		Path = EnemyMath.newPath(start, target, speed, spawnTime),
+		Breath = breath,
+		BreathLight = breathLight,
+		Path = EnemyMath.newRoute(points, speed, spawnTime),
 		Speed = speed,
 		Scale = scale,
+		Extent = math.max(info.Size.X, info.Size.Y) / 2,
+		Flying = info.Flying == true,
 		Facing = Vector3.new(0, 0, 1),
 		FlashUntil = 0,
 		Phase = id * 0.37,
 		Slot = id % 3,
 	}
+end
+
+local function destroyPieces(visual: Visual)
+	for _, piece in visual.Pieces do
+		piece.Part:Destroy()
+	end
+end
+
+-- Reparte los cubitos entre las piezas según su tamaño (cabeza, torso, piernas)
+local function cubeShares(visual: Visual, total: number): { [Piece]: number }
+	local volumes = {}
+	local sum = 0
+	for _, piece in visual.Pieces do
+		local size = piece.Part.Size
+		local volume = size.X * size.Y * size.Z
+		volumes[piece] = volume
+		sum += volume
+	end
+	local shares = {}
+	for piece, volume in volumes do
+		shares[piece] = math.floor(total * volume / sum + 0.35)
+	end
+	return shares
+end
+
+-- Muerte al estilo pixelado: destello blanco, la cabeza sale volando, el
+-- cuerpo se desarma hacia atrás y cada pedazo revienta en cubitos.
+local function explode(visual: Visual, position: Vector3, cameraPosition: Vector3)
+	local info = Config.Enemies[visual.Type]
+	local scale = visual.Scale
+	local boost = scale ^ 0.6
+	local gravity = 60 * boost
+	local away = Vector3.new(position.X - cameraPosition.X, 0, position.Z - cameraPosition.Z)
+	away = if away.Magnitude > 0.01 then away.Unit else -visual.Facing
+	local cubeSize = 0.42 * scale ^ 0.8
+	local wanted = if info.IsBoss then 70 else 14
+	local shares = cubeShares(visual, math.min(wanted, DeathFx.budget()))
+	local goo = info.Skin:Lerp(Color3.new(0, 0, 0), 0.35)
+
+	for _, piece in visual.Pieces do
+		local spec = piece.Spec
+		if spec and spec.Transparent then
+			piece.Part:Destroy()
+			continue
+		end
+		local group = if spec then spec.Group else "Torso"
+		local velocity, spin, life
+		if visual.Decal then
+			-- El sprite cae de espaldas y revienta
+			velocity = away * 3 + Vector3.new(0, 5, 0)
+			spin = Vector3.new(-6, 0, 0)
+			life = 0.4
+		elseif visual.Flying then
+			-- El dragón se desploma desde el cielo y revienta al tocar el suelo
+			velocity = away * random:NextNumber(2, 6) * boost + Vector3.new(0, random:NextNumber(-2, 4) * boost, 0)
+			spin = Vector3.new(random:NextNumber(-2, 2), random:NextNumber(-2, 2), random:NextNumber(-2, 2))
+			life = 2.5
+		elseif group == "Head" then
+			velocity = away * 6 * boost + Vector3.new(random:NextNumber(-2, 2), 15, random:NextNumber(-2, 2)) * boost
+			spin = Vector3.new(random:NextNumber(6, 10), random:NextNumber(-4, 4), random:NextNumber(-3, 3))
+			life = 0.8
+		elseif group == "Leg" then
+			velocity = away * random:NextNumber(1, 3) * boost + Vector3.new(0, random:NextNumber(1, 3) * boost, 0)
+			spin = Vector3.new(random:NextNumber(-3, 3), 0, random:NextNumber(-3, 3))
+			life = random:NextNumber(0.45, 0.6)
+		else
+			velocity = away * random:NextNumber(3, 6) * boost + Vector3.new(random:NextNumber(-2, 2), random:NextNumber(4, 8), random:NextNumber(-2, 2)) * boost
+			spin = Vector3.new(random:NextNumber(-5, 5), random:NextNumber(-5, 5), random:NextNumber(-5, 5))
+			life = random:NextNumber(0.5, 0.7)
+		end
+		DeathFx.addPiece(piece.Part, piece.Part.CFrame, {
+			Velocity = velocity,
+			Spin = spin,
+			Gravity = gravity,
+			Life = life,
+			BurstColors = { piece.Color, piece.Color, goo, BLOOD },
+			BurstCount = if visual.Decal then math.min(10, DeathFx.budget()) else shares[piece] or 0,
+			BurstSize = cubeSize,
+			BurstSpeed = 11 * boost,
+			BurstOnGround = visual.Flying,
+			Flash = visual.Decal == nil,
+		})
+	end
+	if visual.Decal then
+		visual.Decal.Color3 = FLASH_TINT
+	end
+	DeathFx.splat(position, math.max(1.6, info.Size.X * 0.45), goo, if info.IsBoss then 8 else 4)
 end
 
 local function removeEnemy(id: number, animate: boolean)
@@ -166,26 +294,18 @@ local function removeEnemy(id: number, animate: boolean)
 	end
 	visuals[id] = nil
 
-	for _, piece in visual.Pieces do
-		local part = piece.Part
-		if not animate then
-			part:Destroy()
-			continue
-		end
-		-- Se desarma: cada pieza cae y se desvanece
-		local goal: { [string]: any } = { Size = part.Size * 0.6, CFrame = part.CFrame * CFrame.new(0, -1.2, 0) * CFrame.Angles(math.random() - 0.5, 0, math.random() - 0.5) }
-		if visual.Decal then
-			visual.Decal.Color3 = FLASH_TINT
-			TweenService:Create(visual.Decal, TweenInfo.new(0.25), { Transparency = 1 }):Play()
-		else
-			goal.Transparency = 1
-		end
-		local tween = TweenService:Create(part, TweenInfo.new(0.3), goal)
-		tween.Completed:Once(function()
-			part:Destroy()
-		end)
-		tween:Play()
+	if not animate then
+		destroyPieces(visual)
+		return
 	end
+	local position = EnemyMath.getPosition(visual.Path, workspace:GetServerTimeNow())
+	local cameraPosition = workspace.CurrentCamera.CFrame.Position
+	-- Muy lejos no vale la pena el efecto: desaparece
+	if (position - cameraPosition).Magnitude > graphics.DeathFxDistance + visual.Extent then
+		destroyPieces(visual)
+		return
+	end
+	explode(visual, position, cameraPosition)
 end
 
 local function flashEnemy(id: number)
@@ -196,25 +316,46 @@ local function flashEnemy(id: number)
 	end
 end
 
--- Pose de cada pieza del zombi 3D: piernas y brazos se balancean al caminar;
--- al llegar a su objetivo golpean con los brazos.
-local function bodyOffset(spec: PartSpec, scale: number, walk: number, attack: number, animate: boolean): CFrame
-	local angle = 0
-	if animate then
-		if spec.Role == "LegL" then
-			angle = walk * 0.6
-		elseif spec.Role == "LegR" then
-			angle = -walk * 0.6
-		elseif spec.Role == "ArmL" then
-			angle = walk * 0.15 + attack
-		elseif spec.Role == "ArmR" then
-			angle = -walk * 0.15 + attack * 0.8
-		end
+-- Ángulo de la animación de cada pieza según su papel
+local function roleAngle(role: string, walk: number, attack: number, flap: number, sway: number, attacking: boolean): number
+	if role == "LegL" then
+		return walk * 0.6
+	elseif role == "LegR" then
+		return -walk * 0.6
+	elseif role == "ArmL" then
+		return walk * 0.15 + attack
+	elseif role == "ArmR" then
+		return -walk * 0.15 + attack * 0.8
+	elseif role == "Cape" then
+		return -math.abs(walk) * 0.15 - sway * 0.05
+	elseif role == "WingL" then
+		return -flap
+	elseif role == "WingR" then
+		return flap
+	elseif role == "Tail" then
+		return sway * 0.3
+	elseif role == "Neck" then
+		return if attacking then -0.25 + sway * 0.05 else sway * 0.08
+	elseif role == "Jaw" then
+		return if attacking then -0.45 - math.abs(attack) * 0.12 else -0.08
 	end
-	return CFrame.new(spec.Pivot * scale) * CFrame.Angles(angle - spec.Tilt, 0, 0) * CFrame.new(spec.Hang * scale)
+	return 0
 end
 
-local function render()
+local function poseOf(piece: Piece, angle: number): CFrame
+	local spec = piece.Spec :: PartSpec
+	local rotation
+	if spec.Axis == "Z" then
+		rotation = CFrame.Angles(-spec.Tilt, 0, 0) * CFrame.Angles(0, 0, angle)
+	elseif spec.Axis == "Y" then
+		rotation = CFrame.Angles(-spec.Tilt, angle, 0)
+	else
+		rotation = CFrame.Angles(angle - spec.Tilt, 0, 0)
+	end
+	return CFrame.new(piece.Pivot) * rotation * CFrame.new(piece.Hang)
+end
+
+local function render(dt: number)
 	frame += 1
 	local now = workspace:GetServerTimeNow()
 	local clock = os.clock()
@@ -225,21 +366,23 @@ local function render()
 	table.clear(cframes)
 
 	for _, visual in visuals do
-		local position = EnemyMath.getPosition(visual.Path, now)
+		local traveled = EnemyMath.getTraveled(visual.Path, now)
+		local position, direction = EnemyMath.locate(visual.Path, traveled)
 		local toEnemy = position - cameraPosition
 		local distance = toEnemy.Magnitude
 
 		-- Detrás de la cámara no hace falta moverlo: se ubica en cuanto vuelva a verse
-		local behind = distance > graphics.CullBehindDistance and toEnemy:Dot(look) < 0
-		local skipFar = distance > graphics.FarDistance and frame % 3 ~= visual.Slot
+		local behind = distance > graphics.CullBehindDistance + visual.Extent and toEnemy:Dot(look) < -visual.Extent
+		local skipFar = distance > graphics.FarDistance + visual.Extent and frame % 3 ~= visual.Slot
 		if behind or skipFar then
 			continue
 		end
 
-		if visual.Path.Direction.Magnitude > 0.01 then
-			visual.Facing = visual.Path.Direction
+		local flatDirection = Vector3.new(direction.X, 0, direction.Z)
+		if flatDirection.Magnitude > 0.01 then
+			visual.Facing = flatDirection.Unit
 		end
-		local arrived = EnemyMath.hasArrived(visual.Path, now)
+		local arrived = traveled >= visual.Path.Distance
 		local wave = math.sin(clock * SWAY_SPEED + visual.Phase)
 
 		if visual.Decal then
@@ -252,16 +395,44 @@ local function render()
 			table.insert(parts, visual.Pieces[1].Part)
 			table.insert(cframes, CFrame.lookAt(bobbed, facing) * CFrame.Angles(0, 0, wave * SPRITE_SWAY))
 		else
-			local animate = distance < graphics.AnimateDistance
+			local animate = distance < graphics.AnimateDistance + visual.Extent
 			local scale = visual.Scale
-			local walk = if arrived then 0 else math.sin(clock * visual.Speed * 0.9 + visual.Phase)
-			local attack = if arrived then -0.5 - math.abs(math.sin(clock * 6 + visual.Phase)) * 0.9 else 0
-			local bob = if arrived then 0 else math.abs(walk) * BOB_HEIGHT * scale
-			local root = CFrame.lookAt(position + Vector3.new(0, bob, 0), position + Vector3.new(0, bob, 0) + visual.Facing)
-				* CFrame.Angles(0, 0, wave * 0.08)
+			-- Los grandes se mueven más lento para que se sientan pesados
+			local tempo = 1 / math.sqrt(scale)
+			local walk, attack, flap, bob
+			if visual.Flying then
+				walk = 0
+				attack = if arrived then math.sin(clock * 8 + visual.Phase) else 0
+				flap = math.sin(clock * 2.4 + visual.Phase) * 0.6
+				bob = math.sin(clock * 2.4 + visual.Phase - 0.6) * 0.25 * scale
+			else
+				walk = if arrived then 0 else math.sin(clock * visual.Speed * 0.9 * tempo + visual.Phase)
+				attack = if arrived then -0.5 - math.abs(math.sin(clock * 6 * tempo + visual.Phase)) * 0.9 else 0
+				flap = 0
+				bob = if arrived then 0 else math.abs(walk) * BOB_HEIGHT * scale
+			end
+			local sway = math.sin(clock * 1.6 + visual.Phase)
+			local lifted = position + Vector3.new(0, bob, 0)
+			local root = CFrame.lookAt(lifted, lifted + visual.Facing) * CFrame.Angles(0, 0, if visual.Flying then 0 else wave * 0.08)
 			for _, piece in visual.Pieces do
 				table.insert(parts, piece.Part)
-				table.insert(cframes, root * bodyOffset(piece.Spec :: PartSpec, scale, walk, attack, animate))
+				local static = piece.Static
+				if static then
+					table.insert(cframes, root * static)
+				else
+					local role = (piece.Spec :: PartSpec).Role :: string
+					local angle = if animate then roleAngle(role, walk, attack, flap, sway, arrived) else 0
+					table.insert(cframes, root * poseOf(piece, angle))
+				end
+			end
+
+			local breath = visual.Breath
+			if breath then
+				local breathing = arrived and distance < BREATH_DISTANCE
+				if breath.Enabled ~= breathing then
+					breath.Enabled = breathing;
+					(visual.BreathLight :: PointLight).Enabled = breathing
+				end
 			end
 		end
 
@@ -271,12 +442,16 @@ local function render()
 		end
 	end
 
+	DeathFx.step(dt, parts, cframes)
+
 	if #parts > 0 then
 		workspace:BulkMoveTo(parts, cframes, Enum.BulkMoveMode.FireCFrameChanged)
 	end
 end
 
 function EnemyRenderer.init()
+	DeathFx.init(folder)
+
 	-- El servidor junta los eventos de cada cuadro en un solo mensaje
 	Remotes.EnemySpawned.OnClientEvent:Connect(function(spawns)
 		for _, entry in spawns do
@@ -293,12 +468,12 @@ function EnemyRenderer.init()
 			removeEnemy(id, true)
 		end
 	end)
-	-- Cambios de camino: persiguen a un jugador, vuelven a la campana o los empujan
+	-- Cambios de recorrido: persiguen a un jugador, vuelven al camino o los empujan
 	Remotes.EnemyPathsUpdated.OnClientEvent:Connect(function(updates)
 		for _, update in updates do
 			local visual = visuals[update[1]]
 			if visual then
-				visual.Path = EnemyMath.newPath(update[2], update[3], visual.Speed, update[4])
+				visual.Path = EnemyMath.newRoute(update[2], visual.Speed, update[3])
 			end
 		end
 	end)
@@ -307,6 +482,7 @@ function EnemyRenderer.init()
 			removeEnemy(id, false)
 		end
 		table.clear(deadIds)
+		DeathFx.clear()
 	end)
 
 	task.spawn(function()

@@ -1,17 +1,20 @@
 -- Los enemigos no son Humanoids: son datos en el servidor. Los clientes los
 -- dibujan, así aguantamos cientos de zombis a la vez.
 --
--- Cada zombi camina en línea recta hacia un objetivo. Por defecto es la
--- campana; si un jugador se acerca, el zombi cambia de objetivo y lo persigue
--- (se recalcula su línea recta varias veces por segundo). Si hay una reja en
--- el camino, se detiene frente a ella y la golpea hasta romperla.
+-- Cada zombi sigue uno de los caminos (Config.Paths) hasta la campana. Si un
+-- jugador se acerca, el zombi deja el camino y lo persigue (se recalcula su
+-- línea recta varias veces por segundo); al soltarlo vuelve al camino. Si hay
+-- una reja en el camino, se detiene frente a ella y la golpea hasta romperla.
+-- Los jefes voladores van en línea recta por el aire.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage.Shared
 local Config = require(Shared.Config)
 local EnemyMath = require(Shared.EnemyMath)
+local Paths = require(Shared.Paths)
 local Remotes = require(Shared.Remotes)
+local GameState = require(script.Parent.GameState)
 
 local hunt = Config.Hunt
 local RETARGET_DISTANCE = 3 -- solo recalculamos si el jugador se movió más que esto
@@ -25,14 +28,19 @@ export type Enemy = {
 	Health: number,
 	Path: EnemyMath.Path,
 	Radius: number,
-	HalfHeight: number,
-	BellTarget: Vector3,
+	HalfHeight: number, -- altura del centro del cuerpo (en los voladores, la de vuelo)
+	BodyHalf: number, -- medio alto del cuerpo
+	BellTarget: Vector3, -- dónde se para a golpear la campana
+	Route: string, -- camino que sigue
+	Lane: Vector3, -- desvío respecto al centro del camino
+	Flying: boolean,
 	Chasing: Player?,
 	Blocking: string?, -- reja que tiene enfrente (si hay)
 	DamagePerSecond: number,
 	PlayerDamage: number,
 	Coins: number,
 	IsBoss: boolean,
+	HealthMultiplier: number,
 }
 
 local EnemyService = {}
@@ -48,6 +56,8 @@ local pendingSpawns = {}
 local pendingHits = {}
 local pendingDeaths = {}
 local killHandler: ((Player, Enemy) -> ())? = nil
+-- Jefe cuya vida se muestra arriba en la pantalla
+local shownBoss: Enemy? = nil
 local playerDamageHandler: ((Player, number) -> ())? = nil
 
 export type Barrier = { Id: string, A: Vector3, B: Vector3 }
@@ -76,10 +86,14 @@ local function flatDistance(a: Vector3, b: Vector3): number
 	return Vector3.new(a.X - b.X, 0, a.Z - b.Z).Magnitude
 end
 
--- Cambia la línea recta del zombi y la anota para mandarla a los clientes
-local function setPath(enemy: Enemy, start: Vector3, target: Vector3, now: number)
-	enemy.Path = EnemyMath.newPath(start, target, enemy.Path.Speed, now)
+-- Cambia el recorrido del zombi y lo anota para mandarlo a los clientes
+local function setRoute(enemy: Enemy, points: { Vector3 }, now: number)
+	enemy.Path = EnemyMath.newRoute(points, enemy.Path.Speed, now)
 	pendingUpdates[enemy.Id] = enemy
+end
+
+local function setPath(enemy: Enemy, start: Vector3, target: Vector3, now: number)
+	setRoute(enemy, { start, target }, now)
 end
 
 local function stopChasing(enemy: Enemy)
@@ -109,17 +123,63 @@ local function firstBarrierHit(from: Vector3, to: Vector3): (number?, string?)
 	return bestT, bestId
 end
 
--- Camino hacia la campana: si hay una reja en medio, se para frente a ella
-local function goToBell(enemy: Enemy, from: Vector3, now: number)
-	local t, barrierId = firstBarrierHit(from, enemy.BellTarget)
-	enemy.Blocking = barrierId
-	if not t then
-		setPath(enemy, from, enemy.BellTarget, now)
-		return
+-- Puntos del camino de este zombi (con su desvío), sin la campana
+local function routeWaypoints(enemy: Enemy): { Vector3 }
+	local points = Paths.getPoints(enemy.Route)
+	local waypoints = {}
+	for index = 1, #points - 1 do
+		local point = points[index] + enemy.Lane
+		waypoints[index] = Vector3.new(point.X, enemy.HalfHeight, point.Z)
 	end
-	local offset = enemy.BellTarget - from
-	local stop = math.max(0, offset.Magnitude * t - enemy.Radius - 0.5)
-	setPath(enemy, from, from + offset.Unit * stop, now)
+	return waypoints
+end
+
+-- Ruta desde `from` hasta la campana: vuelve al camino en el siguiente punto
+-- después del tramo más cercano y lo sigue hasta el final
+local function routeFrom(enemy: Enemy, from: Vector3): { Vector3 }
+	if enemy.Flying then
+		return { from, enemy.BellTarget }
+	end
+	local waypoints = routeWaypoints(enemy)
+	table.insert(waypoints, enemy.BellTarget)
+	local bestIndex, bestDistance = #waypoints, math.huge
+	for index = 2, #waypoints do
+		local distance = Paths.segmentDistance(from, waypoints[index - 1], waypoints[index])
+		if distance < bestDistance then
+			bestIndex, bestDistance = index, distance
+		end
+	end
+	local route = { from }
+	for index = bestIndex, #waypoints do
+		table.insert(route, waypoints[index])
+	end
+	return route
+end
+
+-- Si una reja corta la ruta, la ruta termina frente a ella
+local function cutAtBarrier(enemy: Enemy, route: { Vector3 }): ({ Vector3 }, string?)
+	if enemy.Flying then
+		return route, nil
+	end
+	for index = 2, #route do
+		local from, to = route[index - 1], route[index]
+		local t, barrierId = firstBarrierHit(from, to)
+		if t then
+			local offset = to - from
+			local stop = math.max(0, offset.Magnitude * t - enemy.Radius - 0.5)
+			local cut = table.move(route, 1, index - 1, 1, {})
+			table.insert(cut, from + offset.Unit * stop)
+			return cut, barrierId
+		end
+	end
+	return route, nil
+end
+
+-- Vuelve a caminar hacia la campana por su camino
+local function goToBell(enemy: Enemy, from: Vector3, now: number)
+	local route, barrierId = cutAtBarrier(enemy, routeFrom(enemy, from))
+	enemy.Blocking = barrierId
+	setRoute(enemy, route, now)
 end
 
 -- Punto junto al jugador, del lado por donde viene el zombi
@@ -130,21 +190,49 @@ local function chasePoint(enemy: Enemy, from: Vector3, playerPosition: Vector3):
 	return Vector3.new(point.X, enemy.HalfHeight, point.Z)
 end
 
--- Los zombis salen de un arco frente a la campana y caminan hacia ella
-function EnemyService.spawn(typeName: string, healthMultiplier: number)
+-- Publica la vida del jefe que se muestra (o elige otro si murió)
+local function publishBoss()
+	if shownBoss and not enemies[shownBoss.Id] then
+		shownBoss = nil
+	end
+	if not shownBoss then
+		for _, enemy in enemies do
+			if enemy.IsBoss then
+				shownBoss = enemy
+				break
+			end
+		end
+	end
+	local boss = shownBoss
+	if not boss then
+		GameState.set("BossName", "")
+		return
+	end
+	local info = Config.Enemies[boss.Type]
+	GameState.set("BossName", `{info.Icon or "💀"} {info.DisplayName}`)
+	GameState.set("BossMaxHealth", math.ceil(info.MaxHealth * boss.HealthMultiplier))
+	GameState.set("BossHealth", math.max(0, math.ceil(boss.Health)))
+end
+
+-- Crea un zombi en `start` (o al principio de su camino) y lo manda a la campana
+local function create(typeName: string, healthMultiplier: number, start: Vector3?, routeName: string?)
 	local info = Config.Enemies[typeName]
 	local arena = Config.Arena
-	local halfHeight = info.Size.Y / 2
+	local flying = info.Flying == true
+	local halfHeight = if flying then info.FlyHeight else info.Size.Y / 2
+	local route = routeName or Paths.pick(random)
+	local lane = Config.PathStyle.Lane
+	local laneOffset = Vector3.new(random:NextNumber(-lane, lane), 0, random:NextNumber(-lane, lane))
 
-	local halfArc = math.rad(arena.SpawnArc / 2)
-	local angle = random:NextNumber(-halfArc, halfArc)
-	local outward = Vector3.new(math.sin(angle), 0, -math.cos(angle))
-	local targetAngle = angle + random:NextNumber(-0.25, 0.25)
-	local inward = Vector3.new(math.sin(targetAngle), 0, -math.cos(targetAngle))
-
-	local start = outward * arena.SpawnRadius + Vector3.new(0, halfHeight, 0)
+	-- Se para frente a la campana, del lado por donde llega su camino
+	local points = Config.Paths[route].Points
+	local approach = Vector3.new(points[#points].X, 0, points[#points].Z).Unit
+	local angle = math.atan2(approach.X, -approach.Z) + random:NextNumber(-0.5, 0.5)
 	local stopDistance = arena.StopRadius + info.HitRadius + random:NextNumber(0, arena.StopJitter)
-	local target = inward * stopDistance + Vector3.new(0, halfHeight, 0)
+	local target = Vector3.new(math.sin(angle), 0, -math.cos(angle)) * stopDistance + Vector3.new(0, halfHeight, 0)
+
+	local origin = start or (points[1] + laneOffset)
+	origin = Vector3.new(origin.X, halfHeight, origin.Z)
 	local spawnTime = workspace:GetServerTimeNow()
 
 	nextId += 1
@@ -152,10 +240,15 @@ function EnemyService.spawn(typeName: string, healthMultiplier: number)
 		Id = nextId,
 		Type = typeName,
 		Health = info.MaxHealth * healthMultiplier,
-		Path = EnemyMath.newPath(start, target, info.Speed, spawnTime),
+		HealthMultiplier = healthMultiplier,
+		Path = EnemyMath.newPath(origin, target, info.Speed, spawnTime),
 		Radius = info.HitRadius,
 		HalfHeight = halfHeight,
+		BodyHalf = info.Size.Y / 2,
 		BellTarget = target,
+		Route = route,
+		Lane = laneOffset,
+		Flying = flying,
 		Chasing = nil,
 		Blocking = nil,
 		DamagePerSecond = info.DamagePerSecond,
@@ -165,11 +258,33 @@ function EnemyService.spawn(typeName: string, healthMultiplier: number)
 	}
 	enemies[nextId] = enemy
 	aliveCount += 1
-	goToBell(enemy, start, spawnTime)
+	goToBell(enemy, origin, spawnTime)
 	pendingUpdates[nextId] = nil
 
-	local path = enemy.Path
-	table.insert(pendingSpawns, { nextId, typeName, start, EnemyMath.getTarget(path), info.Speed, spawnTime })
+	table.insert(pendingSpawns, { nextId, typeName, enemy.Path.Points, info.Speed, spawnTime })
+	if enemy.IsBoss then
+		publishBoss()
+	end
+end
+
+-- Un zombi nuevo al principio de uno de los caminos
+function EnemyService.spawn(typeName: string, healthMultiplier: number)
+	create(typeName, healthMultiplier, nil, nil)
+end
+
+-- Los jefes como el Gordo sueltan zombis al morir
+local function spawnChildren(enemy: Enemy, position: Vector3)
+	local info = Config.Enemies[enemy.Type]
+	local children = info.SpawnOnDeath
+	if not children then
+		return
+	end
+	local multiplier = enemy.HealthMultiplier
+	for index = 1, children.Count do
+		local angle = index / children.Count * math.pi * 2
+		local offset = Vector3.new(math.cos(angle), 0, math.sin(angle)) * enemy.Radius * 0.6
+		create(children.Type, multiplier, position + offset, enemy.Route)
+	end
 end
 
 function EnemyService.damage(enemyId: number, amount: number, player: Player)
@@ -178,9 +293,13 @@ function EnemyService.damage(enemyId: number, amount: number, player: Player)
 		return
 	end
 
+	local before = math.ceil(enemy.Health)
 	enemy.Health -= amount
 	if enemy.Health > 0 then
 		table.insert(pendingHits, enemyId)
+		if enemy == shownBoss and math.ceil(enemy.Health) ~= before then
+			GameState.set("BossHealth", math.ceil(enemy.Health))
+		end
 		return
 	end
 
@@ -192,6 +311,10 @@ function EnemyService.damage(enemyId: number, amount: number, player: Player)
 	if killHandler then
 		killHandler(player, enemy)
 	end
+	spawnChildren(enemy, EnemyMath.getPosition(enemy.Path, workspace:GetServerTimeNow()))
+	if enemy.IsBoss then
+		publishBoss()
+	end
 end
 
 function EnemyService.getPosition(enemyId: number, time: number): Vector3?
@@ -200,7 +323,9 @@ function EnemyService.getPosition(enemyId: number, time: number): Vector3?
 end
 
 -- Ids de los zombis que cruza el rayo, del más cercano al más lejano.
--- Cada zombi se trata como una esfera para que sea barato revisar cientos.
+-- Cada zombi se trata como una cápsula vertical (una esfera estirada a lo
+-- alto) para que sea barato revisar cientos y los jefes altos se puedan
+-- golpear en todo el cuerpo.
 function EnemyService.raycast(
 	origin: Vector3,
 	direction: Vector3,
@@ -212,11 +337,20 @@ function EnemyService.raycast(
 	local hits = {}
 	local padding = extraRadius or 0
 	for id, enemy in enemies do
-		local offset = EnemyMath.getPosition(enemy.Path, time) - origin
-		local along = offset:Dot(direction)
+		local center = EnemyMath.getPosition(enemy.Path, time)
+		local reach = math.max(0, enemy.BodyHalf - enemy.Radius)
+		-- Punto del eje de la cápsula más cercano al rayo (dos pasadas bastan)
+		local along = (center - origin):Dot(direction)
+		local axisPoint = center
+		for _ = 1, 2 do
+			local rayPoint = origin + direction * along
+			axisPoint = Vector3.new(center.X, math.clamp(rayPoint.Y, center.Y - reach, center.Y + reach), center.Z)
+			along = (axisPoint - origin):Dot(direction)
+		end
 		if along > 0 and along < range then
 			local radius = enemy.Radius + padding
-			if offset:Dot(offset) - along * along <= radius * radius then
+			local gap = axisPoint - (origin + direction * along)
+			if gap:Dot(gap) <= radius * radius then
 				table.insert(hits, { Id = id, Along = along })
 			end
 		end
@@ -232,11 +366,14 @@ function EnemyService.raycast(
 	return ids
 end
 
--- Ids de los zombis cuyo cuerpo está a menos de `radius` (medido sobre el suelo)
+-- Ids de los zombis cuyo cuerpo está a menos de `radius` (medido sobre el
+-- suelo). Los que vuelan muy alto quedan fuera de las explosiones en el suelo.
 function EnemyService.getInRadius(center: Vector3, radius: number, time: number): { number }
 	local ids = {}
 	for id, enemy in enemies do
-		if flatDistance(EnemyMath.getPosition(enemy.Path, time), center) <= radius + enemy.Radius then
+		local position = EnemyMath.getPosition(enemy.Path, time)
+		local heightGap = math.abs(position.Y - center.Y) - enemy.BodyHalf
+		if heightGap <= radius and flatDistance(position, center) <= radius + enemy.Radius then
 			table.insert(ids, id)
 		end
 	end
@@ -266,7 +403,7 @@ function EnemyService.knockback(center: Vector3, radius: number, seconds: number
 		local direction = if away.Magnitude > 0.01 then away.Unit else Vector3.new(0, 0, -1)
 		local pushed = position + direction * enemy.Path.Speed * seconds
 		stopChasing(enemy)
-		-- Arranca más atrás y vuelve a caminar hacia la campana
+		-- Arranca más atrás y vuelve a caminar hacia la campana por su camino
 		goToBell(enemy, Vector3.new(pushed.X, enemy.HalfHeight, pushed.Z), now)
 	end
 end
@@ -309,7 +446,7 @@ function EnemyService.think(now: number, dt: number)
 					playerDamageHandler(target, enemy.PlayerDamage * dt)
 				end
 			end
-		elseif chaserCount < hunt.MaxChasers then
+		elseif chaserCount < hunt.MaxChasers and not enemy.Flying then
 			local closest, closestDistance = nil, hunt.AggroRadius
 			for player, playerPosition in players do
 				local distance = flatDistance(position, playerPosition)
@@ -353,7 +490,7 @@ function EnemyService.flushUpdates()
 	local updates = {}
 	for id, enemy in pendingUpdates do
 		local path = enemy.Path
-		table.insert(updates, { id, path.Start, EnemyMath.getTarget(path), path.SpawnTime })
+		table.insert(updates, { id, path.Points, path.SpawnTime })
 	end
 	table.clear(pendingUpdates)
 	if #updates > 0 then
@@ -406,7 +543,7 @@ function EnemyService.getInCone(origin: Vector3, direction: Vector3, range: numb
 		local position = EnemyMath.getPosition(enemy.Path, time)
 		local offset = Vector3.new(position.X - origin.X, 0, position.Z - origin.Z)
 		local distance = offset.Magnitude - enemy.Radius
-		local heightGap = math.abs(position.Y - origin.Y) - enemy.HalfHeight
+		local heightGap = math.abs(position.Y - origin.Y) - enemy.BodyHalf
 		if distance <= range and heightGap <= range then
 			if offset.Magnitude < enemy.Radius + 1 or offset.Unit:Dot(flatDirection) >= minDot then
 				table.insert(hits, { Id = id, Distance = distance })
@@ -431,6 +568,8 @@ function EnemyService.clear()
 	pendingDeaths = {}
 	aliveCount = 0
 	chaserCount = 0
+	shownBoss = nil
+	GameState.set("BossName", "")
 	Remotes.EnemiesCleared:FireAllClients()
 end
 
@@ -439,7 +578,7 @@ function EnemyService.getSnapshot()
 	local snapshot = {}
 	for id, enemy in enemies do
 		local path = enemy.Path
-		table.insert(snapshot, { id, enemy.Type, path.Start, EnemyMath.getTarget(path), path.Speed, path.SpawnTime })
+		table.insert(snapshot, { id, enemy.Type, path.Points, path.Speed, path.SpawnTime })
 	end
 	return snapshot
 end

@@ -1,13 +1,14 @@
 -- Trampas que se compran al Intendente antes de la partida:
 --   Minas: se entierran en el camino de los zombis y explotan cuando pasa uno.
---   Rejas: dos tramos de reja frente a la campana. Los zombis se paran a
---          golpearlas hasta romperlas; mientras tanto no llegan a la campana.
+--   Rejas: una cruzada en cada camino, cerca de la campana. Los zombis se
+--          paran a golpearlas hasta romperlas; mientras tanto no avanzan.
 -- Duran una sola partida.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage.Shared
 local Config = require(Shared.Config)
+local Paths = require(Shared.Paths)
 local Remotes = require(Shared.Remotes)
 local EnemyService = require(script.Parent.EnemyService)
 local GameState = require(script.Parent.GameState)
@@ -57,14 +58,19 @@ local function publish()
 	end
 end
 
-local function pointAt(angleDegrees: number, radius: number): Vector3
-	local angle = math.rad(angleDegrees)
-	return Vector3.new(math.sin(angle) * radius, 0, -math.cos(angle) * radius)
+-- Lugar de una mina sobre su camino
+function TrapService.getMineSpot(index: number): Vector3
+	local spot = mineConfig.Spots[index]
+	local position = Paths.pointFromBell(spot[1], spot[2])
+	return position
 end
 
+-- La reja cruza el camino de lado a lado
 function TrapService.getGateSegment(id: string): (Vector3, Vector3)
 	local slot = gateConfig.Slots[id]
-	return pointAt(slot.From, gateConfig.Radius), pointAt(slot.To, gateConfig.Radius)
+	local center, direction = Paths.pointFromBell(slot.Path, slot.At)
+	local side = Vector3.new(-direction.Z, 0, direction.X) * (slot.Width / 2)
+	return center - side, center + side
 end
 
 -- Para EnemyService: tramos de reja que siguen en pie
@@ -82,9 +88,9 @@ function TrapService.canPlaceMine(): boolean
 end
 
 function TrapService.placeMine(owner: Player): boolean
-	for index, spot in mineConfig.Spots do
+	for index in mineConfig.Spots do
 		if not mines[index] then
-			local position = pointAt(spot[1], spot[2])
+			local position = TrapService.getMineSpot(index)
 			local model = Instance.new("Model")
 			model.Name = "Mine"
 			Props.makeProp({ Name = "Plate", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.4, 2.4, 2.4), CFrame = CFrame.new(position + Vector3.new(0, 0.15, 0)) * CFrame.Angles(0, 0, math.pi / 2), Material = Enum.Material.Metal, Color = Color3.fromRGB(50, 54, 46), Parent = model })

@@ -246,6 +246,11 @@ function Hud.init(actions: Actions)
 	local statusLabel = makeLabel({ AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 30), Size = UDim2.fromOffset(640, 22), TextSize = 17, Font = Enum.Font.GothamBold, Parent = top })
 	local _, bellFill, bellText = makeBar(top, UDim2.fromOffset(0, 56), UDim2.new(1, 0, 0, 18))
 	local trapLabel = makeLabel({ Position = UDim2.fromOffset(0, 78), Size = UDim2.new(1, 0, 0, 18), TextSize = 13, Font = Enum.Font.GothamBold, Parent = top })
+	-- Vida del jefe (solo cuando hay uno vivo)
+	local bossBack, bossFill, bossText = makeBar(top, UDim2.fromOffset(-60, 100), UDim2.new(1, 120, 0, 20))
+	bossFill.BackgroundColor3 = Color3.fromRGB(170, 40, 60)
+	bossText.TextSize = 14
+	bossBack.Visible = false
 
 	-- Arriba a la derecha: monedas, nivel de cuenta y XP de la partida
 	local coinsLabel = makeLabel({ AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -16, 0, 10), Size = UDim2.fromOffset(200, 30), TextSize = 24, TextXAlignment = Enum.TextXAlignment.Right, Parent = gui })
@@ -351,13 +356,22 @@ function Hud.init(actions: Actions)
 		if mines > 0 then
 			table.insert(parts, `🪤 {mines} minas`)
 		end
-		for _, id in { "Left", "Right" } do
+		for _, id in Config.Traps.Gate.SlotOrder do
 			local gateHealth = gameState:GetAttribute("Gate" .. id) or 0
 			if gateHealth > 0 then
-				table.insert(parts, `🚧 {if id == "Left" then "Izq" else "Der"} {gateHealth}`)
+				table.insert(parts, `🚧 {Config.Traps.Gate.Slots[id].Short} {gateHealth}`)
 			end
 		end
 		trapLabel.Text = table.concat(parts, "   ")
+
+		local bossName = gameState:GetAttribute("BossName") or ""
+		bossBack.Visible = bossName ~= "" and state == "Wave"
+		if bossBack.Visible then
+			local bossHealth = gameState:GetAttribute("BossHealth") or 0
+			local bossMax = math.max(gameState:GetAttribute("BossMaxHealth") or 1, 1)
+			bossFill.Size = UDim2.fromScale(math.clamp(bossHealth / bossMax, 0, 1), 1)
+			bossText.Text = `{bossName}  ·  {bossHealth} / {bossMax}`
+		end
 	end
 
 	local function refreshProfile()

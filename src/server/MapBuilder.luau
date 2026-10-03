@@ -1,13 +1,15 @@
 -- Construye el mapa por código para que el juego funcione en un lugar vacío:
 -- un claro en el bosque con el campanario al frente y el campamento detrás
 -- (fogata, tiendas, empalizada y los NPC), al borde de un acantilado que cae
--- al mar. Según el tema: atardecer dorado de otoño o noche con luna enorme.
+-- al mar. Los zombis llegan por dos caminos angostos (MedievalBuilder).
+-- Según el tema: noche medieval con velas, atardecer de otoño o noche con luna.
 -- Usa materiales con textura y luz Future para verse lo más realista posible.
 local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local CampBuilder = require(script.Parent.CampBuilder)
+local MedievalBuilder = require(script.Parent.MedievalBuilder)
 local Props = require(script.Parent.Props)
 
 local STONE = Props.Colors.Stone
@@ -84,6 +86,8 @@ local function buildTerrain()
 	-- Camino de adoquines del campamento a la campana, y un anillo alrededor de la torre
 	terrain:FillBlock(CFrame.new(0, -2, camp.Z / 2), Vector3.new(9, 4.1, camp.Z), Enum.Material.Cobblestone)
 	terrain:FillCylinder(CFrame.new(0, -2, 0), 4.1, arena.TowerSize / 2 + 5, Enum.Material.Cobblestone)
+	-- Los caminos angostos por donde llegan los zombis
+	MedievalBuilder.paintPaths(terrain)
 
 	-- Pasto 3D animado (si Roblox lo permite desde un script)
 	pcall(function()
@@ -250,8 +254,31 @@ local function buildAutumnTree(map: Instance, position: Vector3, scale: number)
 	tree.Parent = map
 end
 
+-- Árbol seco y retorcido para la noche medieval
+local function buildDeadTree(map: Instance, position: Vector3, scale: number)
+	local tree = Instance.new("Model")
+	tree.Name = "DeadTree"
+	local bark = Color3.fromRGB(62, 52, 46)
+	local height = 9 * scale
+	local lean = CFrame.Angles(random:NextNumber(-0.12, 0.12), random:NextNumber(0, math.pi * 2), random:NextNumber(-0.12, 0.12))
+	local base = CFrame.new(position) * lean
+	makeProp({ Name = "Trunk", Size = Vector3.new(1.3, height, 1.3) * Vector3.new(scale, 1, scale), CFrame = base * CFrame.new(0, height / 2, 0), Material = Enum.Material.Wood, Color = bark, Parent = tree })
+	for index = 1, random:NextInteger(3, 5) do
+		local y = height * random:NextNumber(0.45, 0.95)
+		local length = random:NextNumber(3, 5.5) * scale
+		local angle = index / 5 * math.pi * 2 + random:NextNumber(-0.4, 0.4)
+		local branch = base * CFrame.new(0, y, 0) * CFrame.Angles(0, angle, 0) * CFrame.Angles(0, 0, random:NextNumber(0.6, 1.1))
+		makeProp({ Name = "Branch", Size = Vector3.new(0.45 * scale, length, 0.45 * scale), CFrame = branch * CFrame.new(0, length / 2, 0), Material = Enum.Material.Wood, Color = bark, Parent = tree })
+		-- Ramita en la punta
+		makeProp({ Name = "Twig", Size = Vector3.new(0.25 * scale, length * 0.45, 0.25 * scale), CFrame = branch * CFrame.new(0, length, 0) * CFrame.Angles(0, 0, -0.8) * CFrame.new(0, length * 0.2, 0), Material = Enum.Material.Wood, Color = bark, Parent = tree })
+	end
+	tree.Parent = map
+end
+
 local function buildTree(map: Instance, position: Vector3, scale: number)
-	if theme.Foliage and random:NextNumber() < 0.7 then
+	if theme.DeadTrees and random:NextNumber() < 0.35 then
+		buildDeadTree(map, position, scale)
+	elseif theme.Foliage and random:NextNumber() < 0.7 then
 		buildAutumnTree(map, position, scale * 0.9)
 	else
 		buildPine(map, position, scale)
@@ -334,29 +361,13 @@ local function randomRingPoint(minRadius: number, maxRadius: number): Vector3
 end
 
 local function buildScenery(map: Instance)
-	local arena = Config.Arena
-
-	-- Lápidas donde nacen los zombis
-	local halfArc = math.rad(arena.SpawnArc / 2 + 10)
-	for _ = 1, 40 do
-		local angle = random:NextNumber(-halfArc, halfArc)
-		local radius = arena.SpawnRadius + random:NextNumber(-5, 15)
-		local height = random:NextNumber(2.5, 4)
-		makeProp({
-			Name = "Tombstone",
-			Size = Vector3.new(2.2, height, 0.6),
-			CFrame = CFrame.new(math.sin(angle) * radius, height / 2, -math.cos(angle) * radius)
-				* CFrame.Angles(random:NextNumber(-0.15, 0.15), -angle, random:NextNumber(-0.15, 0.15)),
-			Material = Enum.Material.Slate,
-			Color = Props.vary(Color3.fromRGB(105, 108, 112), 0.1, random),
-			Parent = map,
-		})
-	end
+	-- Cementerio y ruinas donde empiezan los caminos (y casas en el tema medieval)
+	MedievalBuilder.build(map)
 
 	-- Rocas sueltas
 	for _ = 1, 45 do
 		local position = randomRingPoint(40, 260)
-		if not onLand(position, 6) then
+		if not onLand(position, 6) or not MedievalBuilder.isClear(position, 4) then
 			continue
 		end
 		local size = random:NextNumber(2, 6)
@@ -373,14 +384,14 @@ local function buildScenery(map: Instance)
 	-- Bosque alrededor del claro
 	for _ = 1, 170 do
 		local position = randomRingPoint(225, 430)
-		if onLand(position, 8) then
+		if onLand(position, 8) and MedievalBuilder.isClear(position, 6) then
 			buildTree(map, position, random:NextNumber(1, 1.8))
 		end
 	end
 	-- Algunos pinos sueltos a los lados y detrás del campamento
 	for _ = 1, 40 do
 		local position = randomRingPoint(95, 210)
-		if (position.Z > 0 or math.abs(position.X) > 120) and onLand(position, 8) then
+		if (position.Z > 0 or math.abs(position.X) > 120) and onLand(position, 8) and MedievalBuilder.isClear(position, 6) then
 			buildTree(map, position, random:NextNumber(0.9, 1.5))
 		end
 	end
@@ -389,7 +400,7 @@ local function buildScenery(map: Instance)
 	for _ = 1, 60 do
 		local position = randomRingPoint(35, 200)
 		local nearCamp = (position - Config.Arena.CampCenter).Magnitude < 50
-		if onLand(position, 6) and not nearCamp and math.abs(position.X) > 6 then
+		if onLand(position, 6) and not nearCamp and math.abs(position.X) > 6 and MedievalBuilder.isClear(position, 3) then
 			buildBush(map, position)
 		end
 	end
@@ -398,7 +409,7 @@ local function buildScenery(map: Instance)
 	if theme.Foliage then
 		for _ = 1, 30 do
 			local position = randomRingPoint(30, 180)
-			if onLand(position, 6) and math.abs(position.X) > 6 and (position - Config.Arena.CampCenter).Magnitude > 30 then
+			if onLand(position, 6) and MedievalBuilder.isClear(position, 2) and (position - Config.Arena.CampCenter).Magnitude > 30 then
 				local size = random:NextNumber(1.2, 2.2)
 				local pumpkin = makeProp({
 					Name = "Pumpkin",

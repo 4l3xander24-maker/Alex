@@ -2,14 +2,31 @@
 local Config = {}
 
 -- Paleta y hora del mapa:
---   "Otono"  → atardecer dorado de otoño (árboles naranjas, camino de adoquines)
+--   "Medieval" → noche medieval con luna, velas, antorchas y árboles secos
+--   "Otono"    → atardecer dorado de otoño (árboles naranjas, camino de adoquines)
 --   "Verde", "Morado", "Ambar" → de noche con luna enorme
-Config.Theme = "Otono"
+Config.Theme = "Medieval"
 
 -- Night: de noche (luna) o de día (sol bajo). Foliage: colores de las copas
 -- de los árboles (si no hay, solo pinos). LeafLitter: color de las manchas
 -- de hojas caídas en el suelo.
 Config.Themes = {
+	Medieval = {
+		Night = true,
+		Medieval = true, -- velas, antorchas, casas y ruinas
+		DeadTrees = true, -- mezcla pinos con árboles secos
+		Brightness = 1.5,
+		Ground = Color3.fromRGB(58, 84, 54),
+		LeafLitter = Color3.fromRGB(84, 70, 48),
+		Tree = Color3.fromRGB(30, 62, 50),
+		Mountain = Color3.fromRGB(42, 50, 76),
+		Atmosphere = Color3.fromRGB(86, 96, 150),
+		Decay = Color3.fromRGB(40, 38, 74),
+		Density = 0.36,
+		Haze = 1.7,
+		Tint = Color3.fromRGB(226, 222, 255),
+		Ambient = Color3.fromRGB(70, 72, 105),
+	},
 	Otono = {
 		Night = false,
 		ClockTime = 17.4,
@@ -86,6 +103,7 @@ Config.Graphics = {
 	CullBehindDistance = 40, -- zombis detrás de la cámara a más de esto no se mueven en pantalla
 	AnimateDistance = 120, -- más lejos que esto no se anima caminar
 	FarDistance = 170, -- más lejos que esto se actualizan cada 3 cuadros
+	DeathFxDistance = 150, -- más lejos que esto mueren sin reventar en cubitos
 }
 
 -- El campanario está en el origen. El campamento queda detrás (+Z), al
@@ -94,8 +112,6 @@ Config.Arena = {
 	GroundSize = 1400,
 	TowerSize = 14,
 	TowerHeight = 6,
-	SpawnRadius = 210,
-	SpawnArc = 140, -- grados de frente por donde llegan los zombis
 	StopRadius = 9, -- distancia a la campana donde se paran a golpear
 	StopJitter = 3,
 	CampCenter = Vector3.new(0, 0, 38),
@@ -103,6 +119,43 @@ Config.Arena = {
 	CliffZ = 82, -- borde del acantilado
 	SeaLevel = -50,
 	FallKillY = -30, -- si caes por debajo de esta altura, te lleva el mar
+}
+
+-- Caminos por donde llegan los zombis a la campana (de lejos a cerca; el
+-- último tramo siempre termina en la campana). Casi todos van por el
+-- principal; Weight es la probabilidad de cada uno. Los jefes voladores no
+-- usan caminos: van en línea recta por el aire.
+Config.Paths = {
+	Main = {
+		Name = "Camino del cementerio",
+		Weight = 0.75,
+		Points = {
+			Vector3.new(-30, 0, -245),
+			Vector3.new(-55, 0, -195),
+			Vector3.new(-40, 0, -150),
+			Vector3.new(5, 0, -120),
+			Vector3.new(30, 0, -85),
+			Vector3.new(15, 0, -50),
+			Vector3.new(0, 0, -25),
+		},
+	},
+	Side = {
+		Name = "Camino de las ruinas",
+		Weight = 0.25,
+		Points = {
+			Vector3.new(190, 0, -150),
+			Vector3.new(150, 0, -140),
+			Vector3.new(120, 0, -100),
+			Vector3.new(85, 0, -75),
+			Vector3.new(55, 0, -40),
+			Vector3.new(24, 0, -16),
+		},
+	},
+}
+Config.PathOrder = { "Main", "Side" }
+Config.PathStyle = {
+	Width = 8, -- camino angosto de tierra
+	Lane = 2.5, -- cuánto se puede desviar cada zombi del centro del camino
 }
 
 -- Antes de cada partida hay una fase de preparación: es el único momento en
@@ -134,12 +187,15 @@ Config.Player = {
 }
 
 -- Sprite: pega aquí el id de la imagen subida a Roblox ("rbxassetid://123...").
--- Si está vacío se usa un modelo de bloques como reemplazo.
--- Size: ancho y alto del sprite en studs (respeta la proporción de la imagen).
+-- Si está vacío se usa el modelo 3D de bloques.
+-- Size: ancho y alto en studs. Los jefes miden unas 6 veces un zombi común.
+-- Model: "Zombie", "Fat" (gordo) o "Dragon". Hat: "Cone", "Helmet" o "Crown".
 -- DamagePerSecond es contra la campana; PlayerDamage contra los jugadores.
+-- Flying: vuela recto a la campana (no usa caminos, ignora rejas y minas).
+-- SpawnOnDeath: al morir suelta zombis más chicos.
 Config.Enemies = {
 	Walker = {
-		DisplayName = "Caminante",
+		DisplayName = "Zombi",
 		MaxHealth = 3,
 		Speed = 7,
 		DamagePerSecond = 2,
@@ -148,10 +204,11 @@ Config.Enemies = {
 		Size = Vector2.new(3.6, 5),
 		HitRadius = 1.8,
 		Sprite = "",
-		Skin = Color3.fromRGB(128, 168, 112),
-		Shirt = Color3.fromRGB(72, 92, 138),
-		Pants = Color3.fromRGB(82, 66, 54),
-		Eyes = Color3.fromRGB(255, 70, 50),
+		Model = "Zombie",
+		Skin = Color3.fromRGB(104, 186, 64),
+		Shirt = Color3.fromRGB(232, 232, 222),
+		Pants = Color3.fromRGB(46, 92, 168),
+		Eyes = Color3.fromRGB(255, 255, 255),
 	},
 	Runner = {
 		DisplayName = "Corredor",
@@ -163,10 +220,48 @@ Config.Enemies = {
 		Size = Vector2.new(3.05, 4.4),
 		HitRadius = 1.6,
 		Sprite = "",
-		Skin = Color3.fromRGB(160, 172, 150),
-		Shirt = Color3.fromRGB(150, 50, 46),
-		Pants = Color3.fromRGB(60, 66, 80),
-		Eyes = Color3.fromRGB(255, 220, 80),
+		Model = "Zombie",
+		Hunch = 0.35, -- va más encorvado
+		Skin = Color3.fromRGB(70, 160, 70),
+		Shirt = Color3.fromRGB(58, 140, 60), -- sin camisa
+		Pants = Color3.fromRGB(70, 74, 120),
+		Eyes = Color3.fromRGB(255, 255, 255),
+	},
+	Cone = {
+		DisplayName = "Zombi con cono",
+		MaxHealth = 7,
+		Speed = 6.5,
+		DamagePerSecond = 2,
+		PlayerDamage = 12,
+		Coins = 2,
+		Size = Vector2.new(3.6, 5),
+		HitRadius = 1.8,
+		Sprite = "",
+		SpriteSize = Vector2.new(3.6, 6.5), -- el sprite incluye el cono
+		Model = "Zombie",
+		Hat = "Cone",
+		Skin = Color3.fromRGB(120, 196, 72),
+		Shirt = Color3.fromRGB(236, 236, 228),
+		Pants = Color3.fromRGB(40, 100, 180),
+		Eyes = Color3.fromRGB(255, 255, 255),
+	},
+	Knight = {
+		DisplayName = "Caballero zombi",
+		MaxHealth = 10,
+		Speed = 5.5,
+		DamagePerSecond = 4,
+		PlayerDamage = 18,
+		Coins = 3,
+		Size = Vector2.new(3.8, 5.3),
+		HitRadius = 1.9,
+		Sprite = "",
+		Model = "Zombie",
+		Hat = "Helmet",
+		Armor = true,
+		Skin = Color3.fromRGB(96, 150, 70),
+		Shirt = Color3.fromRGB(120, 36, 40), -- túnica
+		Pants = Color3.fromRGB(60, 56, 64),
+		Eyes = Color3.fromRGB(255, 70, 50),
 	},
 	Brute = {
 		DisplayName = "Bruto",
@@ -178,26 +273,71 @@ Config.Enemies = {
 		Size = Vector2.new(6.5, 7),
 		HitRadius = 3,
 		Sprite = "",
-		Skin = Color3.fromRGB(150, 160, 90),
-		Shirt = Color3.fromRGB(190, 180, 150),
-		Pants = Color3.fromRGB(70, 60, 80),
-		Eyes = Color3.fromRGB(255, 80, 40),
+		Model = "Fat",
+		Skin = Color3.fromRGB(130, 176, 70),
+		Shirt = Color3.fromRGB(214, 206, 180),
+		Pants = Color3.fromRGB(86, 66, 52),
+		Eyes = Color3.fromRGB(255, 255, 255),
 	},
-	Giant = {
-		DisplayName = "Abominación",
-		MaxHealth = 120,
-		Speed = 3,
+	-- Jefes (6 veces más grandes que un zombi común)
+	Fatso = {
+		DisplayName = "Zombi Gordo",
+		Icon = "🤢",
+		MaxHealth = 150,
+		Speed = 2.6,
 		DamagePerSecond = 25,
-		PlayerDamage = 70,
+		PlayerDamage = 60,
 		Coins = 30,
 		IsBoss = true,
-		Size = Vector2.new(14, 15),
-		HitRadius = 6.5,
+		Size = Vector2.new(26, 30),
+		HitRadius = 11,
 		Sprite = "",
-		Skin = Color3.fromRGB(130, 100, 140),
-		Shirt = Color3.fromRGB(110, 30, 40),
-		Pants = Color3.fromRGB(40, 40, 50),
-		Eyes = Color3.fromRGB(110, 255, 120),
+		Model = "Fat",
+		SpawnOnDeath = { Type = "Walker", Count = 8 },
+		Skin = Color3.fromRGB(150, 186, 80),
+		Shirt = Color3.fromRGB(210, 200, 170),
+		Pants = Color3.fromRGB(80, 60, 90),
+		Eyes = Color3.fromRGB(255, 255, 255),
+	},
+	King = {
+		DisplayName = "Rey Zombi",
+		Icon = "👑",
+		MaxHealth = 220,
+		Speed = 3,
+		DamagePerSecond = 30,
+		PlayerDamage = 80,
+		Coins = 45,
+		IsBoss = true,
+		Size = Vector2.new(20, 30),
+		HitRadius = 8,
+		Sprite = "",
+		Model = "Zombie",
+		Hat = "Crown",
+		Cape = true,
+		Skin = Color3.fromRGB(110, 160, 96),
+		Shirt = Color3.fromRGB(96, 40, 120), -- túnica real
+		Pants = Color3.fromRGB(44, 36, 54),
+		Eyes = Color3.fromRGB(255, 200, 60),
+	},
+	Dragon = {
+		DisplayName = "Dragón Zombi",
+		Icon = "🐉",
+		MaxHealth = 300,
+		Speed = 5,
+		DamagePerSecond = 40,
+		PlayerDamage = 0,
+		Coins = 60,
+		IsBoss = true,
+		Flying = true,
+		FlyHeight = 30, -- altura del centro del cuerpo
+		Size = Vector2.new(48, 24),
+		HitRadius = 12,
+		Sprite = "",
+		Model = "Dragon",
+		Skin = Color3.fromRGB(92, 120, 84),
+		Shirt = Color3.fromRGB(220, 212, 186), -- huesos
+		Pants = Color3.fromRGB(58, 62, 56), -- alas
+		Eyes = Color3.fromRGB(120, 255, 120),
 	},
 }
 
@@ -211,13 +351,19 @@ Config.Waves = {
 	MaxSpawnRate = 30,
 	MaxAlive = 300,
 	HealthGrowth = 0.12, -- +12% de vida por oleada
-	BossEvery = 5, -- una Abominación cada 5 oleadas
+	BossEvery = 5, -- jefes cada 5 oleadas
+	-- Orden de los jefes: oleada 5 el Gordo, 10 el Rey, 15 el Dragón... y en
+	-- las siguientes vienen varios juntos (uno más cada 5 oleadas)
+	Bosses = { "Fatso", "King", "Dragon" },
+	BossSpacing = 6, -- segundos entre un jefe y el siguiente
 	GameOverDelay = 12,
 	-- Desde qué oleada aparece cada tipo y qué tan seguido
 	Mix = {
 		{ Type = "Walker", FromWave = 1, Weight = 1 },
 		{ Type = "Runner", FromWave = 2, Weight = 0.35 },
+		{ Type = "Cone", FromWave = 2, Weight = 0.25 },
 		{ Type = "Brute", FromWave = 3, Weight = 0.12 },
+		{ Type = "Knight", FromWave = 4, Weight = 0.15 },
 	},
 }
 
@@ -363,10 +509,10 @@ Config.Traps = {
 		Damage = 12, -- crece con la oleada igual que la vida de los zombis
 		Radius = 10,
 		TriggerRadius = 3,
-		-- Lugares donde se entierran, en ángulo (grados) y distancia a la campana
+		-- Lugares donde se entierran: camino y distancia a la campana por el camino
 		Spots = {
-			{ -50, 60 }, { -35, 78 }, { -20, 58 }, { -7, 80 },
-			{ 7, 62 }, { 20, 82 }, { 35, 60 }, { 50, 76 },
+			{ "Main", 50 }, { "Main", 72 }, { "Main", 96 }, { "Main", 125 }, { "Main", 160 },
+			{ "Side", 55 }, { "Side", 85 }, { "Side", 120 },
 		},
 	},
 	Gate = {
@@ -374,12 +520,12 @@ Config.Traps = {
 		Icon = "🚧",
 		Price = 150,
 		Health = 800,
-		Radius = 32, -- distancia a la campana
-		-- Las dos rejas cubren el frente dejando un paso en el centro
+		-- Una reja cruzada en cada camino. At: distancia a la campana por el camino
 		Slots = {
-			Left = { Name = "Reja izquierda", From = -68, To = -6 },
-			Right = { Name = "Reja derecha", From = 6, To = 68 },
+			Main = { Name = "Reja del cementerio", Short = "Cementerio", Path = "Main", At = 36, Width = 16 },
+			Side = { Name = "Reja de las ruinas", Short = "Ruinas", Path = "Side", At = 36, Width = 16 },
 		},
+		SlotOrder = { "Main", "Side" },
 	},
 }
 

@@ -46,6 +46,26 @@ function WaveService.getHealthMultiplier(wave: number): number
 	return 1 + waves.HealthGrowth * (wave - 1)
 end
 
+-- Jefes de la oleada: uno más cada BossEvery oleadas, rotando la lista
+function WaveService.getBosses(wave: number): { string }
+	local bosses = {}
+	if wave % waves.BossEvery == 0 then
+		local count = wave // waves.BossEvery
+		for index = 1, count do
+			local offset = (count - 1 + index - 1) % #waves.Bosses
+			table.insert(bosses, waves.Bosses[offset + 1])
+		end
+	end
+	return bosses
+end
+
+local function announceBoss(typeName: string)
+	local info = Config.Enemies[typeName]
+	for _, player in Players:GetPlayers() do
+		Remotes.Notify:FireClient(player, `{info.Icon or "💀"} ¡Llega el {info.DisplayName}!`)
+	end
+end
+
 function WaveService.getCurrentWave(): number
 	return currentWave
 end
@@ -123,22 +143,27 @@ local function runWave(wave: number): boolean
 	PlayerService.onWaveStart()
 
 	local healthMultiplier = WaveService.getHealthMultiplier(wave)
-	if wave % waves.BossEvery == 0 then
-		for _ = 1, wave // waves.BossEvery do
-			EnemyService.spawn("Giant", healthMultiplier)
-		end
-	end
+	-- Los jefes salen de a uno, separados unos segundos
+	local bosses = WaveService.getBosses(wave)
+	local nextBossIn = 0
 
 	local toSpawn = WaveService.getEnemyCount(wave)
 	local spawnRate = WaveService.getSpawnRate(wave)
 	local budget = 0
 
-	while toSpawn > 0 or EnemyService.getAliveCount() > 0 do
+	while toSpawn > 0 or #bosses > 0 or EnemyService.getAliveCount() > 0 do
 		if GameState.isBellDestroyed() or #Players:GetPlayers() == 0 then
 			return false
 		end
 
 		local dt = task.wait()
+		nextBossIn -= dt
+		if #bosses > 0 and nextBossIn <= 0 then
+			local boss = table.remove(bosses, 1) :: string
+			EnemyService.spawn(boss, healthMultiplier)
+			announceBoss(boss)
+			nextBossIn = waves.BossSpacing
+		end
 		budget = math.min(budget + dt * spawnRate, spawnRate)
 		while budget >= 1 and toSpawn > 0 and EnemyService.getAliveCount() < waves.MaxAlive do
 			EnemyService.spawn(WaveService.pickType(wave), healthMultiplier)
@@ -146,7 +171,7 @@ local function runWave(wave: number): boolean
 			budget -= 1
 		end
 
-		GameState.set("EnemiesLeft", toSpawn + EnemyService.getAliveCount())
+		GameState.set("EnemiesLeft", toSpawn + #bosses + EnemyService.getAliveCount())
 	end
 	MatchService.onWaveCleared()
 	return true

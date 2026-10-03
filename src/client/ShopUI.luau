@@ -195,11 +195,11 @@ local function renderQuartermaster(data: Progression.Profile, coins: number)
 			runAction("BuyMine", "")
 		end },
 	})
-	for _, id in { "Left", "Right" } do
+	for _, id in gate.SlotOrder do
 		local slot = gate.Slots[id]
 		local health = gameState:GetAttribute("Gate" .. id) or 0
 		local built = health > 0
-		row(gate.Icon, slot.Name, `Los zombis se detienen a romperla ({gate.Health} de vida) en vez de atacar la campana. Disparas por encima.{if built then `\nVida: {health}/{gate.Health}` else ""}`, {
+		row(gate.Icon, slot.Name, `Cierra ese camino: los zombis se detienen a romperla ({gate.Health} de vida). Los dragones pasan volando.{if built then `\nVida: {health}/{gate.Health}` else ""}`, {
 			{ Text = if built then "Construida" else `Construir 🪙{gate.Price}`, Enabled = not built and coins >= gate.Price, OnClick = function()
 				runAction("BuyGate", id)
 			end },
