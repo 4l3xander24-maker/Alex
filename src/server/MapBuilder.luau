@@ -8,8 +8,10 @@ local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local DayCycle = require(ReplicatedStorage.Shared.DayCycle)
 local CampBuilder = require(script.Parent.CampBuilder)
 local MedievalBuilder = require(script.Parent.MedievalBuilder)
+local VoxelBuilder = require(script.Parent.VoxelBuilder)
 local Props = require(script.Parent.Props)
 
 local STONE = Props.Colors.Stone
@@ -22,6 +24,7 @@ local SUN_DIRECTION = Vector3.new(0.75, 0.32, 0.55).Unit
 local TRUNK = Color3.fromRGB(88, 62, 44)
 
 local theme = Config.Themes[Config.Theme] or Config.Themes.Verde
+local voxel = Props.voxel
 local random = Random.new(7)
 local makePart, makeProp = Props.makePart, Props.makeProp
 
@@ -288,7 +291,8 @@ end
 local function buildBush(map: Instance, position: Vector3)
 	local color = if theme.Foliage then pickFoliage() else Props.vary(theme.Tree, 0.15, random)
 	for index = 1, random:NextInteger(1, 3) do
-		local radius = random:NextNumber(1.2, 2.4)
+		-- En pixel art 3D son cubos más chicos para que no parezcan muros
+		local radius = random:NextNumber(1.2, 2.4) * (if voxel then 0.6 else 1)
 		makeProp({
 			Name = "Bush",
 			Shape = Enum.PartType.Ball,
@@ -371,10 +375,12 @@ local function buildScenery(map: Instance)
 			continue
 		end
 		local size = random:NextNumber(2, 6)
+		-- En pixel art 3D las rocas quedan derechas, como bloques apilados
+		local tilt = if voxel then 0 else 0.3
 		makePart({
 			Name = "Rock",
 			Size = Vector3.new(size * 1.3, size * 0.7, size),
-			CFrame = CFrame.new(position + Vector3.new(0, size * 0.25, 0)) * CFrame.Angles(random:NextNumber(-0.3, 0.3), random:NextNumber(0, math.pi), random:NextNumber(-0.3, 0.3)),
+			CFrame = CFrame.new(position + Vector3.new(0, size * 0.25, 0)) * CFrame.Angles(random:NextNumber(-tilt, tilt), random:NextNumber(0, math.pi), random:NextNumber(-tilt, tilt)),
 			Material = Enum.Material.Slate,
 			Color = Props.vary(Color3.fromRGB(96, 100, 104), 0.12, random),
 			Parent = map,
@@ -458,7 +464,11 @@ local function buildScenery(map: Instance)
 		end
 	end
 
-	-- De noche: luciérnagas. De día: hojas que caen flotando.
+	-- De noche: luciérnagas. De día: hojas que caen flotando. En pixel art 3D
+	-- las luciérnagas son cubitos que hace cada cliente (WorldFx).
+	if voxel then
+		return
+	end
 	local ambient = makeProp({ Name = "AmbientParticles", Size = Vector3.new(260, 8, 200), Position = Vector3.new(0, if theme.Night then 4 else 14, -40), Transparency = 1, Parent = map })
 	local emitter = Instance.new("ParticleEmitter")
 	emitter.Name = "AmbientEmitter"
@@ -519,13 +529,20 @@ local function setupLighting()
 	Lighting.OutdoorAmbient = theme.Ambient
 	Lighting.EnvironmentDiffuseScale = 1
 	Lighting.EnvironmentSpecularScale = 1
-	Lighting.ShadowSoftness = 0.35
+	-- Pixel art 3D: sombras nítidas, sin desenfoque
+	Lighting.ShadowSoftness = if voxel then 0 else 0.35
 	-- "Future" se pone desde default.project.json (los scripts no pueden cambiarlo)
 
 	local sky = Instance.new("Sky")
 	sky.MoonAngularSize = 24
 	sky.SunAngularSize = 14
 	sky.StarCount = if theme.Night then 2500 else 0
+	if Config.SkyTextures.Moon ~= "" then
+		sky.MoonTextureId = Config.SkyTextures.Moon
+	end
+	if Config.SkyTextures.Sun ~= "" then
+		sky.SunTextureId = Config.SkyTextures.Sun
+	end
 	sky.Parent = Lighting
 
 	local atmosphere = Instance.new("Atmosphere")
@@ -539,25 +556,45 @@ local function setupLighting()
 
 	local colorCorrection = Instance.new("ColorCorrectionEffect")
 	colorCorrection.TintColor = theme.Tint
-	colorCorrection.Saturation = 0.18
-	colorCorrection.Contrast = 0.12
+	colorCorrection.Saturation = if voxel then 0.28 else 0.18
+	colorCorrection.Contrast = if voxel then 0.16 else 0.12
 	colorCorrection.Parent = Lighting
 
 	local bloom = Instance.new("BloomEffect")
 	bloom.Intensity = if theme.Night then 0.8 else 0.5
-	bloom.Size = 30
+	bloom.Size = if voxel then 18 else 30
 	bloom.Threshold = if theme.Night then 1.4 else 1.8
 	bloom.Parent = Lighting
 
-	-- Desenfoque suave a lo lejos, como en una foto (el cliente lo apaga en calidad baja)
-	local depthOfField = Instance.new("DepthOfFieldEffect")
-	depthOfField.FarIntensity = 0.18
-	depthOfField.FocusDistance = 40
-	depthOfField.InFocusRadius = 90
-	depthOfField.NearIntensity = 0
-	depthOfField.Parent = Lighting
+	-- Desenfoque suave a lo lejos, como en una foto (el cliente lo apaga en calidad
+	-- baja). En pixel art 3D todo se ve nítido.
+	if not voxel then
+		local depthOfField = Instance.new("DepthOfFieldEffect")
+		depthOfField.FarIntensity = 0.18
+		depthOfField.FocusDistance = 40
+		depthOfField.InFocusRadius = 90
+		depthOfField.NearIntensity = 0
+		depthOfField.Parent = Lighting
+	end
 
-	if theme.Night then
+	if DayCycle.isEnabled() then
+		-- Ciclo de día y noche: latitud donde la luna pasa frente a la campana de
+		-- noche. Después la hora la mueve cada cliente (WorldFx).
+		local bestLatitude, bestScore = 0, -math.huge
+		for latitude = -60, 60, 5 do
+			Lighting.GeographicLatitude = latitude
+			local score = 0
+			for clock = 20, 28, 0.5 do
+				Lighting.ClockTime = clock % 24
+				score += math.max(0, Lighting:GetMoonDirection():Dot(MOON_DIRECTION))
+			end
+			if score > bestScore then
+				bestLatitude, bestScore = latitude, score
+			end
+		end
+		Lighting.GeographicLatitude = bestLatitude
+		DayCycle.applyLighting(DayCycle.getClock(workspace:GetServerTimeNow()))
+	elseif theme.Night then
 		aimSky(function()
 			return Lighting:GetMoonDirection()
 		end, MOON_DIRECTION, true, 0, 24)
@@ -579,9 +616,14 @@ function MapBuilder.build(): Folder
 		end
 	end
 
-	buildTerrain()
 	local map = Instance.new("Folder")
 	map.Name = "Map"
+	if voxel then
+		-- Pixel art 3D: suelo de baldosas en vez del terreno de Roblox
+		VoxelBuilder.build(map)
+	else
+		buildTerrain()
+	end
 	buildScenery(map)
 	buildTower(map)
 	CampBuilder.build(map)

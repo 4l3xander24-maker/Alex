@@ -6,6 +6,7 @@ local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
+local DayCycle = require(Shared.DayCycle)
 local Progression = require(Shared.Progression)
 local Profile = require(script.Parent.Profile)
 
@@ -242,7 +243,7 @@ function Hud.init(actions: Actions)
 	top.Size = UDim2.fromOffset(380, 76)
 	top.BackgroundTransparency = 1
 	top.Parent = gui
-	local waveLabel = makeLabel({ Size = UDim2.new(1, 0, 0, 30), TextSize = 28, Parent = top })
+	local waveLabel = makeLabel({ Size = UDim2.new(1, 0, 0, 30), TextSize = 28, Font = Config.PixelFont, Parent = top })
 	local statusLabel = makeLabel({ AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 30), Size = UDim2.fromOffset(640, 22), TextSize = 17, Font = Enum.Font.GothamBold, Parent = top })
 	local _, bellFill, bellText = makeBar(top, UDim2.fromOffset(0, 56), UDim2.new(1, 0, 0, 18))
 	local trapLabel = makeLabel({ Position = UDim2.fromOffset(0, 78), Size = UDim2.new(1, 0, 0, 18), TextSize = 13, Font = Enum.Font.GothamBold, Parent = top })
@@ -253,9 +254,11 @@ function Hud.init(actions: Actions)
 	bossBack.Visible = false
 
 	-- Arriba a la derecha: monedas, nivel de cuenta y XP de la partida
-	local coinsLabel = makeLabel({ AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -16, 0, 10), Size = UDim2.fromOffset(200, 30), TextSize = 24, TextXAlignment = Enum.TextXAlignment.Right, Parent = gui })
+	local coinsLabel = makeLabel({ AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -16, 0, 10), Size = UDim2.fromOffset(200, 30), TextSize = 24, Font = Config.PixelFont, TextXAlignment = Enum.TextXAlignment.Right, Parent = gui })
 	local levelLabel = makeLabel({ AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -16, 0, 40), Size = UDim2.fromOffset(240, 20), TextSize = 15, TextColor3 = XP_COLOR, TextXAlignment = Enum.TextXAlignment.Right, Parent = gui })
 	local matchLabel = makeLabel({ AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -16, 0, 60), Size = UDim2.fromOffset(240, 18), TextSize = 13, Font = Enum.Font.GothamBold, TextXAlignment = Enum.TextXAlignment.Right, Parent = gui })
+	-- Hora del día (ciclo de día y noche)
+	local clockLabel = makeLabel({ AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -16, 0, 80), Size = UDim2.fromOffset(320, 18), TextSize = 14, Font = Enum.Font.GothamBold, TextXAlignment = Enum.TextXAlignment.Right, Visible = DayCycle.isEnabled(), Parent = gui })
 
 	-- Abajo a la izquierda: vida del jugador y poderes
 	local healthBack, healthFill, healthText = makeBar(gui, UDim2.new(0, 16, 1, -100), UDim2.fromOffset(220, 16))
@@ -294,7 +297,7 @@ function Hud.init(actions: Actions)
 		weaponSlots[id] = slot
 	end
 	local weaponName = makeLabel({ AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -20, 1, -54), Size = UDim2.fromOffset(260, 22), TextSize = 16, Font = Enum.Font.GothamBold, TextXAlignment = Enum.TextXAlignment.Right, Parent = gui })
-	local ammoLabel = makeLabel({ AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -20, 1, -12), Size = UDim2.fromOffset(300, 42), TextSize = 38, TextXAlignment = Enum.TextXAlignment.Right, RichText = true, Parent = gui })
+	local ammoLabel = makeLabel({ AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -20, 1, -12), Size = UDim2.fromOffset(300, 42), TextSize = 38, Font = Config.PixelFont, TextXAlignment = Enum.TextXAlignment.Right, RichText = true, Parent = gui })
 	local reloadBack, reloadFill = makeBar(gui, UDim2.new(1, -140, 1, -8), UDim2.fromOffset(120, 5))
 	reloadFill.BackgroundColor3 = GOLD
 
@@ -402,8 +405,19 @@ function Hud.init(actions: Actions)
 	refreshProfile()
 
 	-- Lo que cambia cada frame
+	local lastClock = 0
 	RunService.RenderStepped:Connect(function()
 		local data = Profile.get()
+
+		if clockLabel.Visible and os.clock() - lastClock > 0.5 then
+			lastClock = os.clock()
+			local now = workspace:GetServerTimeNow()
+			local text = DayCycle.describe(DayCycle.getClock(now))
+			if DayCycle.isNight(now) and Config.DayCycle.NightSpawnMultiplier > 1 and gameState:GetAttribute("State") == "Wave" then
+				text ..= "  ·  ¡De noche llegan más zombis!"
+			end
+			clockLabel.Text = text
+		end
 
 		local ammo, _, reserve, reloadProgress, melee = actions.getAmmo()
 		local empty = not melee and ammo == 0 and reserve == 0

@@ -27,6 +27,10 @@ local BOB_HEIGHT = 0.12
 local BREATH_DISTANCE = 320
 local BLOOD = Color3.fromRGB(120, 22, 26)
 local graphics = Config.Graphics
+-- Pixel art 3D: colores planos, y el fuego del dragón son cubitos
+local voxel = Config.ArtStyle == "Voxel"
+local FIRE_CUBES_PER_SECOND = 40
+local FIRE_COLORS = { Color3.fromRGB(150, 255, 120), Color3.fromRGB(200, 255, 110), Color3.fromRGB(255, 200, 70), Color3.fromRGB(255, 140, 40) }
 
 type PartSpec = ZombieModels.PartSpec
 
@@ -47,6 +51,8 @@ type Visual = {
 	Decal: Decal?,
 	Breath: ParticleEmitter?,
 	BreathLight: PointLight?,
+	BreathPart: BasePart?, -- de dónde sale el fuego (estilo voxel)
+	FireBudget: number,
 	Path: EnemyMath.Path,
 	Speed: number,
 	Scale: number,
@@ -100,7 +106,16 @@ local function createSprite(typeName: string, info): ({ Piece }, Decal)
 end
 
 -- Fuego del dragón: llamas verdes y naranjas que salen de la boca
-local function addBreath(part: BasePart, scale: number): (ParticleEmitter, PointLight)
+local function addBreath(part: BasePart, scale: number): (ParticleEmitter?, PointLight)
+	local light = Instance.new("PointLight")
+	light.Color = Color3.fromRGB(150, 255, 110)
+	light.Range = math.min(12 * scale, 60)
+	light.Brightness = 3
+	light.Enabled = false
+	light.Parent = part
+	if voxel then
+		return nil, light
+	end
 	local fire = Instance.new("ParticleEmitter")
 	fire.Texture = "rbxasset://textures/particles/fire_main.dds"
 	fire.EmissionDirection = Enum.NormalId.Front
@@ -114,26 +129,24 @@ local function addBreath(part: BasePart, scale: number): (ParticleEmitter, Point
 	fire.LightEmission = 1
 	fire.Enabled = false
 	fire.Parent = part
-	local light = Instance.new("PointLight")
-	light.Color = Color3.fromRGB(150, 255, 110)
-	light.Range = math.min(12 * scale, 60)
-	light.Brightness = 3
-	light.Enabled = false
-	light.Parent = part
 	return fire, light
 end
 
-local function createBody(typeName: string, info, scale: number): ({ Piece }, ParticleEmitter?, PointLight?)
+local function createBody(typeName: string, info, scale: number): ({ Piece }, ParticleEmitter?, PointLight?, BasePart?)
 	local pieces = {}
-	local breath, breathLight = nil, nil
+	local breath, breathLight, breathPart = nil, nil, nil
 	for _, spec in ZombieModels.get(typeName, info) do
 		local color, glows = ZombieModels.resolveColor(info, spec.Color)
 		local material = if glows then Enum.Material.Neon else spec.Material
+		if voxel and material ~= Enum.Material.Neon then
+			material = Enum.Material.SmoothPlastic
+		end
 		local part = newPart(spec.Name, spec.Size * scale, material)
 		part.Color = color
 		if spec.Transparent then
 			part.Transparency = 1
 			breath, breathLight = addBreath(part, scale)
+			breathPart = part
 		end
 		part.Parent = folder
 		local pivot, hang = spec.Pivot * scale, spec.Hang * scale
@@ -150,7 +163,7 @@ local function createBody(typeName: string, info, scale: number): ({ Piece }, Pa
 		end
 		table.insert(pieces, piece)
 	end
-	return pieces, breath, breathLight
+	return pieces, breath, breathLight, breathPart
 end
 
 local function setFlash(visual: Visual, flashing: boolean)
@@ -175,11 +188,11 @@ local function addEnemy(id: number, typeName: string, points: { Vector3 }, speed
 	end
 
 	local scale = info.Size.Y / 5
-	local pieces, decal, breath, breathLight
+	local pieces, decal, breath, breathLight, breathPart
 	if Config.ZombieStyle == "Pixel" and info.Sprite ~= "" then
 		pieces, decal = createSprite(typeName, info)
 	else
-		pieces, breath, breathLight = createBody(typeName, info, scale)
+		pieces, breath, breathLight, breathPart = createBody(typeName, info, scale)
 	end
 	visuals[id] = {
 		Type = typeName,
@@ -187,6 +200,8 @@ local function addEnemy(id: number, typeName: string, points: { Vector3 }, speed
 		Decal = decal,
 		Breath = breath,
 		BreathLight = breathLight,
+		BreathPart = breathPart,
+		FireBudget = 0,
 		Path = EnemyMath.newRoute(points, speed, spawnTime),
 		Speed = speed,
 		Scale = scale,
@@ -414,24 +429,42 @@ local function render(dt: number)
 			local sway = math.sin(clock * 1.6 + visual.Phase)
 			local lifted = position + Vector3.new(0, bob, 0)
 			local root = CFrame.lookAt(lifted, lifted + visual.Facing) * CFrame.Angles(0, 0, if visual.Flying then 0 else wave * 0.08)
+			local mouth: CFrame? = nil
 			for _, piece in visual.Pieces do
 				table.insert(parts, piece.Part)
 				local static = piece.Static
+				local cframe
 				if static then
-					table.insert(cframes, root * static)
+					cframe = root * static
 				else
 					local role = (piece.Spec :: PartSpec).Role :: string
 					local angle = if animate then roleAngle(role, walk, attack, flap, sway, arrived) else 0
-					table.insert(cframes, root * poseOf(piece, angle))
+					cframe = root * poseOf(piece, angle)
+				end
+				table.insert(cframes, cframe)
+				if piece.Part == visual.BreathPart then
+					mouth = cframe
 				end
 			end
 
-			local breath = visual.Breath
-			if breath then
+			local breathLight = visual.BreathLight
+			if breathLight then
 				local breathing = arrived and distance < BREATH_DISTANCE
-				if breath.Enabled ~= breathing then
-					breath.Enabled = breathing;
-					(visual.BreathLight :: PointLight).Enabled = breathing
+				if breathLight.Enabled ~= breathing then
+					breathLight.Enabled = breathing
+					if visual.Breath then
+						visual.Breath.Enabled = breathing
+					end
+				end
+				if breathing and voxel and mouth then
+					-- Fuego de cubitos que salen de la boca hacia la campana
+					visual.FireBudget += dt * FIRE_CUBES_PER_SECOND
+					while visual.FireBudget >= 1 do
+						visual.FireBudget -= 1
+						local spread = Vector3.new(random:NextNumber(-0.15, 0.15), random:NextNumber(-0.15, 0.15), random:NextNumber(-0.15, 0.15))
+						local velocity = (mouth.LookVector + spread).Unit * 11 * scale * random:NextNumber(0.8, 1.2)
+						DeathFx.addCube(mouth.Position, FIRE_COLORS[random:NextInteger(1, #FIRE_COLORS)], 0.5 * scale ^ 0.8 * random:NextNumber(0.7, 1.3), velocity, 0, random:NextNumber(0.45, 0.7), true)
+					end
 				end
 			end
 		end

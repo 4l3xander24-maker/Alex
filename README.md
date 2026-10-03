@@ -1,18 +1,25 @@
 # Campana Maldita 🔔🧟
 
-Juego de Roblox en primera persona, de noche en la Edad Media: defiende la campana de tu campamento, al borde
-de un acantilado sobre el mar, de hordas de muertos vivientes que llegan por dos caminos. Empiezas solo con un machete y una pistola; prepárate antes de cada partida
+Juego de Roblox en primera persona, en pixel art 3D y en la Edad Media, con ciclo de día y noche: defiende la
+campana de tu campamento, al borde de un acantilado sobre el mar, de hordas de muertos vivientes que llegan por dos caminos. Empiezas solo con un machete y una pistola; prepárate antes de cada partida
 comprando armas, mejoras, poderes y trampas a los NPC del campamento.
 
 ![Vista previa](docs/preview.png)
 
 _Vista previa: recreación con las medidas, colores y sprites del juego, no es captura de Roblox._
 
-Más vistas previas en [`docs/capturas/medieval/`](docs/capturas/medieval/) (noche medieval, el ambiente actual),
+Más vistas previas en [`docs/capturas/voxel/`](docs/capturas/voxel/) (pixel art 3D con día y noche, el estilo actual),
+[`docs/capturas/medieval/`](docs/capturas/medieval/) (noche medieval realista),
 [`docs/capturas/otono/`](docs/capturas/otono/) (otoño) y [`docs/capturas/`](docs/capturas/) (versiones anteriores). El diseño completo está en [`docs/DISENO.md`](docs/DISENO.md).
 
 ## Qué tiene ya
-- **Mapa medieval de noche**: campanario al frente, campamento detrás (fogata, tiendas, empalizada) al borde de un
+- **Pixel art 3D**: todo es de cubos con colores planos. El suelo es una cuadrícula de baldosas de pasto con
+  flores y matas de cubitos, los caminos tienen bordes escalonados, el fuego es de cubitos que bailan, hay nubes
+  de bloques y luciérnagas de cubitos, las sombras son nítidas y los números grandes del HUD usan letra pixelada.
+- **Ciclo de día y noche** (10 minutos por día): amanecer, mediodía, atardecer y noche con la luna enorme.
+  Las velas y antorchas alumbran más de noche, y **de noche llegan más zombis** (30% más por segundo).
+  Todos los jugadores ven la misma hora. Arriba a la derecha está el reloj.
+- **Mapa medieval**: campanario al frente, campamento detrás (fogata, tiendas, empalizada) al borde de un
   **acantilado sobre el mar** (con mirador; si te caes, te lleva el mar). Alrededor: aldea con casas de
   entramado de madera, pozo, carreta, estandartes, **velas** y **antorchas** que parpadean, árboles secos y una luna enorme.
 - **Dos caminos angostos** hacia la campana: el **camino del cementerio** (sale de una cripta, lo usan 3 de cada 4
@@ -62,8 +69,12 @@ Los gráficos ya vienen configurados en `default.project.json`: iluminación **F
 (`Terrain.Decoration`) y **StreamingEnabled**. No tienes que tocar nada en Studio.
 
 ## Gráficos y rendimiento
-- **Ambiente**: `Config.Theme` = `"Medieval"` (noche con velas, por defecto), `"Otono"` (atardecer de otoño),
-  `"Verde"`, `"Morado"` o `"Ambar"` (otras noches).
+- **Estilo**: `Config.ArtStyle` = `"Voxel"` (pixel art 3D, por defecto) o `"Realista"` (materiales con
+  textura, terreno de Roblox, desenfoque y fuego de partículas).
+- **Día y noche**: `Config.DayCycle` (duración del día, hora de inicio, cuántos zombis más de noche;
+  `Enabled = false` para dejarlo siempre de noche).
+- **Ambiente**: `Config.Theme` = `"Medieval"` (aldea medieval con día y noche, por defecto), `"Otono"`
+  (atardecer de otoño), `"Verde"`, `"Morado"` o `"Ambar"` (noches fijas).
 - **Zombis**: `Config.ZombieStyle` = `"3D"` (por defecto) o `"Pixel"` (sprites 2D, aún más ligero; los jefes
   siempre son 3D).
 - **Caminos**: los puntos de cada camino están en `Config.Paths` (y cuántos zombis van por cada uno en `Weight`).
@@ -75,6 +86,12 @@ Los gráficos ya vienen configurados en `default.project.json`: iluminación **F
   - La muerte en cubitos tiene un tope de 260 cubitos a la vez, y los zombis muy lejanos mueren sin efecto.
   - El molino, las partículas y el parpadeo de velas y antorchas corren solo en cada cliente.
   - En **calidad gráfica baja o celular** se apagan el desenfoque, los rayos de sol, las partículas y el parpadeo.
+
+## Luna y sol pixelados (opcional)
+
+`tools/make_sky.py` genera `assets/sky/Moon.png` y `assets/sky/Sun.png`. Súbelos como los sprites
+(Asset Manager → Bulk Import), copia sus ids y pégalos en `Config.SkyTextures`. Si no los subes, Roblox usa su
+luna y su sol normales (las fotos de vista previa muestran los pixelados).
 
 ## Subir los sprites de los zombis (solo estilo `"Pixel"`)
 
@@ -111,12 +128,14 @@ src/
   shared/                   → ReplicatedStorage.Shared (servidor y cliente)
     Config.luau             ← TODOS los números del juego (enemigos, jefes, caminos, armas, poderes, mejoras, talentos)
     Paths.luau              ← geometría de los caminos de los zombis
+    DayCycle.luau           ← hora del día, paletas de luz y "es de noche"
     Progression.luau        ← perfil, nivel de cuenta y cálculo de estadísticas
     EnemyMath.luau          ← movimiento de los zombis (línea quebrada por los caminos)
     Remotes.luau            ← comunicación servidor ↔ cliente
   server/                   → ServerScriptService.Server
     MapBuilder.luau         ← terreno, campanario, bosque, molino, montañas, luz y bruma
     MedievalBuilder.luau    ← caminos, cementerio con cripta, ruinas, casas, pozo, velas y antorchas
+    VoxelBuilder.luau       ← suelo de baldosas, acantilado y mar en pixel art 3D
     CampBuilder.luau        ← fogata, tiendas, empalizada, mirador, puestos y NPC
     Props.luau              ← piezas del mapa (faroles, antorchas, velas, estandartes, cajas, letreros…)
     DataService.luau        ← guardado del perfil (DataStore)
@@ -142,9 +161,11 @@ src/
     ZombieModels.luau       ← piezas de cada zombi, del Gordo, del Rey y del Dragón
     DeathFx.luau            ← muerte en cubitos
     WorldFx.luau            ← molino, parpadeo del fuego y efectos según la calidad gráfica
+    SkyFx.luau              ← ciclo de día y noche, nubes y luciérnagas de cubitos
   character/Health.server.luau ← quita la regeneración automática de Roblox
 assets/sprites/             ← PNG de los zombis
 tools/make_sprites.py       ← generador de los sprites
+tools/make_sky.py           ← generador de la luna y el sol pixelados
 ```
 
 ## Balance rápido
@@ -158,3 +179,5 @@ Todo está en `src/shared/Config.luau`:
 - ¿Otro ambiente? Cambia `Theme` a `"Otono"`, `"Verde"`, `"Morado"` o `"Ambar"`.
 - ¿Los jefes son muy duros? Baja su `MaxHealth` o sube `Waves.BossEvery`.
 - ¿Más zombis por el segundo camino? Sube el `Weight` de `Config.Paths.Side`.
+- ¿La noche es muy difícil? Baja `DayCycle.NightSpawnMultiplier` (1 = igual que de día).
+- ¿Días más largos? Sube `DayCycle.Length` (en segundos).

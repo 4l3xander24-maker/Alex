@@ -7,6 +7,32 @@ local Config = {}
 --   "Verde", "Morado", "Ambar" → de noche con luna enorme
 Config.Theme = "Medieval"
 
+-- Estilo de dibujo del mundo:
+--   "Voxel"    → pixel art 3D: todo de cubos de colores planos, suelo de baldosas,
+--                sombras nítidas, nubes y luciérnagas de cubitos
+--   "Realista" → materiales con textura, terreno de Roblox y efectos suaves
+Config.ArtStyle = "Voxel"
+
+-- Ciclo de día y noche (en los temas que tienen paleta de día, como el medieval).
+-- Todos los jugadores ven la misma hora: se calcula con el reloj del servidor.
+Config.DayCycle = {
+	Enabled = true,
+	Length = 600, -- segundos que dura un día completo (10 minutos)
+	StartClock = 16, -- hora del día cuando arranca el servidor
+	-- De noche llegan más zombis por segundo (1 = igual que de día)
+	NightSpawnMultiplier = 1.3,
+}
+
+-- Texturas pixeladas opcionales para la luna y el sol (assets/sky/, ver README).
+-- Vacío = las de Roblox.
+Config.SkyTextures = {
+	Moon = "",
+	Sun = "",
+}
+
+-- Letra pixelada para los números grandes del HUD (oleada, munición, monedas)
+Config.PixelFont = Enum.Font.Arcade
+
 -- Night: de noche (luna) o de día (sol bajo). Foliage: colores de las copas
 -- de los árboles (si no hay, solo pinos). LeafLitter: color de las manchas
 -- de hojas caídas en el suelo.
@@ -15,6 +41,25 @@ Config.Themes = {
 		Night = true,
 		Medieval = true, -- velas, antorchas, casas y ruinas
 		DeadTrees = true, -- mezcla pinos con árboles secos
+		-- Paletas del ciclo de día y noche (los valores de abajo son los de la noche)
+		Day = {
+			Brightness = 3,
+			Ambient = Color3.fromRGB(150, 150, 160),
+			Atmosphere = Color3.fromRGB(196, 214, 240),
+			Decay = Color3.fromRGB(110, 140, 180),
+			Density = 0.24,
+			Haze = 0.8,
+			Tint = Color3.fromRGB(255, 252, 244),
+		},
+		Dusk = {
+			Brightness = 2,
+			Ambient = Color3.fromRGB(140, 100, 100),
+			Atmosphere = Color3.fromRGB(255, 160, 120),
+			Decay = Color3.fromRGB(130, 70, 110),
+			Density = 0.32,
+			Haze = 1.6,
+			Tint = Color3.fromRGB(255, 226, 210),
+		},
 		Brightness = 1.5,
 		Ground = Color3.fromRGB(58, 84, 54),
 		LeafLitter = Color3.fromRGB(84, 70, 48),

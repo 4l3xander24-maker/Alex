@@ -2,6 +2,10 @@
 -- pixelados: las piezas del cuerpo salen disparadas (la cabeza vuela),
 -- caen al suelo y revientan en cubitos de colores que rebotan y se achican.
 -- Todo es local en cada cliente y tiene un tope de cubitos para no dar lag.
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
+
 local DeathFx = {}
 
 local MAX_CUBES = 260
@@ -102,7 +106,7 @@ function DeathFx.addPiece(part: BasePart, cframe: CFrame, options: { [string]: a
 	end
 end
 
-function DeathFx.addCube(position: Vector3, color: Color3, size: number, velocity: Vector3, gravity: number, life: number)
+function DeathFx.addCube(position: Vector3, color: Color3, size: number, velocity: Vector3, gravity: number, life: number, glowing: boolean?)
 	if cubeCount >= MAX_CUBES then
 		return
 	end
@@ -110,6 +114,7 @@ function DeathFx.addCube(position: Vector3, color: Color3, size: number, velocit
 	local part = takeCube()
 	part.Size = Vector3.one * size
 	part.Color = color
+	part.Material = if glowing then Enum.Material.Neon else Enum.Material.SmoothPlastic
 	table.insert(debris, {
 		Part = part,
 		Position = position,
@@ -136,7 +141,8 @@ end
 function DeathFx.splat(position: Vector3, radius: number, color: Color3, life: number)
 	local part = Instance.new("Part")
 	part.Name = "Splat"
-	part.Shape = Enum.PartType.Cylinder
+	-- En pixel art 3D la mancha es cuadrada
+	part.Shape = if Config.ArtStyle == "Voxel" then Enum.PartType.Block else Enum.PartType.Cylinder
 	part.Size = Vector3.new(0.1, radius * 2, radius * 2)
 	part.CFrame = CFrame.new(position.X, GROUND + 0.08, position.Z) * CFrame.Angles(0, 0, math.pi / 2)
 	part.Color = color

@@ -32,19 +32,27 @@ local function buildCampfire(map: Instance)
 	end
 
 	local holder = makeProp({ Name = "Campfire", Size = Vector3.new(2, 1, 2), Position = center + Vector3.new(0, 1, 0), Transparency = 1, Parent = map })
-	local fire = Instance.new("Fire")
-	fire.Size = 6
-	fire.Heat = 12
-	fire.Color = FIRE_COLOR
-	fire.SecondaryColor = Color3.fromRGB(255, 210, 90)
-	fire.Parent = holder
-	local smoke = Instance.new("Smoke")
-	smoke.Opacity = 0.08
-	smoke.RiseVelocity = 5
-	smoke.Size = 5
-	smoke.Color = Color3.fromRGB(40, 40, 40)
-	smoke.Parent = holder
-	Props.light(holder, FIRE_COLOR, 40, 3, true)
+	if Props.voxel then
+		-- Fuego de cubitos que se achican hacia arriba (WorldFx los hace bailar)
+		for index, layer in { { 2.2, 1.2, FIRE_COLOR }, { 1.6, 1, Color3.fromRGB(255, 180, 70) }, { 1, 0.9, Color3.fromRGB(255, 225, 120) }, { 0.5, 0.6, Color3.fromRGB(255, 245, 190) } } do
+			local flame = makeProp({ Name = "VoxelFlame", Size = Vector3.new(layer[1], layer[2], layer[1]), Position = center + Vector3.new(0, 0.7 + index * 0.9, 0), Material = Enum.Material.Neon, Color = layer[3], Parent = map })
+			flame:SetAttribute("Dance", index)
+		end
+	else
+		local fire = Instance.new("Fire")
+		fire.Size = 6
+		fire.Heat = 12
+		fire.Color = FIRE_COLOR
+		fire.SecondaryColor = Color3.fromRGB(255, 210, 90)
+		fire.Parent = holder
+		local smoke = Instance.new("Smoke")
+		smoke.Opacity = 0.08
+		smoke.RiseVelocity = 5
+		smoke.Size = 5
+		smoke.Color = Color3.fromRGB(40, 40, 40)
+		smoke.Parent = holder
+	end
+	Props.flickerLight(holder, FIRE_COLOR, 40, 3, true)
 
 	local embers = Instance.new("ParticleEmitter")
 	embers.Rate = 12

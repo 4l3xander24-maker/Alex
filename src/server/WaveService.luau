@@ -3,6 +3,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage.Shared
 local Config = require(Shared.Config)
+local DayCycle = require(Shared.DayCycle)
 local Remotes = require(Shared.Remotes)
 local CombatService = require(script.Parent.CombatService)
 local EnemyService = require(script.Parent.EnemyService)
@@ -38,8 +39,13 @@ function WaveService.getEnemyCount(wave: number): number
 	return math.floor(waves.FirstWaveCount * waves.CountGrowth ^ (wave - 1))
 end
 
-function WaveService.getSpawnRate(wave: number): number
-	return math.min(waves.MaxSpawnRate, waves.FirstSpawnRate + waves.SpawnRateGrowth * (wave - 1))
+-- Zombis por segundo. De noche llegan más (Config.DayCycle.NightSpawnMultiplier).
+function WaveService.getSpawnRate(wave: number, night: boolean?): number
+	local rate = math.min(waves.MaxSpawnRate, waves.FirstSpawnRate + waves.SpawnRateGrowth * (wave - 1))
+	if night then
+		rate = math.min(waves.MaxSpawnRate, rate * Config.DayCycle.NightSpawnMultiplier)
+	end
+	return rate
 end
 
 function WaveService.getHealthMultiplier(wave: number): number
@@ -157,6 +163,7 @@ local function runWave(wave: number): boolean
 		end
 
 		local dt = task.wait()
+		spawnRate = WaveService.getSpawnRate(wave, DayCycle.isNight(workspace:GetServerTimeNow()))
 		nextBossIn -= dt
 		if #bosses > 0 and nextBossIn <= 0 then
 			local boss = table.remove(bosses, 1) :: string

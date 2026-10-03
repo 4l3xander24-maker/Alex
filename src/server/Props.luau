@@ -10,6 +10,13 @@ local Props = {}
 -- Las luces con esta etiqueta parpadean como fuego (lo hace WorldFx en cada cliente)
 Props.FLICKER_TAG = "Flicker"
 local medieval = (Config.Themes[Config.Theme] or {}).Medieval == true
+-- Pixel art 3D: todo es de cubos con colores planos
+Props.voxel = Config.ArtStyle == "Voxel"
+local KEEP_MATERIAL = {
+	[Enum.Material.Neon] = true,
+	[Enum.Material.Glass] = true,
+	[Enum.Material.ForceField] = true,
+}
 local candleRandom = Random.new(11)
 
 Props.Colors = {
@@ -23,6 +30,15 @@ Props.Colors = {
 }
 
 function Props.makePart(props: { [string]: any }, className: string?): BasePart
+	if Props.voxel then
+		-- Bolas y cilindros se vuelven bloques, y los materiales con textura, color plano
+		if props.Shape == Enum.PartType.Ball or props.Shape == Enum.PartType.Cylinder then
+			props.Shape = Enum.PartType.Block
+		end
+		if not (props.Material and KEEP_MATERIAL[props.Material]) then
+			props.Material = Enum.Material.SmoothPlastic
+		end
+	end
 	local part = Instance.new(className or "Part") :: BasePart
 	part.Anchored = true
 	part.TopSurface = Enum.SurfaceType.Smooth
@@ -76,12 +92,17 @@ function Props.torch(parent: Instance, position: Vector3, height: number?, shado
 		Color = Props.Colors.Flame,
 		Parent = parent,
 	})
-	local fire = Instance.new("Fire")
-	fire.Size = 2.5
-	fire.Heat = 6
-	fire.Color = Color3.fromRGB(255, 150, 60)
-	fire.SecondaryColor = Color3.fromRGB(255, 60, 20)
-	fire.Parent = flame
+	if Props.voxel then
+		-- Llama de cubitos: naranja abajo, amarilla arriba
+		Props.makeProp({ Name = "TorchFlameTop", Size = Vector3.new(0.35, 0.45, 0.35), Position = position + Vector3.new(0, top + 1.65, 0), Material = Enum.Material.Neon, Color = Color3.fromRGB(255, 220, 110), Parent = parent })
+	else
+		local fire = Instance.new("Fire")
+		fire.Size = 2.5
+		fire.Heat = 6
+		fire.Color = Color3.fromRGB(255, 150, 60)
+		fire.SecondaryColor = Color3.fromRGB(255, 60, 20)
+		fire.Parent = flame
+	end
 	Props.flickerLight(flame, Props.Colors.Flame, 22, 1.7, shadows)
 end
 

@@ -7,6 +7,15 @@ compras armas, mejoras, poderes y trampas a los NPC, y al terminar ganas **XP de
 mejorar tus estadísticas y aprender talentos.
 
 ## Estilo visual
+- **Pixel art 3D** (`Config.ArtStyle = "Voxel"`): todo de cubos con colores planos (SmoothPlastic). Las bolas y
+  cilindros del mapa se vuelven bloques. Suelo de baldosas de 8 studs en varios tonos con flores y matas de
+  cubitos; caminos escalonados de tierra y de piedra (en damero); acantilado de columnas de roca; mar azul con
+  espuma. Fuego de cubitos que bailan, nubes de bloques, luciérnagas de cubitos, explosiones cúbicas, sombras
+  nítidas sin desenfoque y letra pixelada (Arcade) en oleada, munición y monedas.
+- **Ciclo de día y noche** (`Config.DayCycle`, 10 minutos por día): cada cliente calcula la hora con el reloj del
+  servidor y mezcla tres paletas (día, atardecer y noche): brillo, luz ambiente, atmósfera, tinte, estrellas,
+  color de las nubes. De día las velas y antorchas alumbran un 25%; de noche, todo. De noche llegan 30% más
+  zombis por segundo (`NightSpawnMultiplier`). Amanecer 4:30-7:00, atardecer 17:00-19:30.
 - Mundo 3D de **bloques** sobre **Terrain** de Roblox con pasto 3D (`Terrain.Decoration`).
 - Iluminación **Future** (sombras suaves y luces reales), `Atmosphere` con bruma, rayos de sol y
   desenfoque de fondo.
@@ -156,6 +165,7 @@ Cada arma se mejora 5 veces (+20% daño, +15% cargador, recarga más rápida). C
 - **Fase 3.5 (hecha)**: machete, munición de reserva y balas por baja, Intendente (cartuchera y trampas),
   colores por mejora, acantilado y mar, preparación antes de la partida.
 - **Fase 3.6 (hecha)**: gráficos de otoño, zombis 3D animados y optimización.
+- **Fase 3.8 (hecha)**: pixel art 3D y ciclo de día y noche.
 - **Fase 3.7 (hecha)**: noche medieval con velas, dos caminos, zombis de dibujo animado, jefes gigantes
   (Gordo, Rey y Dragón) y muerte pixelada.
 - **Fase 4**: sonidos y música, más mapas (paletas morado/ámbar), más jefes, misiones diarias, pases de juego y lanzamiento.

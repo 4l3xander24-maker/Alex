@@ -19,6 +19,10 @@ local EXPLOSION_COLOR = Color3.fromRGB(255, 140, 50)
 local LIGHTNING_COLOR = Color3.fromRGB(140, 220, 255)
 local BELL_COLOR = Color3.fromRGB(255, 215, 100)
 local GRENADE_COLOR = Color3.fromRGB(60, 80, 50)
+-- En pixel art 3D las explosiones y la granada son cubos
+local voxel = Config.ArtStyle == "Voxel"
+local ROUND = if voxel then Enum.PartType.Block else Enum.PartType.Ball
+local DISC = if voxel then Enum.PartType.Block else Enum.PartType.Cylinder
 
 local player = Players.LocalPlayer
 
@@ -66,7 +70,7 @@ end
 
 local function explosion(position: Vector3, radius: number)
 	local ball = newFxPart(Vector3.one * 2, EXPLOSION_COLOR)
-	ball.Shape = Enum.PartType.Ball
+	ball.Shape = ROUND
 	ball.Position = position + Vector3.new(0, 1, 0)
 	fadeOut(ball, 0.35, { Size = Vector3.one * radius * 2 })
 	flashLight(position + Vector3.new(0, 3, 0), EXPLOSION_COLOR, radius * 3, 0.4)
@@ -74,7 +78,7 @@ end
 
 local function grenadeFx(origin: Vector3, target: Vector3, radius: number, flightTime: number)
 	local grenade = newFxPart(Vector3.one * 0.7, GRENADE_COLOR)
-	grenade.Shape = Enum.PartType.Ball
+	grenade.Shape = ROUND
 	grenade.Material = Enum.Material.SmoothPlastic
 	local start = os.clock()
 	local arcHeight = math.max(6, (target - origin).Magnitude * 0.25)
@@ -113,7 +117,7 @@ end
 
 local function bellFx(center: Vector3, radius: number)
 	local ring = newFxPart(Vector3.new(0.4, 2, 2), BELL_COLOR)
-	ring.Shape = Enum.PartType.Cylinder
+	ring.Shape = DISC
 	ring.Transparency = 0.3
 	ring.CFrame = CFrame.new(center + Vector3.new(0, 1, 0)) * CFrame.Angles(0, 0, math.pi / 2)
 	fadeOut(ring, 0.6, { Size = Vector3.new(0.4, radius * 2, radius * 2) })
@@ -127,7 +131,7 @@ end
 -- Talento Balas explosivas: explosión pequeña
 local function bulletExplosionFx(position: Vector3, radius: number)
 	local ball = newFxPart(Vector3.one, EXPLOSION_COLOR)
-	ball.Shape = Enum.PartType.Ball
+	ball.Shape = ROUND
 	ball.Position = position
 	fadeOut(ball, 0.25, { Size = Vector3.one * radius * 2 })
 end
