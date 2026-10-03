@@ -27,7 +27,8 @@ export type Actions = {
 	usePower: (string) -> (),
 	setSprint: (boolean) -> (),
 	dash: () -> (),
-	getAmmo: () -> (number, number, number?),
+	getAmmo: () -> (number, number, number, number?, boolean),
+	ammoGranted: RBXScriptSignal,
 	getEquipped: () -> string,
 	isAiming: () -> boolean,
 	isScoped: () -> boolean,
@@ -244,6 +245,7 @@ function Hud.init(actions: Actions)
 	local waveLabel = makeLabel({ Size = UDim2.new(1, 0, 0, 30), TextSize = 28, Parent = top })
 	local statusLabel = makeLabel({ AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 30), Size = UDim2.fromOffset(640, 22), TextSize = 17, Font = Enum.Font.GothamBold, Parent = top })
 	local _, bellFill, bellText = makeBar(top, UDim2.fromOffset(0, 56), UDim2.new(1, 0, 0, 18))
+	local trapLabel = makeLabel({ Position = UDim2.fromOffset(0, 78), Size = UDim2.new(1, 0, 0, 18), TextSize = 13, Font = Enum.Font.GothamBold, Parent = top })
 
 	-- Arriba a la derecha: monedas, nivel de cuenta y XP de la partida
 	local coinsLabel = makeLabel({ AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -16, 0, 10), Size = UDim2.fromOffset(200, 30), TextSize = 24, TextXAlignment = Enum.TextXAlignment.Right, Parent = gui })
@@ -266,12 +268,12 @@ function Hud.init(actions: Actions)
 	dashSlot.Frame.Activated:Connect(actions.dash)
 
 	-- Abajo a la derecha: armas y munición
-	local weaponRow = makeRow(gui, Vector2.new(1, 1), UDim2.new(1, -16, 1, -82), Vector2.new(360, 34))
+	local weaponRow = makeRow(gui, Vector2.new(1, 1), UDim2.new(1, -16, 1, -82), Vector2.new(420, 34))
 	local weaponSlots: { [string]: TextLabel } = {}
 	for slotIndex, id in Config.WeaponOrder do
 		local slot = makeLabel({
 			LayoutOrder = slotIndex,
-			Size = UDim2.fromOffset(64, 34),
+			Size = UDim2.fromOffset(60, 34),
 			BackgroundTransparency = 0.3,
 			BackgroundColor3 = PANEL_COLOR,
 			Text = if touch then Config.Weapons[id].Icon else `{slotIndex} {Config.Weapons[id].Icon}`,
@@ -287,7 +289,7 @@ function Hud.init(actions: Actions)
 		weaponSlots[id] = slot
 	end
 	local weaponName = makeLabel({ AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -20, 1, -54), Size = UDim2.fromOffset(260, 22), TextSize = 16, Font = Enum.Font.GothamBold, TextXAlignment = Enum.TextXAlignment.Right, Parent = gui })
-	local ammoLabel = makeLabel({ AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -20, 1, -12), Size = UDim2.fromOffset(240, 42), TextSize = 38, TextXAlignment = Enum.TextXAlignment.Right, Parent = gui })
+	local ammoLabel = makeLabel({ AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -20, 1, -12), Size = UDim2.fromOffset(300, 42), TextSize = 38, TextXAlignment = Enum.TextXAlignment.Right, RichText = true, Parent = gui })
 	local reloadBack, reloadFill = makeBar(gui, UDim2.new(1, -140, 1, -8), UDim2.fromOffset(120, 5))
 	reloadFill.BackgroundColor3 = GOLD
 
@@ -322,8 +324,12 @@ function Hud.init(actions: Actions)
 		local isBossWave = wave > 0 and wave % Config.Waves.BossEvery == 0
 		waveLabel.Text = if wave > 0 then `OLEADA {wave}{if isBossWave then " 💀" else ""}` else "PREPÁRATE"
 
-		if state == "Intermission" then
-			statusLabel.Text = `Siguiente oleada en {gameState:GetAttribute("Countdown")} · ¡compra en el campamento!`
+		local countdown = gameState:GetAttribute("Countdown") or 0
+		if state == "Lobby" then
+			waveLabel.Text = "PREPARACIÓN"
+			statusLabel.Text = `Compra en el campamento · empieza en {countdown} s · toca la campana para empezar ya`
+		elseif state == "Intermission" then
+			statusLabel.Text = `Siguiente oleada en {countdown}`
 		elseif state == "Wave" then
 			statusLabel.Text = `Zombis restantes: {gameState:GetAttribute("EnemiesLeft")}`
 		elseif state == "GameOver" then
@@ -338,6 +344,20 @@ function Hud.init(actions: Actions)
 		bellFill.Size = UDim2.fromScale(ratio, 1)
 		bellFill.BackgroundColor3 = HEALTH_EMPTY:Lerp(HEALTH_FULL, ratio)
 		bellText.Text = `🔔 {health} / {maxHealth}`
+
+		-- Trampas compradas para esta partida
+		local parts = {}
+		local mines = gameState:GetAttribute("Mines") or 0
+		if mines > 0 then
+			table.insert(parts, `🪤 {mines} minas`)
+		end
+		for _, id in { "Left", "Right" } do
+			local gateHealth = gameState:GetAttribute("Gate" .. id) or 0
+			if gateHealth > 0 then
+				table.insert(parts, `🚧 {if id == "Left" then "Izq" else "Der"} {gateHealth}`)
+			end
+		end
+		trapLabel.Text = table.concat(parts, "   ")
 	end
 
 	local function refreshProfile()
@@ -348,7 +368,10 @@ function Hud.init(actions: Actions)
 		local matchXp = player:GetAttribute("MatchXp") or 0
 		matchLabel.Text = if matchXp > 0 then `+{matchXp} XP al terminar la partida` else ""
 		for id, slot in weaponSlots do
-			slot.Visible = data.Weapons[id] ~= nil
+			local level = data.Weapons[id]
+			slot.Visible = level ~= nil
+			-- El número del arma toma el color de su nivel de mejora
+			slot.TextColor3 = if level and level > 0 then Progression.weaponTier(level).Accent else Color3.new(1, 1, 1)
 		end
 		if aimButton then
 			aimButton.Visible = Profile.hasTalent("Aim")
@@ -368,15 +391,27 @@ function Hud.init(actions: Actions)
 	RunService.RenderStepped:Connect(function()
 		local data = Profile.get()
 
-		local ammo, magazine, reloadProgress = actions.getAmmo()
-		ammoLabel.Text = if reloadProgress then "RECARGANDO" else `{ammo} / {magazine}`
-		ammoLabel.TextSize = if reloadProgress then 24 else 38
-		ammoLabel.TextColor3 = if ammo == 0 and not reloadProgress then HEALTH_EMPTY else Color3.new(1, 1, 1)
+		local ammo, _, reserve, reloadProgress, melee = actions.getAmmo()
+		local empty = not melee and ammo == 0 and reserve == 0
+		if melee then
+			ammoLabel.Text = "🔪 ∞"
+		elseif reloadProgress then
+			ammoLabel.Text = "RECARGANDO"
+		elseif empty then
+			ammoLabel.Text = `SIN BALAS <font size="16">· usa el machete (1)</font>`
+		else
+			ammoLabel.Text = `{ammo} <font size="22" transparency="0.25">/ {reserve}</font>`
+		end
+		ammoLabel.TextSize = if reloadProgress or empty then 24 else 38
+		ammoLabel.TextColor3 = if (ammo == 0 and not reloadProgress and not melee) then HEALTH_EMPTY else Color3.new(1, 1, 1)
 		reloadBack.Visible = reloadProgress ~= nil
 		reloadFill.Size = UDim2.fromScale(reloadProgress or 0, 1)
 
 		local equipped = actions.getEquipped()
-		weaponName.Text = `{Config.Weapons[equipped].DisplayName}{if (data.Weapons[equipped] or 0) > 0 then ` +{data.Weapons[equipped]}` else ""}`
+		local equippedLevel = data.Weapons[equipped] or 0
+		local tier = Progression.weaponTier(equippedLevel)
+		weaponName.Text = `{Config.Weapons[equipped].DisplayName}{if equippedLevel > 0 then `  ·  {tier.Name}` else ""}`
+		weaponName.TextColor3 = if equippedLevel > 0 then tier.Accent else Color3.new(1, 1, 1)
 		for id, slot in weaponSlots do
 			local stroke = slot:FindFirstChildOfClass("UIStroke")
 			if stroke then
@@ -412,6 +447,26 @@ function Hud.init(actions: Actions)
 		local scoped = actions.isScoped()
 		scope.Visible = scoped
 		crosshair.Visible = not scoped
+	end)
+
+	-- "+3" que sube junto a la munición cuando un zombi te da balas
+	actions.ammoGranted:Connect(function(weaponId, amount)
+		local popup = makeLabel({
+			-- A la izquierda del número de balas, para no tapar el nombre del arma
+			AnchorPoint = Vector2.new(1, 1),
+			Position = ammoLabel.Position + UDim2.fromOffset(-170, -4),
+			Size = UDim2.fromOffset(200, 24),
+			TextSize = 20,
+			TextColor3 = GOLD,
+			TextXAlignment = Enum.TextXAlignment.Right,
+			Text = `+{amount} {Config.Weapons[weaponId].Icon}`,
+			Parent = gui,
+		})
+		local tween = TweenService:Create(popup, TweenInfo.new(0.9), { Position = popup.Position + UDim2.fromOffset(0, -30), TextTransparency = 1, TextStrokeTransparency = 1 })
+		tween.Completed:Once(function()
+			popup:Destroy()
+		end)
+		tween:Play()
 	end)
 
 	gui.Parent = player:WaitForChild("PlayerGui")

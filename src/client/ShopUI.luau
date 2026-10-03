@@ -3,6 +3,8 @@
 --   Armero   → comprar, mejorar y equipar armas
 --   Bruja    → comprar y mejorar poderes
 --   Veterano → gastar puntos de mejora y aprender talentos
+--   Intendente → cartuchera (más balas) y trampas para la partida
+-- Solo se puede comprar durante la preparación; equipar armas, siempre.
 local Players = game:GetService("Players")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -30,6 +32,7 @@ local TITLES = {
 	Armory = { "🔫 ARMERÍA", "Bruno, el Armero" },
 	Mystic = { "🔮 TIENDA DE LA BRUJA", "Morgana, la Bruja" },
 	Trainer = { "🎖️ ENTRENAMIENTO", "Don Ramiro, el Veterano" },
+	Quartermaster = { "🎒 INTENDENCIA", "Gustavo, el Intendente" },
 }
 
 local ShopUI = {}
@@ -38,6 +41,8 @@ local gui: ScreenGui
 local title: TextLabel
 local subtitle: TextLabel
 local list: ScrollingFrame
+local closedBanner: TextLabel
+local gameState: Instance
 local currentShop: string? = nil
 local currentPrompt: ProximityPrompt? = nil
 local order = 0
@@ -80,21 +85,29 @@ end
 
 type ButtonSpec = { Text: string, Enabled: boolean, OnClick: (() -> ())? }
 
+local function isOpen(): boolean
+	return gameState:GetAttribute("State") == "Lobby"
+end
+
 -- Una fila: ícono, nombre, descripción y hasta dos botones a la derecha
-local function row(icon: string, name: string, description: string, buttons: { ButtonSpec })
+local function row(icon: string, name: string, description: string, buttons: { ButtonSpec }, nameColor: Color3?)
 	local frame = Instance.new("Frame")
-	frame.Size = UDim2.new(1, -10, 0, 74)
+	frame.Size = UDim2.new(1, -10, 0, 86)
 	frame.BackgroundColor3 = ROW
 	frame.LayoutOrder = nextOrder()
 	frame.Parent = list
 	round(frame, 10)
 
-	label(frame, { Position = UDim2.fromOffset(10, 0), Size = UDim2.fromOffset(54, 74), Text = icon, TextSize = 34, TextXAlignment = Enum.TextXAlignment.Center })
-	label(frame, { Position = UDim2.fromOffset(70, 8), Size = UDim2.new(1, -330, 0, 24), Text = name, TextSize = 18, Font = Enum.Font.GothamBlack })
-	label(frame, { Position = UDim2.fromOffset(70, 32), Size = UDim2.new(1, -330, 0, 38), Text = description, TextSize = 13, TextColor3 = MUTED, TextYAlignment = Enum.TextYAlignment.Top })
+	label(frame, { Position = UDim2.fromOffset(10, 0), Size = UDim2.fromOffset(54, 86), Text = icon, TextSize = 34, TextXAlignment = Enum.TextXAlignment.Center })
+	label(frame, { Position = UDim2.fromOffset(70, 8), Size = UDim2.new(1, -330, 0, 24), Text = name, TextSize = 18, Font = Enum.Font.GothamBlack, TextColor3 = nameColor or Color3.new(1, 1, 1) })
+	label(frame, { Position = UDim2.fromOffset(70, 32), Size = UDim2.new(1, -330, 0, 50), Text = description, TextSize = 13, TextColor3 = MUTED, TextYAlignment = Enum.TextYAlignment.Top })
 
 	for index, spec in buttons do
 		local button = Instance.new("TextButton")
+		-- Fuera de la preparación solo funcionan los botones de equipar
+		if not isOpen() and spec.Text ~= "Equipar" then
+			spec.Enabled = false
+		end
 		button.AnchorPoint = Vector2.new(1, 0.5)
 		button.Position = UDim2.new(1, -10 - (index - 1) * 130, 0.5, 0)
 		button.Size = UDim2.fromOffset(122, 40)
@@ -113,24 +126,35 @@ local function row(icon: string, name: string, description: string, buttons: { B
 end
 
 local function renderArmory(data: Progression.Profile, coins: number)
-	sectionHeader("Armas  ·  cambia de arma con las teclas 1-5")
+	sectionHeader("Armas  ·  cambia de arma con las teclas 1-6  ·  cada mejora cambia su color")
 	for slot, id in Config.WeaponOrder do
 		local weapon = Config.Weapons[id]
 		local level = data.Weapons[id]
 		local stats = Progression.getWeaponStats(data, id, false)
-		local pellets = if stats.Pellets > 1 then ` x{stats.Pellets}` else ""
-		local description = `Daño {string.format("%.1f", stats.Damage)}{pellets} · {string.format("%.1f", stats.FireRate)} disparos/s · Cargador {stats.Magazine}`
+		local description
+		if stats.Melee then
+			description = `Daño {string.format("%.1f", stats.Damage)} · {string.format("%.1f", stats.FireRate)} tajos/s · hasta {stats.MaxTargets} zombis por tajo · sin munición`
+		else
+			local pellets = if stats.Pellets > 1 then ` x{stats.Pellets}` else ""
+			description = `Daño {string.format("%.1f", stats.Damage)}{pellets} · {string.format("%.1f", stats.FireRate)} disparos/s · Cargador {stats.Magazine} · Reserva {stats.StartReserve}/{stats.MaxReserve}`
+		end
 		local buttons: { ButtonSpec } = {}
+		local name = weapon.DisplayName
+		local nameColor = nil
 
 		if level == nil then
 			table.insert(buttons, { Text = `Comprar 🪙{weapon.Price}`, Enabled = coins >= weapon.Price, OnClick = function()
 				runAction("BuyWeapon", id)
 			end })
 		else
+			local tier = Progression.weaponTier(level)
+			name ..= `  ·  {tier.Name}`
+			nameColor = if level > 0 then tier.Accent else nil
 			description ..= `\nMejora Nv {level}/{Config.WeaponUpgrade.MaxLevel}  ·  tecla {slot}`
 			if level < Config.WeaponUpgrade.MaxLevel then
 				local cost = Progression.weaponUpgradeCost(id, level)
-				table.insert(buttons, { Text = `Mejorar 🪙{cost}`, Enabled = coins >= cost, OnClick = function()
+				local nextTier = Progression.weaponTier(level + 1)
+				table.insert(buttons, { Text = `{nextTier.Name} 🪙{cost}`, Enabled = coins >= cost, OnClick = function()
 					runAction("UpgradeWeapon", id)
 				end })
 			else
@@ -142,7 +166,44 @@ local function renderArmory(data: Progression.Profile, coins: number)
 				ShopUI.render()
 			end })
 		end
-		row(weapon.Icon, weapon.DisplayName, description, buttons)
+		row(weapon.Icon, name, description, buttons, nameColor)
+	end
+end
+
+local function renderQuartermaster(data: Progression.Profile, coins: number)
+	local storage = Config.AmmoStorage
+	local level = data.AmmoStorage or 0
+	local multiplier = Progression.ammoStorageMultiplier(data)
+	sectionHeader("Cartuchera  ·  más balas máximas y más balas al empezar")
+	local cost = Progression.ammoStorageCost(level)
+	local pistol = Progression.getWeaponStats(data, "Pistol", false)
+	row("🎒", `Cartuchera  ·  Nv {level}/{storage.MaxLevel}`, `Ahora cargas x{string.format("%.2f", multiplier)} balas (pistola: {pistol.StartReserve} al empezar, máximo {pistol.MaxReserve}).\nCada nivel: +{math.floor(storage.PerLevel * 100)}% en todas las armas.`, {
+		if cost
+			then { Text = `Mejorar 🪙{cost}`, Enabled = coins >= cost, OnClick = function()
+				runAction("UpgradeStorage", "")
+			end }
+			else { Text = "Máximo", Enabled = false },
+	})
+
+	local mine = Config.Traps.Mine
+	local gate = Config.Traps.Gate
+	sectionHeader("Trampas  ·  solo duran la próxima partida")
+	local placed = gameState:GetAttribute("Mines") or 0
+	local maxMines = gameState:GetAttribute("MinesMax") or #mine.Spots
+	row(mine.Icon, `{mine.DisplayName}  ·  {placed}/{maxMines} enterradas`, `Explota cuando pasa un zombi: {mine.Damage} de daño en {mine.Radius} studs (más fuerte en oleadas altas).`, {
+		{ Text = `Comprar 🪙{mine.Price}`, Enabled = placed < maxMines and coins >= mine.Price, OnClick = function()
+			runAction("BuyMine", "")
+		end },
+	})
+	for _, id in { "Left", "Right" } do
+		local slot = gate.Slots[id]
+		local health = gameState:GetAttribute("Gate" .. id) or 0
+		local built = health > 0
+		row(gate.Icon, slot.Name, `Los zombis se detienen a romperla ({gate.Health} de vida) en vez de atacar la campana. Disparas por encima.{if built then `\nVida: {health}/{gate.Health}` else ""}`, {
+			{ Text = if built then "Construida" else `Construir 🪙{gate.Price}`, Enabled = not built and coins >= gate.Price, OnClick = function()
+				runAction("BuyGate", id)
+			end },
+		})
 	end
 end
 
@@ -217,10 +278,13 @@ function ShopUI.render()
 	local xpText = `Nivel {data.Level} · {data.Xp}/{Progression.xpNeeded(data.Level)} XP`
 	subtitle.Text = `{titles[2]}   ·   🪙 {coins}   ·   {xpText}`
 
+	closedBanner.Visible = not isOpen()
 	if currentShop == "Armory" then
 		renderArmory(data, coins)
 	elseif currentShop == "Mystic" then
 		renderMystic(data, coins)
+	elseif currentShop == "Quartermaster" then
+		renderQuartermaster(data, coins)
 	else
 		renderTrainer(data)
 	end
@@ -256,6 +320,7 @@ local function updateRepairPrompt()
 end
 
 function ShopUI.init()
+	gameState = ReplicatedStorage:WaitForChild("GameState")
 	gui = Instance.new("ScreenGui")
 	gui.Name = "Shop"
 	gui.ResetOnSpawn = false
@@ -281,6 +346,16 @@ function ShopUI.init()
 
 	title = label(panel, { Position = UDim2.fromOffset(20, 12), Size = UDim2.new(1, -80, 0, 34), TextSize = 26, Font = Enum.Font.GothamBlack, TextColor3 = GOLD })
 	subtitle = label(panel, { Position = UDim2.fromOffset(20, 46), Size = UDim2.new(1, -80, 0, 22), TextSize = 15, TextColor3 = MUTED })
+	closedBanner = label(panel, {
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -64, 0, 18),
+		Size = UDim2.fromOffset(300, 24),
+		TextSize = 14,
+		TextColor3 = RED,
+		TextXAlignment = Enum.TextXAlignment.Right,
+		Text = "🔒 Cerrado: solo se compra antes de la partida",
+		Visible = false,
+	})
 
 	local close = Instance.new("TextButton")
 	close.AnchorPoint = Vector2.new(1, 0)
@@ -325,6 +400,12 @@ function ShopUI.init()
 		updateRepairPrompt()
 	end)
 	player:GetAttributeChangedSignal("Coins"):Connect(ShopUI.render)
+	-- Abre/cierra la tienda con el estado de la partida y muestra las trampas
+	gameState.AttributeChanged:Connect(function(name)
+		if name == "State" or name == "Mines" or string.sub(name, 1, 4) == "Gate" then
+			ShopUI.render()
+		end
+	end)
 	task.spawn(function()
 		workspace:WaitForChild("Map")
 		updateRepairPrompt()

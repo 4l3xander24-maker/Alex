@@ -1,5 +1,6 @@
--- El campamento detrás de la campana: fogata, bancos, tiendas de campaña,
--- empalizada y los tres NPC (Armero, Bruja y Veterano) con sus puestos.
+-- El campamento detrás de la campana, al borde del acantilado: fogata,
+-- bancos, tiendas de campaña, empalizada, mirador sobre el mar y los cuatro
+-- NPC (Armero, Bruja, Veterano e Intendente) con sus puestos.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
@@ -93,26 +94,74 @@ end
 local function buildPalisade(map: Instance)
 	local radius = 52
 	local step = 1.45 / radius
-	local maxAngle = math.rad(135)
+	local minAngle = math.rad(40) -- atrás no hay empalizada: está el acantilado
+	local maxAngle = math.rad(135) -- adelante queda abierto hacia la campana
 	local angle = -maxAngle
 	while angle <= maxAngle do
-		local height = random:NextNumber(8, 10)
-		local position = camp + Vector3.new(math.sin(angle) * radius, height / 2, math.cos(angle) * radius)
-		makePart({
-			Name = "PalisadeLog",
-			Shape = Enum.PartType.Cylinder,
-			Size = Vector3.new(height, 1.5, 1.5),
-			CFrame = CFrame.new(position) * CFrame.Angles(0, 0, math.pi / 2),
-			Material = Enum.Material.Wood,
-			Color = Props.vary(DARK_WOOD, 0.12, random),
-			Parent = map,
-		})
+		if math.abs(angle) >= minAngle then
+			local height = random:NextNumber(8, 10)
+			local position = camp + Vector3.new(math.sin(angle) * radius, height / 2, math.cos(angle) * radius)
+			makePart({
+				Name = "PalisadeLog",
+				Shape = Enum.PartType.Cylinder,
+				Size = Vector3.new(height, 1.5, 1.5),
+				CFrame = CFrame.new(position) * CFrame.Angles(0, 0, math.pi / 2),
+				Material = Enum.Material.Wood,
+				Color = Props.vary(DARK_WOOD, 0.12, random),
+				Parent = map,
+			})
+		end
 		angle += step
 	end
-	for degrees = -120, 120, 40 do
+	for _, degrees in { -120, -80, -45, 45, 80, 120 } do
 		local direction = Vector3.new(math.sin(math.rad(degrees)), 0, math.cos(math.rad(degrees)))
 		Props.lantern(map, camp + direction * (radius - 3))
 	end
+end
+
+-- Cerca baja al borde del acantilado (con hueco para el mirador)
+local function buildCliffFence(map: Instance, lookoutX: number)
+	local z = Config.Arena.CliffZ - 3
+	local posts = {}
+	for x = -34, 34, 3.4 do
+		if math.abs(x - lookoutX) > 3 then
+			makePart({ Name = "FencePost", Size = Vector3.new(0.5, 3, 0.5), Position = Vector3.new(x, 1.5, z), Material = Enum.Material.Wood, Color = DARK_WOOD, Parent = map })
+			table.insert(posts, x)
+		end
+	end
+	for index = 1, #posts - 1 do
+		local a, b = posts[index], posts[index + 1]
+		if b - a < 4 then
+			for _, y in { 1.2, 2.5 } do
+				makePart({ Name = "FenceRail", Size = Vector3.new(b - a, 0.3, 0.25), Position = Vector3.new((a + b) / 2, y, z), Material = Enum.Material.Wood, Color = WOOD, Parent = map })
+			end
+		end
+	end
+end
+
+-- Mirador de madera que sobresale del acantilado, con un catalejo
+local function buildLookout(map: Instance, x: number)
+	local cliffZ = Config.Arena.CliffZ
+	local length, width = 12, 6
+	local centerZ = cliffZ - 3 + length / 2
+	makePart({ Name = "LookoutDeck", Size = Vector3.new(width, 0.5, length), Position = Vector3.new(x, 0, centerZ), Material = Enum.Material.WoodPlanks, Color = WOOD, Parent = map })
+	for _, side in { -1, 1 } do
+		makePart({ Name = "LookoutRail", Size = Vector3.new(0.3, 0.3, length - 3), Position = Vector3.new(x + side * (width / 2 - 0.15), 2.4, centerZ + 1.5), Material = Enum.Material.Wood, Color = DARK_WOOD, Parent = map })
+		makePart({ Name = "LookoutBeam", Size = Vector3.new(0.6, 0.6, 14), CFrame = CFrame.new(x + side * 2, -5, cliffZ + 1) * CFrame.Angles(math.rad(-40), 0, 0), Material = Enum.Material.Wood, Color = DARK_WOOD, Parent = map })
+		for postZ = cliffZ, cliffZ + length - 3, 3 do
+			makePart({ Name = "LookoutPost", Size = Vector3.new(0.4, 2.6, 0.4), Position = Vector3.new(x + side * (width / 2 - 0.15), 1.3, postZ), Material = Enum.Material.Wood, Color = DARK_WOOD, Parent = map })
+		end
+	end
+	makePart({ Name = "LookoutRail", Size = Vector3.new(width, 0.3, 0.3), Position = Vector3.new(x, 2.4, centerZ + length / 2 - 0.15), Material = Enum.Material.Wood, Color = DARK_WOOD, Parent = map })
+
+	-- Catalejo sobre un trípode apuntando al mar
+	local spot = Vector3.new(x, 0.25, centerZ + length / 2 - 2)
+	for index = 1, 3 do
+		local angle = index / 3 * math.pi * 2
+		makeProp({ Name = "Tripod", Size = Vector3.new(0.15, 2.6, 0.15), CFrame = CFrame.new(spot + Vector3.new(math.cos(angle) * 0.5, 1.2, math.sin(angle) * 0.5)) * CFrame.Angles(math.sin(angle) * 0.25, 0, -math.cos(angle) * 0.25), Material = Enum.Material.Wood, Color = DARK_WOOD, Parent = map })
+	end
+	makeProp({ Name = "Telescope", Shape = Enum.PartType.Cylinder, Size = Vector3.new(2.2, 0.45, 0.45), CFrame = CFrame.new(spot + Vector3.new(0, 2.6, 0.3)) * CFrame.Angles(0, math.pi / 2, math.rad(12)), Material = Enum.Material.Metal, Color = Color3.fromRGB(205, 165, 70), Parent = map })
+	Props.lantern(map, Vector3.new(x - width / 2 - 1, 0, cliffZ - 4))
 end
 
 -- Personaje de bloques. `extras` agrega sombrero, delantal, barba, etc.
@@ -255,6 +304,43 @@ local function buildMystic(map: Instance)
 	}, stall * CFrame.new(0, 0, 1.2))
 end
 
+local function buildQuartermaster(map: Instance)
+	local stall = facingCamp(camp + Vector3.new(-22, 0, -14))
+	buildCanopy(map, stall, Color3.fromRGB(90, 100, 60))
+	makePart({ Name = "Counter", Size = Vector3.new(8, 3.2, 2), CFrame = stall * CFrame.new(0, 1.6, -1.8), Material = Enum.Material.WoodPlanks, Color = WOOD, Parent = map })
+
+	-- Cajas de munición apiladas y minas sobre el mostrador
+	local ammoColor = Color3.fromRGB(80, 90, 55)
+	for index, offset in { Vector3.new(-3, 0, 3.4), Vector3.new(-1, 0, 3.4), Vector3.new(1, 0, 3.4), Vector3.new(3, 0, 3.4), Vector3.new(-2, 1.4, 3.4), Vector3.new(0, 1.4, 3.4), Vector3.new(2, 1.4, 3.4), Vector3.new(-1, 2.8, 3.4), Vector3.new(1, 2.8, 3.4) } do
+		makePart({ Name = "AmmoBox", Size = Vector3.new(1.8, 1.3, 1.2), CFrame = stall * CFrame.new(offset + Vector3.new(0, 0.65, 0)) * CFrame.Angles(0, (index % 3 - 1) * 0.08, 0), Material = Enum.Material.Metal, Color = ammoColor, Parent = map })
+		makeProp({ Name = "AmmoStripe", Size = Vector3.new(1.82, 0.2, 1.22), CFrame = stall * CFrame.new(offset + Vector3.new(0, 0.9, 0)) * CFrame.Angles(0, (index % 3 - 1) * 0.08, 0), Material = Enum.Material.SmoothPlastic, Color = Color3.fromRGB(230, 190, 60), Parent = map })
+	end
+	for index = -1, 1 do
+		makeProp({ Name = "DisplayMine", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.35, 1.4, 1.4), CFrame = stall * CFrame.new(index * 2, 3.38, -1.8) * CFrame.Angles(0, 0, math.pi / 2), Material = Enum.Material.Metal, Color = Color3.fromRGB(50, 54, 46), Parent = map })
+	end
+	-- Un trozo de reja de muestra
+	for index = 0, 4 do
+		makeProp({ Name = "SampleBar", Size = Vector3.new(0.18, 3, 0.18), CFrame = stall * CFrame.new(5.6, 1.5, -1 + index * 0.7), Material = Enum.Material.Metal, Color = Color3.fromRGB(60, 62, 68), Parent = map })
+	end
+	Props.sign(map, stall * CFrame.new(0, 7.3, -3.6), "INTENDENCIA", Color3.fromRGB(200, 230, 120))
+
+	buildNpc(map, {
+		Name = "Gustavo",
+		Role = "Intendente",
+		Action = "Munición y trampas",
+		Shop = "Quartermaster",
+		Skin = Color3.fromRGB(170, 120, 85),
+		Shirt = Color3.fromRGB(85, 95, 55),
+		Pants = Color3.fromRGB(60, 65, 45),
+		Extras = function(piece)
+			piece("Beret", Vector3.new(1.45, 0.35, 1.45), Vector3.new(0, 5.45, 0.05), Color3.fromRGB(60, 70, 40), Enum.Material.Fabric)
+			piece("Bandolier", Vector3.new(0.4, 2.6, 0.12), Vector3.new(0, 3, -0.56), Color3.fromRGB(110, 80, 40), Enum.Material.Fabric)
+			piece("Mustache", Vector3.new(0.9, 0.2, 0.1), Vector3.new(0, 4.35, -0.68), Color3.fromRGB(50, 35, 25))
+			piece("Goggles", Vector3.new(1.35, 0.25, 0.1), Vector3.new(0, 4.78, -0.69), Color3.fromRGB(30, 30, 30))
+		end,
+	}, stall * CFrame.new(0, 0, 1.2))
+end
+
 local function buildTrainer(map: Instance)
 	local stall = facingCamp(camp + Vector3.new(0, 0, 26))
 	buildCanopy(map, stall, Color3.fromRGB(50, 80, 130))
@@ -296,7 +382,11 @@ function CampBuilder.build(map: Instance)
 	buildArmory(map)
 	buildMystic(map)
 	buildTrainer(map)
+	buildQuartermaster(map)
 	buildPalisade(map)
+	local lookoutX = 20
+	buildCliffFence(map, lookoutX)
+	buildLookout(map, lookoutX)
 
 	local tentColors = { Color3.fromRGB(196, 178, 140), Color3.fromRGB(120, 130, 90), Color3.fromRGB(150, 110, 80), Color3.fromRGB(196, 178, 140) }
 	for index, offset in { Vector3.new(-36, 0, -12), Vector3.new(36, 0, -12), Vector3.new(-34, 0, 26), Vector3.new(34, 0, 26) } do

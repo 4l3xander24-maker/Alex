@@ -1,5 +1,7 @@
 -- Compras y mejoras de los NPC del campamento:
--- Armero (armas), Bruja (poderes) y Veterano (estadísticas y talentos).
+-- Armero (armas), Bruja (poderes), Veterano (estadísticas y talentos) e
+-- Intendente (cartuchera y trampas).
+-- Solo se puede comprar durante la preparación, antes de empezar la partida.
 -- El cliente solo pide; el servidor revisa monedas, puntos y requisitos.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -8,8 +10,13 @@ local Config = require(Shared.Config)
 local Progression = require(Shared.Progression)
 local Remotes = require(Shared.Remotes)
 local DataService = require(script.Parent.DataService)
+local GameState = require(script.Parent.GameState)
+local TrapService = require(script.Parent.TrapService)
 
 local NOT_ENOUGH = "No tienes suficientes monedas"
+local CLOSED = "🔒 Las tiendas solo abren antes de la partida"
+-- Acciones que se pueden hacer en cualquier momento
+local ALWAYS_ALLOWED = { EquipWeapon = true }
 
 local ShopService = {}
 
@@ -120,6 +127,49 @@ function actions.LearnTalent(_player, data, id)
 	return true, `¡Aprendiste {info.Name}!`
 end
 
+function actions.UpgradeStorage(player, data)
+	local level = data.AmmoStorage or 0
+	local cost = Progression.ammoStorageCost(level)
+	if not cost then
+		return false, "La cartuchera ya está al máximo"
+	end
+	if not DataService.spendCoins(player, cost) then
+		return false, NOT_ENOUGH
+	end
+	data.AmmoStorage = level + 1
+	return true, `Cartuchera nivel {level + 1}: puedes cargar más balas`
+end
+
+function actions.BuyMine(player)
+	if not TrapService.canPlaceMine() then
+		return false, "Ya están todas las minas puestas"
+	end
+	if not DataService.spendCoins(player, Config.Traps.Mine.Price) then
+		return false, NOT_ENOUGH
+	end
+	TrapService.placeMine(player)
+	return true, "🪤 Mina enterrada en el camino de los zombis"
+end
+
+function actions.BuyGate(player, _data, id)
+	local slot = Config.Traps.Gate.Slots[id]
+	if not slot then
+		return false, "Reja desconocida"
+	end
+	if TrapService.hasGate(id) then
+		return false, `La {slot.Name:lower()} ya está construida`
+	end
+	if not DataService.spendCoins(player, Config.Traps.Gate.Price) then
+		return false, NOT_ENOUGH
+	end
+	TrapService.buildGate(id)
+	return true, `🚧 {slot.Name} construida`
+end
+
+function ShopService.isOpen(): boolean
+	return GameState.get("State") == "Lobby"
+end
+
 function ShopService.init()
 	Remotes.ShopAction.OnServerInvoke = function(player: Player, action: any, id: any)
 		if typeof(action) ~= "string" or typeof(id) ~= "string" or not actions[action] then
@@ -128,6 +178,9 @@ function ShopService.init()
 		local data = DataService.get(player)
 		if not data then
 			return false, "Tu perfil aún está cargando"
+		end
+		if not ALWAYS_ALLOWED[action] and not ShopService.isOpen() then
+			return false, CLOSED
 		end
 		local ok, message = actions[action](player, data, id)
 		if ok then

@@ -1,7 +1,8 @@
 # Campana Maldita 🔔🧟
 
-Juego de Roblox en primera persona: defiende la campana de tu campamento de hordas de muertos vivientes.
-Muévete por el mapa, compra armas y poderes a los NPC, sube de nivel tu cuenta y aprende talentos.
+Juego de Roblox en primera persona: defiende la campana de tu campamento, al borde de un acantilado sobre el mar,
+de hordas de muertos vivientes. Empiezas solo con un machete y una pistola; prepárate antes de cada partida
+comprando armas, mejoras, poderes y trampas a los NPC del campamento.
 
 ![Vista previa](docs/preview.png)
 
@@ -10,11 +11,19 @@ _Vista previa: recreación con las medidas, colores y sprites del juego, no es c
 Más vistas previas en [`docs/capturas/`](docs/capturas/). El diseño completo está en [`docs/DISENO.md`](docs/DISENO.md).
 
 ## Qué tiene ya
-- **Mapa abierto**: campanario al frente, campamento detrás (fogata, tiendas, empalizada) y bosque alrededor.
-- **3 NPC** en el campamento (habla con **E**):
-  - **Bruno, el Armero**: 5 armas (pistola, escopeta, rifle, francotirador, ametralladora) y sus mejoras.
+- **Mapa abierto**: campanario al frente, campamento detrás (fogata, tiendas, empalizada) al borde de un
+  **acantilado sobre el mar** (con mirador; si te caes, te lleva el mar) y bosque alrededor.
+- **Preparación antes de cada partida**: el único momento para comprar. La partida empieza cuando alguien
+  **toca la campana** (mantener E) o cuando se acaba el tiempo. Durante las oleadas las tiendas están cerradas.
+- **Empiezas con machete y pistola**. El machete no gasta balas; las armas de fuego tienen cargador y
+  **reserva limitada**, y **cada zombi que eliminas te da balas** para el arma que tienes en la mano.
+- **4 NPC** en el campamento (habla con **E**):
+  - **Bruno, el Armero**: 6 armas (machete, pistola, escopeta, rifle, francotirador, ametralladora) y sus
+    mejoras. **Cada mejora cambia el color del arma**: Bronce → Plata → Oro → Esmeralda → Legendaria.
   - **Morgana, la Bruja**: poderes (granada, rayo en cadena, campanazo) y sus mejoras.
   - **Don Ramiro, el Veterano**: gasta tus puntos de mejora y aprende talentos.
+  - **Gustavo, el Intendente**: **cartuchera** (más balas máximas y más balas al empezar) y **trampas**:
+    hasta 8 **minas** en el camino de los zombis y 2 **rejas** que los detienen hasta que las rompen.
 - **Zombis que te persiguen** si te acercas, y vuelven a atacar la campana si te alejas. Tienes vida y reapareces.
 - **4 tipos de zombi** pixelados y una Abominación (jefe) cada 5 oleadas.
 - **Nivel de cuenta**: al terminar la partida ganas XP. Cada nivel da 1 punto de mejora (daño, vida, velocidad,
@@ -59,8 +68,8 @@ Para cambiar o crear sprites, edita `tools/make_sprites.py` y ejecuta `python3 t
 |---|---|---|
 | Disparar | Clic izquierdo (mantener) | Botón 🔫 |
 | Recargar | R | Botón 🔄 |
-| Cambiar de arma | 1 - 5 | Botón 🔁 |
-| Hablar con NPC / reparar campana | E | Tocar el aviso |
+| Cambiar de arma | 1 - 6 (1 = machete) | Botón 🔁 |
+| Hablar con NPC / empezar partida / reparar campana | E | Tocar el aviso |
 | Poderes | G granada · Q rayo · F campanazo | Botones abajo a la izquierda |
 | Apuntar (talento Puntería) | Clic derecho | Botón 🔭 |
 | Correr (talento Correr) | Shift | Botón 🏃 |
@@ -77,16 +86,17 @@ src/
     Remotes.luau            ← comunicación servidor ↔ cliente
   server/                   → ServerScriptService.Server
     MapBuilder.luau         ← terreno, campanario, bosque, luna y niebla
-    CampBuilder.luau        ← fogata, tiendas, empalizada, puestos y NPC
+    CampBuilder.luau        ← fogata, tiendas, empalizada, mirador, puestos y NPC
     Props.luau              ← piezas del mapa (faroles, cajas, letreros…)
     DataService.luau        ← guardado del perfil (DataStore)
-    ShopService.luau        ← compras del Armero, la Bruja y el Veterano
+    ShopService.luau        ← compras de los 4 NPC (solo en la preparación)
     MatchService.luau       ← estadísticas de la partida y XP final
     EnemyService.luau       ← zombis (persecución, daño, empuje)
     WaveService.luau        ← oleadas y jefes
     CombatService.luau      ← valida disparos y munición (anti-trampas)
     PowerService.luau       ← granada, rayo y campanazo
-    PlayerService.luau      ← vida, velocidad y talentos del servidor
+    PlayerService.luau      ← vida, velocidad, talentos del servidor y caída al mar
+    TrapService.luau        ← minas y rejas
     GameState.luau          ← vida de la campana y estado
   client/                   → StarterPlayerScripts.Client
     Profile.luau            ← copia local del perfil
@@ -109,4 +119,6 @@ Todo está en `src/shared/Config.luau`:
 - ¿Los zombis pegan muy fuerte? Baja `PlayerDamage` de cada enemigo.
 - ¿Subes de nivel muy lento? Baja `Progression.XpBase` o sube `XpPerKill`.
 - ¿Las armas son muy caras? Cambia `Price` en `Config.Weapons`.
+- ¿Te quedas sin balas muy rápido? Sube `AmmoPerKill` o `StartReserve` del arma.
+- ¿La preparación es muy larga? Cambia `Match.LobbyTime`.
 - ¿Otro ambiente? Cambia `Theme` a `"Morado"` o `"Ambar"`.

@@ -15,12 +15,14 @@ local MatchService = require(script.MatchService)
 local PlayerService = require(script.PlayerService)
 local PowerService = require(script.PowerService)
 local ShopService = require(script.ShopService)
+local TrapService = require(script.TrapService)
 local WaveService = require(script.WaveService)
 
 local random = Random.new()
 
 local map = MapBuilder.build()
 GameState.init()
+TrapService.init()
 PlayerService.init()
 CombatService.init()
 PowerService.init()
@@ -30,6 +32,10 @@ DataService.init(PlayerService.onPlayerReady)
 local repairPrompt = map:FindFirstChild("RepairPrompt", true)
 if repairPrompt then
 	PlayerService.bindRepairPrompt(repairPrompt)
+end
+local startPrompt = map:FindFirstChild("StartPrompt", true)
+if startPrompt then
+	WaveService.setStartPrompt(startPrompt)
 end
 
 EnemyService.setPlayerDamageHandler(PlayerService.damagePlayer)
@@ -44,6 +50,7 @@ EnemyService.setKillHandler(function(player, enemy)
 	DataService.addCoins(player, coins)
 	MatchService.onKill(player, enemy.IsBoss, coins)
 	PlayerService.onKill(player)
+	CombatService.grantKillAmmo(player)
 end)
 Remotes.GetSnapshot.OnServerInvoke = EnemyService.getSnapshot
 
@@ -54,9 +61,13 @@ Players.PlayerRemoving:Connect(function(player)
 end)
 
 RunService.Heartbeat:Connect(function(dt)
-	local damagePerSecond = EnemyService.getBellDamagePerSecond(workspace:GetServerTimeNow())
+	local now = workspace:GetServerTimeNow()
+	local damagePerSecond = EnemyService.getBellDamagePerSecond(now)
 	if damagePerSecond > 0 then
 		GameState.damageBell(damagePerSecond * dt)
+	end
+	for gateId, gateDamage in EnemyService.getBarrierDamage(now) do
+		TrapService.damageGate(gateId, gateDamage * dt)
 	end
 end)
 
@@ -64,7 +75,9 @@ task.spawn(function()
 	local interval = Config.Hunt.ThinkInterval
 	while true do
 		task.wait(interval)
-		EnemyService.think(workspace:GetServerTimeNow(), interval)
+		local now = workspace:GetServerTimeNow()
+		EnemyService.think(now, interval)
+		TrapService.think(now, WaveService.getCurrentWave())
 	end
 end)
 

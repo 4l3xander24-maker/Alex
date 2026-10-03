@@ -1,5 +1,6 @@
 -- Personaje de cada jugador: vida, velocidad, cámara, daño recibido y los
 -- talentos que actúan en el servidor (Regeneración, Último aliento, Reparador).
+-- También revisa si alguien cayó por el acantilado al mar.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -158,6 +159,13 @@ function PlayerService.init()
 				local state = states[player]
 				if state and now - state.LastDamaged >= talents.RegenDelay and hasTalent(player, "Regen") then
 					PlayerService.heal(player, talents.RegenPerSecond * REGEN_TICK)
+				end
+				-- Quien cae por el acantilado se lo lleva el mar
+				local humanoid = getHumanoid(player)
+				local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+				if humanoid and humanoid.Health > 0 and root and (root :: BasePart).Position.Y < Config.Arena.FallKillY then
+					humanoid.Health = 0
+					Remotes.Notify:FireClient(player, "🌊 ¡Caíste al mar!")
 				end
 			end
 		end

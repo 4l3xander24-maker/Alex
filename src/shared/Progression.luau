@@ -14,6 +14,7 @@ export type Profile = {
 	Weapons: { [string]: number }, -- armas compradas y su nivel de mejora
 	Equipped: string,
 	Powers: { [string]: number }, -- poderes comprados y su nivel (1 = recién comprado)
+	AmmoStorage: number, -- nivel de la cartuchera del Intendente
 }
 
 local Progression = {}
@@ -37,9 +38,10 @@ function Progression.defaultProfile(): Profile
 		TalentPoints = 0,
 		Stats = {},
 		Talents = {},
-		Weapons = { Pistol = 0 },
+		Weapons = { Machete = 0, Pistol = 0 },
 		Equipped = "Pistol",
 		Powers = {},
+		AmmoStorage = 0,
 	}
 end
 
@@ -100,23 +102,70 @@ function Progression.getPlayerStats(profile: Profile)
 	}
 end
 
+-- Cuántas veces más balas puedes cargar gracias a la cartuchera
+function Progression.ammoStorageMultiplier(profile: Profile): number
+	return 1 + (profile.AmmoStorage or 0) * Config.AmmoStorage.PerLevel
+end
+
+-- Costo de subir la cartuchera al siguiente nivel (nil si ya está al máximo)
+function Progression.ammoStorageCost(level: number): number?
+	return Config.AmmoStorage.Prices[level + 1]
+end
+
+-- Color del arma según su nivel de mejora
+function Progression.weaponTier(level: number)
+	local tiers = Config.WeaponTiers
+	return tiers[math.clamp(level + 1, 1, #tiers)]
+end
+
 function Progression.getWeaponStats(profile: Profile, weaponId: string, aiming: boolean?)
 	local base = Config.Weapons[weaponId]
 	local level = profile.Weapons[weaponId] or 0
 	local upgrade = Config.WeaponUpgrade
+	local damage = base.Damage * (1 + upgrade.DamagePerLevel * level) * (1 + Progression.statValue(profile, "Damage"))
+	local critChance = Config.BaseCritChance + Progression.statValue(profile, "Crit")
+
+	if base.Melee then
+		return {
+			Melee = true,
+			Damage = damage,
+			FireRate = base.FireRate * (1 + Progression.statValue(profile, "FireRate")),
+			Range = base.Range,
+			Arc = base.Arc,
+			MaxTargets = base.MaxTargets,
+			CritChance = critChance,
+			Magazine = 0,
+			MaxReserve = 0,
+			StartReserve = 0,
+			AmmoPerKill = 0,
+			ReloadTime = 0,
+			Pellets = 1,
+			Pierce = 0,
+			Spread = 0,
+			Zoom = 1,
+			Level = level,
+		}
+	end
+
 	local aim = aiming == true and Progression.hasTalent(profile, "Aim")
 	local talents = Config.TalentValues
+	local storage = Progression.ammoStorageMultiplier(profile)
 	return {
-		Damage = base.Damage * (1 + upgrade.DamagePerLevel * level) * (1 + Progression.statValue(profile, "Damage")),
+		Melee = false,
+		Damage = damage,
 		FireRate = base.FireRate * (1 + Progression.statValue(profile, "FireRate")),
 		Magazine = math.ceil(base.Magazine * (1 + upgrade.MagazinePerLevel * level) * (1 + Progression.statValue(profile, "Ammo"))),
+		MaxReserve = math.floor(base.MaxReserve * storage),
+		StartReserve = math.floor(base.StartReserve * storage),
+		AmmoPerKill = base.AmmoPerKill,
 		ReloadTime = base.ReloadTime * math.max(0.3, 1 - upgrade.ReloadPerLevel * level - Progression.statValue(profile, "Reload")),
 		Range = base.Range,
 		Pellets = base.Pellets,
 		Pierce = base.Pierce,
 		Spread = base.Spread * (if aim then talents.AimSpread else 1),
-		CritChance = Config.BaseCritChance + Progression.statValue(profile, "Crit") + (if aim then talents.AimCrit else 0),
+		CritChance = critChance + (if aim then talents.AimCrit else 0),
 		Zoom = base.Zoom,
+		Level = level,
 	}
 end
 

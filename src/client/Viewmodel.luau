@@ -1,6 +1,7 @@
 -- El arma y las manos que se ven en primera persona. Son piezas locales
 -- pegadas a la cámara, con retroceso, balanceo al caminar, animación de
--- recarga y posición de apuntar. Cada arma tiene su propio modelo de bloques.
+-- recarga, tajo del machete y posición de apuntar. Cada arma tiene su propio
+-- modelo de bloques, y cambia de color con cada mejora (Config.WeaponTiers).
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
@@ -16,6 +17,8 @@ local SLEEVE = Color3.fromRGB(60, 70, 60)
 local FLASH = Color3.fromRGB(255, 210, 90)
 local LENS = Color3.fromRGB(120, 200, 255)
 
+local SWING_TIME = 0.28
+
 local HIP_OFFSET = CFrame.new(1.05, -1.05, -2.1)
 local AIM_OFFSET = CFrame.new(0, -0.55, -1.7)
 local BASE_FOV = 80
@@ -27,8 +30,21 @@ local function p(size: Vector3, offset: CFrame, color: Color3, neon: boolean?): 
 	return { Size = size, Offset = offset, Color = color, Neon = neon }
 end
 
--- Piezas relativas al centro del arma (el cañón apunta hacia -Z)
+-- Piezas relativas al centro del arma (el cañón apunta hacia -Z).
+-- Las piezas GUNMETAL y STEEL toman los colores del nivel de mejora.
 local MODELS: { [string]: ModelSpec } = {
+	Machete = {
+		Muzzle = CFrame.new(0, 0.1, -2),
+		-- La mano izquierda queda fuera de la vista
+		LeftHand = Vector3.new(-1.6, -1.6, 0.6),
+		Pieces = {
+			p(Vector3.new(0.26, 0.3, 0.85), CFrame.new(0, -0.25, 0.45), WOOD),
+			p(Vector3.new(0.55, 0.12, 0.18), CFrame.new(0, -0.05, 0.02), GUNMETAL),
+			p(Vector3.new(0.07, 0.42, 1.7), CFrame.new(0, 0.05, -0.85), STEEL),
+			p(Vector3.new(0.07, 0.3, 0.55), CFrame.new(0, 0.16, -1.85) * CFrame.Angles(0.35, 0, 0), STEEL),
+			p(Vector3.new(0.08, 0.08, 1.5), CFrame.new(0, -0.17, -0.8), GUNMETAL),
+		},
+	},
 	Pistol = {
 		Muzzle = CFrame.new(0, 0.1, -1.3),
 		LeftHand = Vector3.new(-0.12, -0.32, 0.05),
@@ -132,6 +148,9 @@ local flashLight: PointLight
 local muzzleOffset = MODELS.Pistol.Muzzle
 
 local currentWeapon = ""
+local currentLevel = -1
+local isMelee = false
+local swingStart = -1
 local recoil = 0
 local reloadAlpha = 0
 local aimAlpha = 0
@@ -163,12 +182,15 @@ local function isAlive(): boolean
 	return humanoid ~= nil and humanoid.Health > 0
 end
 
--- Cambia el modelo del arma. zoomFactor y hideScope vienen de Config.Weapons
-function Viewmodel.setWeapon(weaponId: string, zoomFactor: number)
-	if weaponId == currentWeapon then
+-- Cambia el modelo del arma. zoomFactor viene de Config.Weapons y tier de
+-- Config.WeaponTiers según el nivel de mejora.
+function Viewmodel.setWeapon(weaponId: string, zoomFactor: number, level: number, tier)
+	if weaponId == currentWeapon and level == currentLevel then
 		return
 	end
 	currentWeapon = weaponId
+	currentLevel = level
+	isMelee = weaponId == "Machete"
 	zoom = zoomFactor
 	-- Con mira telescópica se ve por el visor en vez del arma
 	hideWhenAiming = zoomFactor >= 3
@@ -189,7 +211,17 @@ function Viewmodel.setWeapon(weaponId: string, zoomFactor: number)
 	local left = leftArm(model.LeftHand)
 	table.move(left, 1, #left, #specs + 1, specs)
 	for _, spec in specs do
-		table.insert(parts, newPart(spec))
+		local part = newPart(spec)
+		-- Color del nivel de mejora: cuerpo (Main) y detalles (Accent)
+		if spec.Color == GUNMETAL then
+			part.Color = tier.Main
+		elseif spec.Color == STEEL then
+			part.Color = tier.Accent
+			if tier.Glow then
+				part.Material = Enum.Material.Neon
+			end
+		end
+		table.insert(parts, part)
 		table.insert(offsets, spec.Offset)
 	end
 	table.insert(parts, flashPart)
@@ -219,8 +251,17 @@ local function update(dt: number)
 	local bobY = if moving then math.abs(math.cos(walkTime * 8)) * 0.05 * sway else 0
 
 	local base = HIP_OFFSET:Lerp(AIM_OFFSET, aimAlpha)
+	-- Tajo del machete: de arriba a la derecha hacia abajo a la izquierda
+	local swing = CFrame.identity
+	local swingAlpha = (os.clock() - swingStart) / SWING_TIME
+	if swingAlpha >= 0 and swingAlpha <= 1 then
+		local arc = math.sin(swingAlpha * math.pi)
+		local sweep = swingAlpha * 2 - 1
+		swing = CFrame.new(-0.7 * arc, 0.25 * arc - 0.3 * sweep, -0.4 * arc) * CFrame.Angles(-0.9 * arc, 0.8 * arc, -0.5 * sweep)
+	end
 	local root = camera.CFrame
 		* base
+		* swing
 		* CFrame.new(bobX, bobY - 0.5 * reloadAlpha, recoil * 0.22)
 		* CFrame.Angles(recoil * 0.15 * sway - 0.7 * reloadAlpha, 0, 0.5 * reloadAlpha)
 
@@ -232,9 +273,13 @@ local function update(dt: number)
 	cframes[#offsets + 1] = muzzle
 	workspace:BulkMoveTo(parts, cframes, Enum.BulkMoveMode.FireCFrameChanged)
 
-	local flashing = os.clock() < flashUntil
+	local flashing = os.clock() < flashUntil and not isMelee
 	flashPart.Transparency = if flashing then 0 else 1
 	flashLight.Enabled = flashing
+end
+
+function Viewmodel.swing()
+	swingStart = os.clock()
 end
 
 function Viewmodel.kick(strength: number?)
@@ -262,7 +307,7 @@ function Viewmodel.getMuzzlePosition(): Vector3
 	return (workspace.CurrentCamera.CFrame * CFrame.new(0, -0.3, -1)).Position
 end
 
-function Viewmodel.init(weaponId: string, zoomFactor: number)
+function Viewmodel.init(weaponId: string, zoomFactor: number, tier)
 	flashPart = newPart(p(Vector3.new(0.22, 0.22, 0.22), CFrame.identity, FLASH, true))
 	flashPart.Transparency = 1
 	flashLight = Instance.new("PointLight")
@@ -272,7 +317,7 @@ function Viewmodel.init(weaponId: string, zoomFactor: number)
 	flashLight.Enabled = false
 	flashLight.Parent = flashPart
 
-	Viewmodel.setWeapon(weaponId, zoomFactor)
+	Viewmodel.setWeapon(weaponId, zoomFactor, 0, tier)
 	-- Después de que la cámara se mueve, para que el arma no tiemble
 	RunService:BindToRenderStep("Viewmodel", Enum.RenderPriority.Camera.Value + 1, update)
 end

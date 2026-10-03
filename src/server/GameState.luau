@@ -25,6 +25,10 @@ function GameState.set(name: string, value: any)
 	folder:SetAttribute(name, value)
 end
 
+function GameState.get(name: string): any
+	return folder:GetAttribute(name)
+end
+
 function GameState.damageBell(amount: number)
 	if bellHealth <= 0 then
 		return

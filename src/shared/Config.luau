@@ -34,8 +34,8 @@ Config.Themes = {
 	},
 }
 
--- El campanario está en el origen. El campamento queda detrás (+Z) y los
--- zombis llegan del bosque por delante (-Z).
+-- El campanario está en el origen. El campamento queda detrás (+Z), al
+-- borde de un acantilado sobre el mar, y los zombis llegan del bosque (-Z).
 Config.Arena = {
 	GroundSize = 1400,
 	TowerSize = 14,
@@ -46,6 +46,16 @@ Config.Arena = {
 	StopJitter = 3,
 	CampCenter = Vector3.new(0, 0, 38),
 	CampRadius = 34,
+	CliffZ = 82, -- borde del acantilado
+	SeaLevel = -50,
+	FallKillY = -30, -- si caes por debajo de esta altura, te lleva el mar
+}
+
+-- Antes de cada partida hay una fase de preparación: es el único momento en
+-- que se puede comprar. Empieza al tocar la campana o al acabarse el tiempo.
+Config.Match = {
+	LobbyTime = 120,
+	StartCountdown = 5,
 }
 
 Config.Bell = {
@@ -134,8 +144,8 @@ Config.Enemies = {
 }
 
 Config.Waves = {
-	FirstIntermission = 25, -- tiempo para comprar antes de la primera oleada
-	Intermission = 15,
+	FirstIntermission = 5,
+	Intermission = 12,
 	FirstWaveCount = 15,
 	CountGrowth = 1.25, -- cada oleada trae 25% más zombis
 	FirstSpawnRate = 3, -- zombis por segundo
@@ -154,7 +164,22 @@ Config.Waves = {
 }
 
 -- Armas que vende el Armero. Zoom solo se usa con el talento Puntería.
+-- StartReserve: balas de reserva al empezar la partida.
+-- MaxReserve: máximo de balas de reserva (lo sube la cartuchera del Intendente).
+-- AmmoPerKill: balas que ganas por cada zombi eliminado con esa arma en la mano.
 Config.Weapons = {
+	Machete = {
+		DisplayName = "Machete",
+		Icon = "🔪",
+		Price = 0,
+		Melee = true,
+		Damage = 3,
+		FireRate = 2.2, -- golpes por segundo
+		Range = 7,
+		Arc = 70, -- grados frente al jugador que cubre el tajo
+		MaxTargets = 3,
+		Zoom = 1,
+	},
 	Pistol = {
 		DisplayName = "Pistola",
 		Icon = "🔫",
@@ -162,6 +187,9 @@ Config.Weapons = {
 		Damage = 1,
 		FireRate = 5,
 		Magazine = 12,
+		StartReserve = 36,
+		MaxReserve = 96,
+		AmmoPerKill = 3,
 		ReloadTime = 1.4,
 		Range = 350,
 		Pellets = 1,
@@ -176,6 +204,9 @@ Config.Weapons = {
 		Damage = 0.8,
 		FireRate = 1.4,
 		Magazine = 6,
+		StartReserve = 18,
+		MaxReserve = 48,
+		AmmoPerKill = 2,
 		ReloadTime = 2.2,
 		Range = 110,
 		Pellets = 7,
@@ -190,6 +221,9 @@ Config.Weapons = {
 		Damage = 1.3,
 		FireRate = 8,
 		Magazine = 30,
+		StartReserve = 60,
+		MaxReserve = 240,
+		AmmoPerKill = 6,
 		ReloadTime = 1.8,
 		Range = 400,
 		Pellets = 1,
@@ -204,6 +238,9 @@ Config.Weapons = {
 		Damage = 9,
 		FireRate = 0.9,
 		Magazine = 5,
+		StartReserve = 10,
+		MaxReserve = 30,
+		AmmoPerKill = 1,
 		ReloadTime = 2.6,
 		Range = 600,
 		Pellets = 1,
@@ -218,6 +255,9 @@ Config.Weapons = {
 		Damage = 1.1,
 		FireRate = 15,
 		Magazine = 120,
+		StartReserve = 240,
+		MaxReserve = 720,
+		AmmoPerKill = 15,
 		ReloadTime = 4.5,
 		Range = 350,
 		Pellets = 1,
@@ -226,7 +266,7 @@ Config.Weapons = {
 		Zoom = 1.3,
 	},
 }
-Config.WeaponOrder = { "Pistol", "Shotgun", "Rifle", "Sniper", "Minigun" }
+Config.WeaponOrder = { "Machete", "Pistol", "Shotgun", "Rifle", "Sniper", "Minigun" }
 
 -- Mejoras de arma en el Armero (por nivel de mejora)
 Config.WeaponUpgrade = {
@@ -235,6 +275,54 @@ Config.WeaponUpgrade = {
 	MagazinePerLevel = 0.15,
 	ReloadPerLevel = 0.06,
 	BaseCost = 150, -- el costo crece con el precio del arma y el nivel
+}
+
+-- El arma cambia de color con cada mejora para que se note que es más fuerte.
+-- Main pinta el cuerpo del arma y Accent los detalles; Glow hace brillar los detalles.
+Config.WeaponTiers = {
+	{ Name = "Normal", Main = Color3.fromRGB(48, 48, 54), Accent = Color3.fromRGB(125, 128, 138) },
+	{ Name = "Bronce", Main = Color3.fromRGB(120, 72, 40), Accent = Color3.fromRGB(205, 127, 50) },
+	{ Name = "Plata", Main = Color3.fromRGB(150, 155, 165), Accent = Color3.fromRGB(225, 230, 240) },
+	{ Name = "Oro", Main = Color3.fromRGB(190, 140, 30), Accent = Color3.fromRGB(255, 215, 90) },
+	{ Name = "Esmeralda", Main = Color3.fromRGB(20, 110, 70), Accent = Color3.fromRGB(80, 255, 160), Glow = true },
+	{ Name = "Legendaria", Main = Color3.fromRGB(70, 20, 110), Accent = Color3.fromRGB(200, 90, 255), Glow = true },
+}
+
+-- Cartuchera del Intendente: sube el máximo de balas y las balas iniciales
+Config.AmmoStorage = {
+	MaxLevel = 8,
+	PerLevel = 0.25,
+	Prices = { 100, 180, 280, 400, 550, 750, 1000, 1300 },
+}
+
+-- Trampas que vende el Intendente. Duran solo una partida.
+Config.Traps = {
+	Mine = {
+		DisplayName = "Mina",
+		Icon = "🪤",
+		Price = 40,
+		MaxPerMatch = 8,
+		Damage = 12, -- crece con la oleada igual que la vida de los zombis
+		Radius = 10,
+		TriggerRadius = 3,
+		-- Lugares donde se entierran, en ángulo (grados) y distancia a la campana
+		Spots = {
+			{ -50, 60 }, { -35, 78 }, { -20, 58 }, { -7, 80 },
+			{ 7, 62 }, { 20, 82 }, { 35, 60 }, { 50, 76 },
+		},
+	},
+	Gate = {
+		DisplayName = "Reja",
+		Icon = "🚧",
+		Price = 150,
+		Health = 800,
+		Radius = 32, -- distancia a la campana
+		-- Las dos rejas cubren el frente dejando un paso en el centro
+		Slots = {
+			Left = { Name = "Reja izquierda", From = -68, To = -6 },
+			Right = { Name = "Reja derecha", From = 6, To = 68 },
+		},
+	},
 }
 
 Config.CritMultiplier = 2

@@ -1,7 +1,7 @@
 -- Construye el mapa por código para que el juego funcione en un lugar vacío:
 -- un claro en el bosque con el campanario al frente y el campamento detrás
--- (fogata, tiendas, empalizada y los NPC). De noche, con niebla de color y
--- una luna enorme.
+-- (fogata, tiendas, empalizada y los NPC), al borde de un acantilado que cae
+-- al mar. De noche, con niebla de color y una luna enorme.
 local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -24,21 +24,52 @@ local MapBuilder = {}
 local function buildTerrain()
 	local terrain = workspace.Terrain
 	local arena = Config.Arena
+	local half = arena.GroundSize / 2
+	local cliffZ = arena.CliffZ
+	local sea = arena.SeaLevel
 	terrain:Clear()
 	terrain:SetMaterialColor(Enum.Material.Grass, theme.Ground)
 	terrain:SetMaterialColor(Enum.Material.LeafyGrass, theme.Ground:Lerp(Color3.new(1, 1, 1), 0.08))
 	terrain:SetMaterialColor(Enum.Material.Ground, theme.Ground:Lerp(Color3.fromRGB(80, 60, 40), 0.65))
 	terrain:SetMaterialColor(Enum.Material.Mud, theme.Ground:Lerp(Color3.fromRGB(50, 38, 28), 0.7))
+	terrain:SetMaterialColor(Enum.Material.Rock, Color3.fromRGB(78, 82, 88))
+	terrain:SetMaterialColor(Enum.Material.Sand, Color3.fromRGB(150, 140, 110))
 
-	-- Suelo de pasto con la parte de arriba en y = 0
-	terrain:FillBlock(CFrame.new(0, -4, 0), Vector3.new(arena.GroundSize, 8, arena.GroundSize), Enum.Material.Grass)
+	-- Suelo de pasto (arriba en y = 0) hasta el borde del acantilado
+	local landLength = cliffZ + half
+	terrain:FillBlock(CFrame.new(0, -4, cliffZ - landLength / 2), Vector3.new(arena.GroundSize, 8, landLength), Enum.Material.Grass)
+
+	-- Pared de roca del acantilado, irregular, hasta debajo del mar
+	local rockTop, rockBottom = -8, sea - 30
+	terrain:FillBlock(CFrame.new(0, (rockTop + rockBottom) / 2, cliffZ - 15), Vector3.new(arena.GroundSize, rockTop - rockBottom, 30), Enum.Material.Rock)
+	for x = -half, half, 16 do
+		local position = Vector3.new(x + random:NextNumber(-6, 6), random:NextNumber(sea - 10, -6), cliffZ + random:NextNumber(-3, 2))
+		terrain:FillBall(position, random:NextNumber(5, 11), Enum.Material.Rock)
+	end
+
+	-- El mar: fondo de arena, agua y rocas que asoman
+	local seaLength = half - cliffZ
+	terrain:FillBlock(CFrame.new(0, sea - 30, cliffZ + seaLength / 2), Vector3.new(arena.GroundSize, 10, seaLength), Enum.Material.Sand)
+	terrain:FillBlock(CFrame.new(0, sea - 12.5, cliffZ + seaLength / 2), Vector3.new(arena.GroundSize, 25, seaLength), Enum.Material.Water)
+	for _ = 1, 30 do
+		local position = Vector3.new(random:NextNumber(-half, half), sea - random:NextNumber(2, 8), cliffZ + random:NextNumber(8, 160))
+		terrain:FillBall(position, random:NextNumber(4, 14), Enum.Material.Rock)
+	end
+	terrain.WaterColor = Color3.fromRGB(25, 70, 80)
+	terrain.WaterTransparency = 0.35
+	terrain.WaterReflectance = 0.6
+	terrain.WaterWaveSize = 0.3
+	terrain.WaterWaveSpeed = 10
 
 	-- Manchas de pasto alto y lodo en el campo de batalla
 	for _ = 1, 40 do
 		local angle = random:NextNumber(0, math.pi * 2)
 		local radius = random:NextNumber(30, 230)
-		local material = if random:NextNumber() < 0.6 then Enum.Material.LeafyGrass else Enum.Material.Mud
-		terrain:FillBall(Vector3.new(math.cos(angle) * radius, -3.2, math.sin(angle) * radius), random:NextNumber(4, 9), material)
+		local position = Vector3.new(math.cos(angle) * radius, -3.2, math.sin(angle) * radius)
+		if position.Z < cliffZ - 12 then
+			local material = if random:NextNumber() < 0.6 then Enum.Material.LeafyGrass else Enum.Material.Mud
+			terrain:FillBall(position, random:NextNumber(4, 9), material)
+		end
 	end
 
 	-- Tierra pisada en el campamento y el camino hacia la campana
@@ -50,6 +81,11 @@ local function buildTerrain()
 	pcall(function()
 		(terrain :: any).Decoration = true
 	end)
+end
+
+-- Los árboles y rocas no van sobre el mar ni pegados al borde
+local function onLand(position: Vector3, margin: number): boolean
+	return position.Z < Config.Arena.CliffZ - margin
 end
 
 local function buildTower(map: Instance)
@@ -135,6 +171,17 @@ local function buildTower(map: Instance)
 	prompt.RequiresLineOfSight = false
 	prompt:SetAttribute("Repair", true)
 	prompt.Parent = map:FindFirstChild("TowerBase")
+
+	-- Durante la preparación: tocar la campana para empezar la partida
+	local start = Instance.new("ProximityPrompt")
+	start.Name = "StartPrompt"
+	start.ActionText = "Empezar partida"
+	start.ObjectText = "Tocar la campana"
+	start.HoldDuration = 1
+	start.MaxActivationDistance = 16
+	start.RequiresLineOfSight = false
+	start.UIOffset = Vector2.new(0, 60)
+	start.Parent = map:FindFirstChild("TowerBase")
 end
 
 local function buildPine(map: Instance, position: Vector3, scale: number)
@@ -187,6 +234,9 @@ local function buildScenery(map: Instance)
 	-- Rocas sueltas
 	for _ = 1, 45 do
 		local position = randomRingPoint(40, 260)
+		if not onLand(position, 6) then
+			continue
+		end
 		local size = random:NextNumber(2, 6)
 		makePart({
 			Name = "Rock",
@@ -199,13 +249,16 @@ local function buildScenery(map: Instance)
 	end
 
 	-- Bosque alrededor del claro
-	for _ = 1, 150 do
-		buildPine(map, randomRingPoint(225, 430), random:NextNumber(1, 1.8))
+	for _ = 1, 170 do
+		local position = randomRingPoint(225, 430)
+		if onLand(position, 8) then
+			buildPine(map, position, random:NextNumber(1, 1.8))
+		end
 	end
 	-- Algunos pinos sueltos a los lados y detrás del campamento
 	for _ = 1, 40 do
 		local position = randomRingPoint(95, 210)
-		if position.Z > 0 or math.abs(position.X) > 120 then
+		if (position.Z > 0 or math.abs(position.X) > 120) and onLand(position, 8) then
 			buildPine(map, position, random:NextNumber(0.9, 1.5))
 		end
 	end
@@ -215,6 +268,9 @@ local function buildScenery(map: Instance)
 		local angle = (index / 16) * math.pi * 2 + random:NextNumber(-0.1, 0.1)
 		local radius = random:NextNumber(650, 800)
 		local base = Vector3.new(math.cos(angle) * radius, 0, math.sin(angle) * radius)
+		if base.Z > Config.Arena.CliffZ then
+			continue -- hacia el mar el horizonte queda abierto
+		end
 		local width = random:NextNumber(180, 260)
 		local y = 0
 		for step = 1, 3 do

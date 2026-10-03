@@ -1,11 +1,15 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local Config = require(ReplicatedStorage.Shared.Config)
+local Shared = ReplicatedStorage.Shared
+local Config = require(Shared.Config)
+local Remotes = require(Shared.Remotes)
+local CombatService = require(script.Parent.CombatService)
 local EnemyService = require(script.Parent.EnemyService)
 local GameState = require(script.Parent.GameState)
 local MatchService = require(script.Parent.MatchService)
 local PlayerService = require(script.Parent.PlayerService)
+local TrapService = require(script.Parent.TrapService)
 
 local waves = Config.Waves
 local random = Random.new()
@@ -13,6 +17,22 @@ local random = Random.new()
 local WaveService = {}
 
 local currentWave = 0
+local startRequested = false
+local startPrompt: ProximityPrompt? = nil
+
+-- Aviso "Empezar partida" en la campana: solo se ve durante la preparación
+function WaveService.setStartPrompt(prompt: ProximityPrompt)
+	startPrompt = prompt
+	prompt.Enabled = false
+	prompt.Triggered:Connect(function(player)
+		if GameState.get("State") == "Lobby" and not startRequested then
+			startRequested = true
+			for _, other in Players:GetPlayers() do
+				Remotes.Notify:FireClient(other, `🔔 {player.DisplayName} tocó la campana: ¡la partida empieza!`)
+			end
+		end
+	end)
+end
 
 function WaveService.getEnemyCount(wave: number): number
 	return math.floor(waves.FirstWaveCount * waves.CountGrowth ^ (wave - 1))
@@ -50,6 +70,40 @@ function WaveService.pickType(wave: number): string
 		end
 	end
 	return weights[#weights].Type
+end
+
+-- Preparación: el único momento para comprar. Termina al tocar la campana
+-- o cuando se acaba el tiempo. Devuelve false si todos se fueron.
+local function runLobby(): boolean
+	GameState.set("State", "Lobby")
+	GameState.set("Wave", 0)
+	TrapService.reset()
+	CombatService.resetAll()
+	startRequested = false
+	if startPrompt then
+		startPrompt.Enabled = true
+	end
+
+	local remaining = Config.Match.LobbyTime
+	local countingDown = false
+	while remaining > 0 do
+		if #Players:GetPlayers() == 0 then
+			return false
+		end
+		if startRequested and not countingDown then
+			countingDown = true
+			remaining = math.min(remaining, Config.Match.StartCountdown)
+		end
+		GameState.set("Countdown", remaining)
+		task.wait(1)
+		remaining -= 1
+	end
+
+	if startPrompt then
+		startPrompt.Enabled = false
+	end
+	GameState.set("Countdown", 0)
+	return true
 end
 
 local function runIntermission(seconds: number)
@@ -106,7 +160,13 @@ function WaveService.start()
 				task.wait(1)
 			end
 
+			if not runLobby() then
+				continue
+			end
+
 			GameState.resetBell()
+			-- Todos empiezan la partida con la munición inicial
+			CombatService.resetAll()
 			local wave = 0
 			repeat
 				wave += 1

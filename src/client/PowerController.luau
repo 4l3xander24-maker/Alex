@@ -137,6 +137,7 @@ local fxHandlers = {
 	Chain = chainFx,
 	Bell = bellFx,
 	Explosion = bulletExplosionFx,
+	Mine = explosion,
 }
 
 local function isAlive(): boolean

@@ -1,6 +1,6 @@
--- Disparo, munición, recarga, cambio de arma y apuntar. El cliente predice
--- todo con las mismas reglas que el servidor para que se sienta instantáneo;
--- el servidor valida y decide el daño.
+-- Disparo, munición (cargador y reserva), recarga, cambio de arma, apuntar y
+-- tajos de machete. El cliente predice todo con las mismas reglas que el
+-- servidor para que se sienta instantáneo; el servidor valida y decide el daño.
 local Debris = game:GetService("Debris")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -18,15 +18,20 @@ local Viewmodel = require(script.Parent.Viewmodel)
 local TRACER_COLOR = Color3.fromRGB(255, 220, 90)
 local TRACER_TIME = 0.05
 local SWITCH_DELAY = 0.3
-local NUMBER_KEYS = { Enum.KeyCode.One, Enum.KeyCode.Two, Enum.KeyCode.Three, Enum.KeyCode.Four, Enum.KeyCode.Five }
+local NUMBER_KEYS = { Enum.KeyCode.One, Enum.KeyCode.Two, Enum.KeyCode.Three, Enum.KeyCode.Four, Enum.KeyCode.Five, Enum.KeyCode.Six }
 
 local player = Players.LocalPlayer
 local random = Random.new()
 
 local WeaponController = {}
 
+local ammoGranted = Instance.new("BindableEvent")
+-- Se dispara con (weaponId, cantidad) cuando un zombi te da balas
+WeaponController.AmmoGranted = ammoGranted.Event
+
 local equipped = "Pistol"
 local ammo: { [string]: number } = {}
+local reserve: { [string]: number } = {}
 local triggerHeld = false
 local aimHeld = false
 local lastShot = 0
@@ -37,19 +42,16 @@ local reloadEnd = 0
 local enemyFolder: Instance
 local onEnemyHit: () -> ()
 
-local function isAiming(): boolean
-	return aimHeld and Profile.hasTalent("Aim") and not MovementController.isSprinting()
-end
-
 local function stats(weaponId: string?)
-	return Progression.getWeaponStats(Profile.get(), weaponId or equipped, isAiming())
+	return Progression.getWeaponStats(Profile.get(), weaponId or equipped, aimHeld and Profile.hasTalent("Aim"))
 end
 
-local function getAmmo(weaponId: string): number
-	if ammo[weaponId] == nil then
-		ammo[weaponId] = stats(weaponId).Magazine
-	end
-	return ammo[weaponId]
+local function isMelee(weaponId: string?): boolean
+	return Config.Weapons[weaponId or equipped].Melee == true
+end
+
+local function isAiming(): boolean
+	return aimHeld and Profile.hasTalent("Aim") and not MovementController.isSprinting() and not isMelee()
 end
 
 local function isAlive(): boolean
@@ -64,7 +66,8 @@ local function cancelReload()
 end
 
 local function showWeapon()
-	Viewmodel.setWeapon(equipped, Config.Weapons[equipped].Zoom)
+	local level = Profile.get().Weapons[equipped] or 0
+	Viewmodel.setWeapon(equipped, Config.Weapons[equipped].Zoom, level, Progression.weaponTier(level))
 end
 
 local function drawTracer(from: Vector3, to: Vector3)
@@ -89,6 +92,21 @@ local function applySpread(direction: Vector3, spread: number): Vector3
 	end
 	local rotation = CFrame.Angles(random:NextNumber(-spread, spread), random:NextNumber(-spread, spread), 0)
 	return (CFrame.lookAt(Vector3.zero, direction) * rotation).LookVector
+end
+
+local function slash(weaponStats)
+	local cameraCFrame = workspace.CurrentCamera.CFrame
+	Remotes.Shoot:FireServer(cameraCFrame.Position, cameraCFrame.LookVector, workspace:GetServerTimeNow(), false)
+	Viewmodel.swing()
+
+	-- Marca de golpe si hay algún zombi justo enfrente
+	local params = OverlapParams.new()
+	params.FilterType = Enum.RaycastFilterType.Include
+	params.FilterDescendantsInstances = { enemyFolder }
+	local center = cameraCFrame.Position + cameraCFrame.LookVector * (weaponStats.Range / 2)
+	if #workspace:GetPartBoundsInRadius(center, weaponStats.Range / 2 + 1, params) > 0 then
+		onEnemyHit()
+	end
 end
 
 local function fire(weaponStats)
@@ -141,7 +159,10 @@ function WeaponController.cycle()
 end
 
 function WeaponController.reload()
-	if reloading or not isAlive() or getAmmo(equipped) >= stats().Magazine then
+	if reloading or isMelee() or not isAlive() then
+		return
+	end
+	if (ammo[equipped] or 0) >= stats().Magazine or (reserve[equipped] or 0) <= 0 then
 		return
 	end
 	reloading = true
@@ -168,18 +189,27 @@ function WeaponController.getEquipped(): string
 	return equipped
 end
 
--- Para el HUD: balas, tamaño del cargador y progreso de recarga (0-1 o nil)
-function WeaponController.getAmmoState(): (number, number, number?)
+-- Para el HUD: cargador, tamaño del cargador, reserva, progreso de recarga
+-- (0-1 o nil) y si es arma cuerpo a cuerpo
+function WeaponController.getAmmoState(): (number, number, number, number?, boolean)
 	local progress = if reloading then math.clamp((os.clock() - reloadStart) / (reloadEnd - reloadStart), 0, 1) else nil
-	return getAmmo(equipped), stats().Magazine, progress
+	return ammo[equipped] or 0, stats().Magazine, reserve[equipped] or 0, progress, isMelee()
+end
+
+local function finishReload()
+	reloading = false
+	local magazine = stats(reloadWeapon).Magazine
+	local current = ammo[reloadWeapon] or 0
+	local moved = math.min(magazine - current, reserve[reloadWeapon] or 0)
+	ammo[reloadWeapon] = current + moved
+	reserve[reloadWeapon] = (reserve[reloadWeapon] or 0) - moved
+	Viewmodel.setReloading(false)
 end
 
 local function update()
 	local now = os.clock()
 	if reloading and now >= reloadEnd then
-		reloading = false
-		ammo[reloadWeapon] = stats(reloadWeapon).Magazine
-		Viewmodel.setReloading(false)
+		finishReload()
 	end
 	Viewmodel.setAiming(isAiming())
 
@@ -190,12 +220,17 @@ local function update()
 	if now - lastShot < 1 / weaponStats.FireRate then
 		return
 	end
-	if getAmmo(equipped) > 0 then
+	if weaponStats.Melee then
+		lastShot = now
+		slash(weaponStats)
+		return
+	end
+	if (ammo[equipped] or 0) > 0 then
 		lastShot = now
 		ammo[equipped] -= 1
 		fire(weaponStats)
 	end
-	if ammo[equipped] <= 0 then
+	if (ammo[equipped] or 0) <= 0 then
 		WeaponController.reload()
 	end
 end
@@ -243,25 +278,31 @@ function WeaponController.init(folder: Instance, hitCallback: () -> ())
 		end
 	end)
 
-	-- Al reaparecer: cargadores llenos
 	player.CharacterAdded:Connect(function()
-		table.clear(ammo)
 		cancelReload()
 		aimHeld = false
 	end)
 
+	-- El servidor manda la munición inicial (al empezar la partida o al comprar)
+	Remotes.AmmoSync.OnClientEvent:Connect(function(newAmmo, newReserve)
+		ammo = newAmmo
+		reserve = newReserve
+		cancelReload()
+	end)
+	-- Balas ganadas al eliminar un zombi (mismo tope que en el servidor)
+	Remotes.AmmoGranted.OnClientEvent:Connect(function(weaponId, amount)
+		reserve[weaponId] = math.min((reserve[weaponId] or 0) + amount, stats(weaponId).MaxReserve)
+		ammoGranted:Fire(weaponId, amount)
+	end)
+
 	Profile.Changed:Connect(function(reason)
-		if reason == "Shop" then
-			-- Igual que el servidor: comprar o mejorar llena los cargadores
-			table.clear(ammo)
-			cancelReload()
-		end
 		local serverEquipped = Profile.get().Equipped
 		if reason ~= "Equip" and serverEquipped ~= equipped then
 			equipped = serverEquipped
 			cancelReload()
-			showWeapon()
 		end
+		-- También repinta el arma si subió de nivel (cambia de color)
+		showWeapon()
 	end)
 
 	RunService.RenderStepped:Connect(update)

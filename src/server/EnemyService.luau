@@ -3,7 +3,8 @@
 --
 -- Cada zombi camina en línea recta hacia un objetivo. Por defecto es la
 -- campana; si un jugador se acerca, el zombi cambia de objetivo y lo persigue
--- (se recalcula su línea recta varias veces por segundo).
+-- (se recalcula su línea recta varias veces por segundo). Si hay una reja en
+-- el camino, se detiene frente a ella y la golpea hasta romperla.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -27,6 +28,7 @@ export type Enemy = {
 	HalfHeight: number,
 	BellTarget: Vector3,
 	Chasing: Player?,
+	Blocking: string?, -- reja que tiene enfrente (si hay)
 	DamagePerSecond: number,
 	PlayerDamage: number,
 	Coins: number,
@@ -43,6 +45,16 @@ local random = Random.new()
 local pendingUpdates = {}
 local killHandler: ((Player, Enemy) -> ())? = nil
 local playerDamageHandler: ((Player, number) -> ())? = nil
+
+export type Barrier = { Id: string, A: Vector3, B: Vector3 }
+local barrierProvider: () -> { Barrier } = function()
+	return {}
+end
+
+-- Las rejas las maneja TrapService; aquí solo pedimos dónde están
+function EnemyService.setBarrierProvider(provider: () -> { Barrier })
+	barrierProvider = provider
+end
 
 function EnemyService.setKillHandler(handler: (Player, Enemy) -> ())
 	killHandler = handler
@@ -73,6 +85,39 @@ local function stopChasing(enemy: Enemy)
 	end
 end
 
+-- Dónde cruza el tramo from→to la primera reja (fracción del tramo e id)
+local function firstBarrierHit(from: Vector3, to: Vector3): (number?, string?)
+	local px, pz = from.X, from.Z
+	local rx, rz = to.X - px, to.Z - pz
+	local bestT, bestId = nil, nil
+	for _, barrier in barrierProvider() do
+		local qx, qz = barrier.A.X, barrier.A.Z
+		local sx, sz = barrier.B.X - qx, barrier.B.Z - qz
+		local denominator = rx * sz - rz * sx
+		if math.abs(denominator) > 1e-9 then
+			local t = ((qx - px) * sz - (qz - pz) * sx) / denominator
+			local u = ((qx - px) * rz - (qz - pz) * rx) / denominator
+			if t >= 0 and t <= 1 and u >= 0 and u <= 1 and (not bestT or t < bestT) then
+				bestT, bestId = t, barrier.Id
+			end
+		end
+	end
+	return bestT, bestId
+end
+
+-- Camino hacia la campana: si hay una reja en medio, se para frente a ella
+local function goToBell(enemy: Enemy, from: Vector3, now: number)
+	local t, barrierId = firstBarrierHit(from, enemy.BellTarget)
+	enemy.Blocking = barrierId
+	if not t then
+		setPath(enemy, from, enemy.BellTarget, now)
+		return
+	end
+	local offset = enemy.BellTarget - from
+	local stop = math.max(0, offset.Magnitude * t - enemy.Radius - 0.5)
+	setPath(enemy, from, from + offset.Unit * stop, now)
+end
+
 -- Punto junto al jugador, del lado por donde viene el zombi
 local function chasePoint(enemy: Enemy, from: Vector3, playerPosition: Vector3): Vector3
 	local offset = Vector3.new(from.X - playerPosition.X, 0, from.Z - playerPosition.Z)
@@ -99,7 +144,7 @@ function EnemyService.spawn(typeName: string, healthMultiplier: number)
 	local spawnTime = workspace:GetServerTimeNow()
 
 	nextId += 1
-	enemies[nextId] = {
+	local enemy: Enemy = {
 		Id = nextId,
 		Type = typeName,
 		Health = info.MaxHealth * healthMultiplier,
@@ -108,14 +153,19 @@ function EnemyService.spawn(typeName: string, healthMultiplier: number)
 		HalfHeight = halfHeight,
 		BellTarget = target,
 		Chasing = nil,
+		Blocking = nil,
 		DamagePerSecond = info.DamagePerSecond,
 		PlayerDamage = info.PlayerDamage,
 		Coins = info.Coins,
 		IsBoss = info.IsBoss == true,
 	}
+	enemies[nextId] = enemy
 	aliveCount += 1
+	goToBell(enemy, start, spawnTime)
+	pendingUpdates[nextId] = nil
 
-	Remotes.EnemySpawned:FireAllClients(nextId, typeName, start, target, info.Speed, spawnTime)
+	local path = enemy.Path
+	Remotes.EnemySpawned:FireAllClients(nextId, typeName, start, EnemyMath.getTarget(path), info.Speed, spawnTime)
 end
 
 function EnemyService.damage(enemyId: number, amount: number, player: Player)
@@ -213,7 +263,7 @@ function EnemyService.knockback(center: Vector3, radius: number, seconds: number
 		local pushed = position + direction * enemy.Path.Speed * seconds
 		stopChasing(enemy)
 		-- Arranca más atrás y vuelve a caminar hacia la campana
-		setPath(enemy, Vector3.new(pushed.X, enemy.HalfHeight, pushed.Z), enemy.BellTarget, now)
+		goToBell(enemy, Vector3.new(pushed.X, enemy.HalfHeight, pushed.Z), now)
 	end
 end
 
@@ -242,11 +292,12 @@ function EnemyService.think(now: number, dt: number)
 		local targetPosition = target and players[target]
 
 		if target then
-			if not targetPosition or flatDistance(position, targetPosition) > hunt.LeashRadius then
+			local desired = targetPosition and chasePoint(enemy, position, targetPosition)
+			if not targetPosition or flatDistance(position, targetPosition) > hunt.LeashRadius or firstBarrierHit(position, desired) then
+				-- Se alejó, murió o quedó detrás de una reja: vuelve a la campana
 				stopChasing(enemy)
-				setPath(enemy, position, enemy.BellTarget, now)
+				goToBell(enemy, position, now)
 			else
-				local desired = chasePoint(enemy, position, targetPosition)
 				if (desired - EnemyMath.getTarget(enemy.Path)).Magnitude > RETARGET_DISTANCE then
 					setPath(enemy, position, desired, now)
 				end
@@ -258,12 +309,14 @@ function EnemyService.think(now: number, dt: number)
 			local closest, closestDistance = nil, hunt.AggroRadius
 			for player, playerPosition in players do
 				local distance = flatDistance(position, playerPosition)
-				if distance < closestDistance then
+				-- Las rejas protegen: no persiguen a quien está del otro lado
+				if distance < closestDistance and not firstBarrierHit(position, playerPosition) then
 					closest, closestDistance = player, distance
 				end
 			end
 			if closest then
 				enemy.Chasing = closest
+				enemy.Blocking = nil
 				chaserCount += 1
 				setPath(enemy, position, chasePoint(enemy, position, players[closest]), now)
 			end
@@ -289,11 +342,63 @@ end
 function EnemyService.getBellDamagePerSecond(now: number): number
 	local total = 0
 	for _, enemy in enemies do
-		if not enemy.Chasing and EnemyMath.hasArrived(enemy.Path, now) then
+		if not enemy.Chasing and not enemy.Blocking and EnemyMath.hasArrived(enemy.Path, now) then
 			total += enemy.DamagePerSecond
 		end
 	end
 	return total
+end
+
+-- Daño por segundo que recibe cada reja de los zombis parados frente a ella
+function EnemyService.getBarrierDamage(now: number): { [string]: number }
+	local damage = {}
+	for _, enemy in enemies do
+		local barrierId = enemy.Blocking
+		if barrierId and not enemy.Chasing and EnemyMath.hasArrived(enemy.Path, now) then
+			damage[barrierId] = (damage[barrierId] or 0) + enemy.DamagePerSecond
+		end
+	end
+	return damage
+end
+
+-- La reja se rompió (o se quitó): los que la golpeaban siguen hacia la campana
+function EnemyService.releaseBarrier(barrierId: string, now: number)
+	for _, enemy in enemies do
+		if enemy.Blocking == barrierId and not enemy.Chasing then
+			goToBell(enemy, EnemyMath.getPosition(enemy.Path, now), now)
+		end
+	end
+	EnemyService.flushUpdates()
+end
+
+-- Zombis frente al jugador para un tajo de machete, del más cercano al más lejano
+function EnemyService.getInCone(origin: Vector3, direction: Vector3, range: number, arcDegrees: number, time: number, maxTargets: number): { number }
+	local flatDirection = Vector3.new(direction.X, 0, direction.Z)
+	if flatDirection.Magnitude < 0.01 then
+		return {}
+	end
+	flatDirection = flatDirection.Unit
+	local minDot = math.cos(math.rad(arcDegrees / 2))
+	local hits = {}
+	for id, enemy in enemies do
+		local position = EnemyMath.getPosition(enemy.Path, time)
+		local offset = Vector3.new(position.X - origin.X, 0, position.Z - origin.Z)
+		local distance = offset.Magnitude - enemy.Radius
+		local heightGap = math.abs(position.Y - origin.Y) - enemy.HalfHeight
+		if distance <= range and heightGap <= range then
+			if offset.Magnitude < enemy.Radius + 1 or offset.Unit:Dot(flatDirection) >= minDot then
+				table.insert(hits, { Id = id, Distance = distance })
+			end
+		end
+	end
+	table.sort(hits, function(a, b)
+		return a.Distance < b.Distance
+	end)
+	local ids = {}
+	for index = 1, math.min(maxTargets, #hits) do
+		ids[index] = hits[index].Id
+	end
+	return ids
 end
 
 function EnemyService.clear()

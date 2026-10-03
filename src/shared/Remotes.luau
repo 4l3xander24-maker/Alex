@@ -13,6 +13,8 @@ local EVENTS = {
 	"ProfileUpdated",
 	"MatchSummary",
 	"Notify",
+	"AmmoSync",
+	"AmmoGranted",
 	-- cliente -> servidor
 	"Shoot",
 	"Reload",

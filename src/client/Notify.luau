@@ -60,7 +60,7 @@ function Notify.init()
 
 	holder = Instance.new("Frame")
 	holder.AnchorPoint = Vector2.new(0.5, 0)
-	holder.Position = UDim2.new(0.5, 0, 0, 104)
+	holder.Position = UDim2.new(0.5, 0, 0, 122)
 	holder.Size = UDim2.fromOffset(520, 160)
 	holder.BackgroundTransparency = 1
 	holder.Parent = gui

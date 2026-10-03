@@ -1,4 +1,7 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterGui = game:GetService("StarterGui")
+
+local Progression = require(ReplicatedStorage:WaitForChild("Shared").Progression)
 
 local EnemyRenderer = require(script.EnemyRenderer)
 local Hud = require(script.Hud)
@@ -11,14 +14,14 @@ local ShopUI = require(script.ShopUI)
 local Viewmodel = require(script.Viewmodel)
 local WeaponController = require(script.WeaponController)
 
--- Sin mochila: las teclas 1-5 cambian de arma
+-- Sin mochila: las teclas 1-6 cambian de arma
 StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
 
 -- El perfil primero, para no perder la primera actualización del servidor
 Profile.init()
 Notify.init()
 EnemyRenderer.init()
-Viewmodel.init("Pistol", 1.3)
+Viewmodel.init("Pistol", 1.3, Progression.weaponTier(0))
 MovementController.init()
 WeaponController.init(EnemyRenderer.folder, Hud.flashHitMarker)
 PowerController.init()
@@ -33,6 +36,7 @@ Hud.init({
 	setSprint = MovementController.setSprint,
 	dash = MovementController.dash,
 	getAmmo = WeaponController.getAmmoState,
+	ammoGranted = WeaponController.AmmoGranted,
 	getEquipped = WeaponController.getEquipped,
 	isAiming = WeaponController.isAiming,
 	isScoped = Viewmodel.isScoped,
