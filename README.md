@@ -1,7 +1,7 @@
 # Campana Maldita 🔔🧟
 
 Juego de Roblox en primera persona, en **pixel art 3D** al estilo de Guns 'n Goblins y en la Edad Media, con ciclo de día y noche: defiende la
-campana de tu campamento, al borde de un acantilado sobre el mar, de hordas de muertos vivientes que salen del bosque y de dos caminos. Empiezas solo con un machete y una pistola; prepárate antes de cada partida
+campana de tu campamento, al borde de un acantilado sobre el mar, de hordas de muertos vivientes que salen del bosque y cruzan el único puente de piedra sobre un barranco. Empiezas solo con un cuchillo y una pistola; prepárate antes de cada partida
 comprando armas, mejoras, poderes y trampas a los NPC del campamento.
 
 ![Vista previa](docs/preview.png)
@@ -11,27 +11,40 @@ _Vista previa: recreación con las medidas, colores y sprites del juego, no es c
 🎬 Video de la horda al anochecer: [`docs/capturas/pixel/horda-de-noche.mp4`](docs/capturas/pixel/horda-de-noche.mp4)
 (recreación, no captura de Roblox).
 
-Más vistas previas en [`docs/capturas/pixel/`](docs/capturas/pixel/) (pixel art 3D, el estilo actual: bosque, portón,
+Más vistas previas en [`docs/capturas/puente/`](docs/capturas/puente/) (el puente de piedra, la campana destruida,
+el círculo de runas y el cuchillo), [`docs/capturas/pixel/`](docs/capturas/pixel/) (bosque, portón,
 ¡subiste de nivel!, Veterano, campamento y jefes), [`docs/capturas/texturado/`](docs/capturas/texturado/) (bloques con texturas),
 [`docs/capturas/voxel/`](docs/capturas/voxel/) (pixel art 3D de colores planos),
 [`docs/capturas/medieval/`](docs/capturas/medieval/) (noche medieval realista),
 [`docs/capturas/otono/`](docs/capturas/otono/) (otoño) y [`docs/capturas/`](docs/capturas/) (versiones anteriores). El diseño completo está en [`docs/DISENO.md`](docs/DISENO.md).
 
 ## Qué tiene ya
+- **Un solo camino a la campana: el puente de piedra**. Un barranco con un río cruza todo el mapa y el único
+  paso es un puente de losas con musgo, muros bajos con postes de madera, un pilar hasta el río y columnas con
+  antorchas. Los zombis no pueden saltar el barranco (tampoco te persiguen por el aire); si te caes, te lleva el río.
+- **Rejas de metal en los dos extremos del puente** (entrada y salida): solo aparecen si se las compras al Intendente.
+- **La campana empieza destruida**: postes caídos y cruzados sobre el montículo, la campana tirada de costado y los
+  estandartes en el suelo. Para empezar la partida alguien la **reconstruye** (mantener E): cada pieza vuela a su
+  lugar. Si los zombis la destruyen, se derrumba otra vez. Armada es como en Guns 'n Goblins: dos postes altos con
+  una cruz arriba, brazos de hierro con estandartes verdes y la campana de cobre, delante de un castillo en ruinas.
+- **Círculo negro de runas** frente a la campana: ahí aparecen los jugadores.
+- **Cuchillo como en Guns 'n Goblins**: guante grande de cuero con tachas, mango abajo a la izquierda y la hoja hacia
+  la derecha. Abajo a la derecha se ve su silueta y un **círculo blanco** que se vacía con cada tajo (5 seguidos) y
+  se recarga solo cuando dejas de atacar.
 - **Pixel art 3D al estilo Guns 'n Goblins**: texturas pixeladas de 32×32 (pasto, tierra, adoquines, ladrillo,
   tablas, corteza, hojas, techo, roca…) que reemplazan los materiales de Roblox en todo el mapa y el terreno, zombis
   y NPC como **sprites pixelados con 2 cuadros de caminar**, y letra pixelada en la interfaz.
   _Para verlo así tienes que subir las imágenes una vez (ver "Subir las imágenes"); mientras tanto los zombis se
   ven como muñecos de bloques y el mapa con los materiales normales._
-- **Los zombis salen del bosque**: además de la cripta y las ruinas, llegan por 3 senderos que nacen entre los
-  árboles (norte, oeste y este), saliendo desparramados del bosque y uniéndose a los caminos (así las rejas y minas
-  siguen sirviendo). Alrededor del mapa hay una pared de bosque de pinos.
+- **Los zombis salen del bosque**: además de la cripta del cementerio, llegan por 3 senderos que nacen entre los
+  árboles (norte, oeste y este), saliendo desparramados del bosque. Todos se juntan antes del puente.
+  Alrededor del mapa hay una pared de bosque de pinos.
 - **Enemigos de muchos tamaños**: zombi, corredor, cono, caballero, bruto y los jefes enormes (gordo, rey y dragón).
 - **Números de daño pixelados** que saltan sobre los zombis (blancos al pegar, amarillos al matar).
 - **¡SUBISTE DE NIVEL!**: cartel grande de letras pixeladas azules que rebota con destellos al subir de nivel.
 - **Pantalla del Veterano estilo Guns 'n Goblins**: dos columnas, MEJORAS con barritas y botón "+" y TALENTOS
   con APRENDIDO / APRENDER / NIVEL X; abajo dice qué hace lo que señalas.
-- **Portón de piedra** en cada camino (torres, almenas, rastrillo de hierro, escalera, bandera y farol) como reja.
+- **Portón de piedra** (torres, almenas, rastrillo de hierro, escalera, bandera y farol) como reja.
 - **Campamento** con cobertizos de madera (techo de tablas, faroles colgantes, cajas, barriles y troncos para sentarse)
   y fogata de cubitos; esporas que flotan con el viento.
 - **Bloques con texturas reales**: todo es de cubos, pero con los materiales de Roblox (madera, piedra, ladrillo,
@@ -46,23 +59,22 @@ Más vistas previas en [`docs/capturas/pixel/`](docs/capturas/pixel/) (pixel art
 - **Ciclo de día y noche** (10 minutos por día): amanecer, mediodía, atardecer y noche con la luna enorme.
   Las velas y antorchas alumbran más de noche, y **de noche llegan más zombis** (30% más por segundo).
   Todos los jugadores ven la misma hora. Arriba a la derecha está el reloj.
-- **Mapa medieval**: campanario al frente, campamento detrás (fogata, tiendas, empalizada) al borde de un
+- **Mapa medieval**: la campana en su montículo al frente, campamento detrás (fogata, tiendas, empalizada) al borde de un
   **acantilado sobre el mar** (con mirador; si te caes, te lleva el mar). Alrededor: aldea con casas de
   entramado de madera, pozo, carreta, estandartes, **velas** y **antorchas** que parpadean, árboles secos y una luna enorme.
-- **Dos caminos angostos** hacia la campana: el **camino del cementerio** (sale de una cripta, lo usan 3 de cada 4
-  zombis) y el **camino de las ruinas** (sale del arco de un castillo en ruinas). Si un zombi te persigue y lo
-  pierdes, vuelve a su camino.
+- Si un zombi te persigue y lo pierdes, vuelve a su camino.
 - **Preparación antes de cada partida**: el único momento para comprar. La partida empieza cuando alguien
-  **toca la campana** (mantener E) o cuando se acaba el tiempo. Durante las oleadas las tiendas están cerradas.
-- **Empiezas con machete y pistola**. El machete no gasta balas; las armas de fuego tienen cargador y
+  **reconstruye la campana** (mantener E) o cuando se acaba el tiempo (entonces se arma sola). Durante las
+  oleadas las tiendas están cerradas.
+- **Empiezas con cuchillo y pistola**. El cuchillo no gasta balas (gasta energía); las armas de fuego tienen cargador y
   **reserva limitada**, y **cada zombi que eliminas te da balas** para el arma que tienes en la mano.
 - **4 NPC** en el campamento (habla con **E**):
-  - **Bruno, el Armero**: 6 armas (machete, pistola, escopeta, rifle, francotirador, ametralladora) y sus
+  - **Bruno, el Armero**: 6 armas (cuchillo, pistola, escopeta, rifle, francotirador, ametralladora) y sus
     mejoras. **Cada mejora cambia el color del arma**: Bronce → Plata → Oro → Esmeralda → Legendaria.
   - **Morgana, la Bruja**: poderes (granada, rayo en cadena, campanazo) y sus mejoras.
   - **Don Ramiro, el Veterano**: gasta tus puntos de mejora y aprende talentos.
   - **Gustavo, el Intendente**: **cartuchera** (más balas máximas y más balas al empezar) y **trampas**:
-    hasta 8 **minas** sobre los caminos y 2 **rejas** (una por camino) que los detienen hasta que las rompen.
+    hasta 8 **minas** sobre el camino y 2 **rejas** (entrada y salida del puente) que los detienen hasta que las rompen.
 - **Zombis que te persiguen** si te acercas, y vuelven a atacar la campana si te alejas. Tienes vida y reapareces.
 - **5 tipos de zombi** de dibujo animado (piel verde, ojos enormes, boca abierta, camisa rota y jean): Zombi,
   Corredor, Zombi con cono, Caballero zombi y Bruto.
@@ -107,6 +119,8 @@ Los gráficos ya vienen configurados en `default.project.json`: iluminación **F
   (atardecer de otoño), `"Verde"`, `"Morado"` o `"Ambar"` (noches fijas).
 - **Zombis**: `Config.ZombieStyle` = `"Pixel"` (sprites 2D si subiste las imágenes, por defecto) o `"3D"`
   (muñecos de bloques).
+- **Mapa**: el barranco y el puente están en `Config.Arena.Ravine` y `Config.Arena.Bridge`; el círculo de runas en
+  `Config.Arena.SpawnCircle`.
 - **Caminos**: los puntos de cada camino están en `Config.Paths` (y cuántos zombis van por cada uno en `Weight`).
   Los senderos del bosque no tienen `Entrance`: los zombis salen desparramados `PathStyle.SpawnSpread` studs.
 - **Optimización**:
@@ -155,8 +169,8 @@ Para cambiar las imágenes, edita los `tools/make_*.py`, vuelve a generarlas y c
 |---|---|---|
 | Disparar | Clic izquierdo (mantener) | Botón 🔫 |
 | Recargar | R | Botón 🔄 |
-| Cambiar de arma | 1 - 6 (1 = machete) | Botón 🔁 |
-| Hablar con NPC / empezar partida / reparar campana | E | Tocar el aviso |
+| Cambiar de arma | 1 - 6 (1 = cuchillo) | Botón 🔁 |
+| Hablar con NPC / reconstruir la campana / reparar campana | E | Tocar el aviso |
 | Poderes | G granada · Q rayo · F campanazo | Botones abajo a la izquierda |
 | Apuntar (talento Puntería) | Clic derecho | Botón 🔭 |
 | Correr (talento Correr) | Shift | Botón 🏃 |
@@ -168,16 +182,19 @@ Para cambiar las imágenes, edita los `tools/make_*.py`, vuelve a generarlas y c
 src/
   shared/                   → ReplicatedStorage.Shared (servidor y cliente)
     Config.luau             ← TODOS los números del juego (enemigos, jefes, caminos, armas, poderes, mejoras, talentos)
-    Paths.luau              ← geometría de los caminos de los zombis
+    Paths.luau              ← geometría de los caminos de los zombis y del barranco
     DayCycle.luau           ← hora del día, paletas de luz y "es de noche"
+    MeleeEnergy.luau        ← energía del cuchillo (el círculo blanco)
     Assets.luau             ← ids de las imágenes subidas (lo escribe tools/upload_assets.py)
     ResolvedAssets.luau     ← ids de imagen listos que publica el servidor, para el cliente
     Progression.luau        ← perfil, nivel de cuenta y cálculo de estadísticas
     EnemyMath.luau          ← movimiento de los zombis (línea quebrada por los caminos)
     Remotes.luau            ← comunicación servidor ↔ cliente
   server/                   → ServerScriptService.Server
-    MapBuilder.luau         ← terreno, campanario, bosque, molino, montañas, luz y bruma
-    MedievalBuilder.luau    ← caminos, cementerio con cripta, ruinas, casas, pozo, velas y antorchas
+    MapBuilder.luau         ← terreno, círculo de runas, bosque, molino, montañas, luz y bruma
+    BellTower.luau          ← la campana: montículo, destruida/armada y su animación
+    BridgeBuilder.luau      ← barranco con río y puente de piedra
+    MedievalBuilder.luau    ← caminos, cementerio con cripta, castillo en ruinas, casas, pozo, velas y antorchas
     VoxelBuilder.luau       ← suelo de baldosas, acantilado y mar en pixel art 3D
     CampBuilder.luau        ← fogata, tiendas, empalizada, mirador, puestos y NPC
     AssetService.luau       ← aplica las imágenes subidas: texturas pixeladas (MaterialVariant), cielo y NPC
@@ -228,7 +245,7 @@ Todo está en `src/shared/Config.luau`:
 - ¿La preparación es muy larga? Cambia `Match.LobbyTime`.
 - ¿Otro ambiente? Cambia `Theme` a `"Otono"`, `"Verde"`, `"Morado"` o `"Ambar"`.
 - ¿Los jefes son muy duros? Baja su `MaxHealth` o sube `Waves.BossEvery`.
-- ¿Más zombis por el segundo camino? Sube el `Weight` de `Config.Paths.Side`.
+- ¿El cuchillo se cansa muy rápido? Baja `Energy.Cost` o sube `Energy.Regen` del `Machete` en `Config.Weapons`.
 - ¿Más o menos zombis del bosque? Cambia el `Weight` de `ForestNorth`, `ForestWest` y `ForestEast`.
 - ¿La noche es muy difícil? Baja `DayCycle.NightSpawnMultiplier` (1 = igual que de día).
 - ¿Días más largos? Sube `DayCycle.Length` (en segundos).

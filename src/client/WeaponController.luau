@@ -9,6 +9,7 @@ local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
+local MeleeEnergy = require(Shared.MeleeEnergy)
 local Progression = require(Shared.Progression)
 local Remotes = require(Shared.Remotes)
 local MovementController = require(script.Parent.MovementController)
@@ -41,6 +42,8 @@ local reloadStart = 0
 local reloadEnd = 0
 local enemyFolder: Instance
 local onEnemyHit: () -> ()
+-- Energía del cuchillo: cada tajo gasta, se recarga sola
+local energy = MeleeEnergy.new()
 
 local function stats(weaponId: string?)
 	return Progression.getWeaponStats(Profile.get(), weaponId or equipped, aimHeld and Profile.hasTalent("Aim"))
@@ -189,6 +192,12 @@ function WeaponController.getEquipped(): string
 	return equipped
 end
 
+-- Para el HUD: energía del cuchillo (0-1) y si alcanza para otro tajo
+function WeaponController.getMeleeEnergy(): (number, boolean)
+	local now = os.clock()
+	return MeleeEnergy.get(energy, now), MeleeEnergy.canUse(energy, now)
+end
+
 -- Para el HUD: cargador, tamaño del cargador, reserva, progreso de recarga
 -- (0-1 o nil) y si es arma cuerpo a cuerpo
 function WeaponController.getAmmoState(): (number, number, number, number?, boolean)
@@ -221,8 +230,11 @@ local function update()
 		return
 	end
 	if weaponStats.Melee then
-		lastShot = now
-		slash(weaponStats)
+		-- Sin energía no ataca hasta que el círculo se recargue un poco
+		if MeleeEnergy.use(energy, now) then
+			lastShot = now
+			slash(weaponStats)
+		end
 		return
 	end
 	if (ammo[equipped] or 0) > 0 then
@@ -288,6 +300,8 @@ function WeaponController.init(folder: Instance, hitCallback: () -> ())
 		ammo = newAmmo
 		reserve = newReserve
 		cancelReload()
+		-- Al empezar la partida el servidor también llena la energía
+		MeleeEnergy.refill(energy)
 	end)
 	-- Balas ganadas al eliminar un zombi (mismo tope que en el servidor)
 	Remotes.AmmoGranted.OnClientEvent:Connect(function(weaponId, amount)

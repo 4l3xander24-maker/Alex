@@ -176,8 +176,10 @@ Config.Graphics = {
 	DeathFxDistance = 150, -- más lejos que esto mueren sin reventar en cubitos
 }
 
--- El campanario está en el origen. El campamento queda detrás (+Z), al
--- borde de un acantilado sobre el mar, y los zombis llegan del bosque (-Z).
+-- La campana está en el origen, sobre un montículo con un castillo en ruinas
+-- detrás. El campamento queda atrás (+Z), al borde de un acantilado sobre el
+-- mar. Adelante (-Z) un barranco con un río cruza todo el mapa: el único paso
+-- es el puente de piedra, y del otro lado está el bosque de donde salen los zombis.
 Config.Arena = {
 	GroundSize = 1400,
 	TowerSize = 14,
@@ -188,84 +190,75 @@ Config.Arena = {
 	CampRadius = 34,
 	CliffZ = 82, -- borde del acantilado
 	SeaLevel = -50,
-	FallKillY = -30, -- si caes por debajo de esta altura, te lleva el mar
+	FallKillY = -30, -- si caes por debajo de esta altura, te lleva el mar (o el río)
+	-- Círculo negro de runas donde aparecen los jugadores
+	SpawnCircle = Vector3.new(0, 0, 17),
+	-- Barranco: franja en Z que cruza todo el mapa, con el río abajo
+	Ravine = { ZMin = -122, ZMax = -82, Bottom = -46, WaterLevel = -37 },
+	-- Puente de piedra sobre el barranco (a lo largo de Z)
+	Bridge = { X = 0, Width = 12 },
+	-- Castillo en ruinas detrás de la campana; el camino pasa por su arco
+	Castle = Vector3.new(0, 0, -40),
 }
 
 -- Caminos por donde llegan los zombis a la campana (de lejos a cerca; el
 -- último tramo siempre termina en la campana). Weight es la probabilidad de
--- cada uno. Los senderos del bosque nacen entre los árboles y se unen al camino
--- del cementerio o al de las ruinas, así las rejas y las minas también los
--- frenan. Entrance: qué hay donde empieza (cripta o ruinas; nada = bosque).
+-- cada uno. Todos se juntan antes del barranco: hay UN solo camino hasta la
+-- campana, por el puente de piedra y el arco del castillo. Los senderos del
+-- bosque nacen entre los árboles; el del cementerio sale de la cripta.
+-- Entrance: qué hay donde empieza (cripta; nada = bosque).
 -- Los jefes voladores no usan caminos: van en línea recta por el aire.
+local BRIDGE_ROAD = {
+	Vector3.new(0, 0, -150), -- cruce de los senderos
+	Vector3.new(0, 0, -127), -- entrada del puente
+	Vector3.new(0, 0, -77), -- salida del puente
+	Vector3.new(0, 0, -40), -- arco del castillo
+}
+local function road(points: { Vector3 }): { Vector3 }
+	return table.move(BRIDGE_ROAD, 1, #BRIDGE_ROAD, #points + 1, points)
+end
 Config.Paths = {
 	Main = {
 		Name = "Camino del cementerio",
 		Entrance = "Crypt",
-		Weight = 0.3,
-		Points = {
-			Vector3.new(-30, 0, -245),
-			Vector3.new(-55, 0, -195),
-			Vector3.new(-40, 0, -150),
-			Vector3.new(5, 0, -120),
-			Vector3.new(30, 0, -85),
-			Vector3.new(15, 0, -50),
-			Vector3.new(0, 0, -25),
-		},
-	},
-	Side = {
-		Name = "Camino de las ruinas",
-		Entrance = "Ruins",
-		Weight = 0.15,
-		Points = {
-			Vector3.new(190, 0, -150),
-			Vector3.new(150, 0, -140),
-			Vector3.new(120, 0, -100),
-			Vector3.new(85, 0, -75),
-			Vector3.new(55, 0, -40),
-			Vector3.new(24, 0, -16),
-		},
+		Weight = 0.35,
+		Points = road({
+			Vector3.new(-40, 0, -265),
+			Vector3.new(-55, 0, -215),
+			Vector3.new(-30, 0, -175),
+		}),
 	},
 	ForestNorth = {
 		Name = "Sendero del bosque norte",
 		Weight = 0.25,
-		Points = {
-			Vector3.new(60, 0, -300),
-			Vector3.new(40, 0, -230),
-			Vector3.new(25, 0, -170),
-			Vector3.new(5, 0, -120),
-			Vector3.new(30, 0, -85),
-			Vector3.new(15, 0, -50),
-			Vector3.new(0, 0, -25),
-		},
+		Points = road({
+			Vector3.new(55, 0, -310),
+			Vector3.new(35, 0, -240),
+			Vector3.new(12, 0, -185),
+		}),
 	},
 	ForestWest = {
 		Name = "Sendero del bosque oeste",
-		Weight = 0.15,
-		Points = {
-			Vector3.new(-265, 0, -90),
-			Vector3.new(-190, 0, -110),
-			Vector3.new(-120, 0, -135),
-			Vector3.new(-40, 0, -150),
-			Vector3.new(5, 0, -120),
-			Vector3.new(30, 0, -85),
-			Vector3.new(15, 0, -50),
-			Vector3.new(0, 0, -25),
-		},
+		Weight = 0.2,
+		Points = road({
+			Vector3.new(-270, 0, -205),
+			Vector3.new(-190, 0, -195),
+			Vector3.new(-110, 0, -180),
+			Vector3.new(-45, 0, -165),
+		}),
 	},
 	ForestEast = {
 		Name = "Sendero del bosque este",
-		Weight = 0.15,
-		Points = {
-			Vector3.new(275, 0, -40),
-			Vector3.new(210, 0, -60),
-			Vector3.new(150, 0, -72),
-			Vector3.new(85, 0, -75),
-			Vector3.new(55, 0, -40),
-			Vector3.new(24, 0, -16),
-		},
+		Weight = 0.2,
+		Points = road({
+			Vector3.new(270, 0, -215),
+			Vector3.new(190, 0, -200),
+			Vector3.new(110, 0, -185),
+			Vector3.new(45, 0, -165),
+		}),
 	},
 }
-Config.PathOrder = { "Main", "Side", "ForestNorth", "ForestWest", "ForestEast" }
+Config.PathOrder = { "Main", "ForestNorth", "ForestWest", "ForestEast" }
 Config.PathStyle = {
 	Width = 8, -- camino angosto de tierra
 	Lane = 2.5, -- cuánto se puede desviar cada zombi del centro del camino
@@ -273,7 +266,8 @@ Config.PathStyle = {
 }
 
 -- Antes de cada partida hay una fase de preparación: es el único momento en
--- que se puede comprar. Empieza al tocar la campana o al acabarse el tiempo.
+-- que se puede comprar. La campana está destruida; la partida empieza al
+-- reconstruirla (mantener E) o al acabarse el tiempo.
 Config.Match = {
 	LobbyTime = 120,
 	StartCountdown = 5,
@@ -490,7 +484,7 @@ Config.Waves = {
 -- AmmoPerKill: balas que ganas por cada zombi eliminado con esa arma en la mano.
 Config.Weapons = {
 	Machete = {
-		DisplayName = "Machete",
+		DisplayName = "Cuchillo",
 		Icon = "🔪",
 		Price = 0,
 		Melee = true,
@@ -500,6 +494,9 @@ Config.Weapons = {
 		Arc = 70, -- grados frente al jugador que cubre el tajo
 		MaxTargets = 3,
 		Zoom = 1,
+		-- Energía (el círculo blanco junto al cuchillo): cada tajo gasta un
+		-- poco y se recarga sola cuando dejas de atacar
+		Energy = { Cost = 0.2, Regen = 0.5, Delay = 0.4 },
 	},
 	Pistol = {
 		DisplayName = "Pistola",
@@ -628,8 +625,8 @@ Config.Traps = {
 		TriggerRadius = 3,
 		-- Lugares donde se entierran: camino y distancia a la campana por el camino
 		Spots = {
-			{ "Main", 50 }, { "Main", 72 }, { "Main", 96 }, { "Main", 125 }, { "Main", 160 },
-			{ "Side", 55 }, { "Side", 85 }, { "Side", 120 },
+			{ "Main", 32 }, { "Main", 50 }, { "Main", 66 }, { "Main", 92 },
+			{ "Main", 104 }, { "Main", 116 }, { "Main", 136 }, { "Main", 146 },
 		},
 	},
 	Gate = {
@@ -637,12 +634,13 @@ Config.Traps = {
 		Icon = "🚧",
 		Price = 150,
 		Health = 800,
-		-- Una reja cruzada en cada camino. At: distancia a la campana por el camino
+		-- Rejas de metal en los dos extremos del puente; solo aparecen si las
+		-- compras. At: distancia a la campana por el camino
 		Slots = {
-			Main = { Name = "Reja del cementerio", Short = "Cementerio", Path = "Main", At = 36, Width = 16 },
-			Side = { Name = "Reja de las ruinas", Short = "Ruinas", Path = "Side", At = 36, Width = 16 },
+			Start = { Name = "Reja de la entrada del puente", Short = "Entrada del puente", Path = "Main", At = 123.5, Width = 14 },
+			End = { Name = "Reja de la salida del puente", Short = "Salida del puente", Path = "Main", At = 80.5, Width = 14 },
 		},
-		SlotOrder = { "Main", "Side" },
+		SlotOrder = { "Start", "End" },
 	},
 }
 

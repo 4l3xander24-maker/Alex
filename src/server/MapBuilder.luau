@@ -1,7 +1,9 @@
 -- Construye el mapa por código para que el juego funcione en un lugar vacío:
--- un claro en el bosque con el campanario al frente y el campamento detrás
--- (fogata, tiendas, empalizada y los NPC), al borde de un acantilado que cae
--- al mar. Los zombis llegan por dos caminos angostos (MedievalBuilder).
+-- un claro con la campana sobre un montículo (BellTower), el círculo de runas
+-- donde aparecen los jugadores y el campamento detrás (fogata, tiendas,
+-- empalizada y los NPC), al borde de un acantilado que cae al mar. Adelante,
+-- un barranco con un río que solo se cruza por el puente de piedra
+-- (BridgeBuilder); del otro lado, el bosque de donde salen los zombis.
 -- Según el tema: noche medieval con velas, atardecer de otoño o noche con luna.
 -- Usa materiales con textura y luz Future para verse lo más realista posible.
 local Lighting = game:GetService("Lighting")
@@ -9,15 +11,13 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local DayCycle = require(ReplicatedStorage.Shared.DayCycle)
+local BellTower = require(script.Parent.BellTower)
+local BridgeBuilder = require(script.Parent.BridgeBuilder)
 local CampBuilder = require(script.Parent.CampBuilder)
 local MedievalBuilder = require(script.Parent.MedievalBuilder)
 local VoxelBuilder = require(script.Parent.VoxelBuilder)
 local Props = require(script.Parent.Props)
 
-local STONE = Props.Colors.Stone
-local WOOD = Props.Colors.Wood
-local DARK_WOOD = Props.Colors.DarkWood
-local BRASS = Color3.fromRGB(205, 165, 70)
 local MOON_DIRECTION = Vector3.new(0, 0.42, -1).Unit
 -- De día el sol queda bajo, a un lado y detrás del jugador que mira a la horda
 local SUN_DIRECTION = Vector3.new(0.75, 0.32, 0.55).Unit
@@ -91,6 +91,8 @@ local function buildTerrain()
 	terrain:FillCylinder(CFrame.new(0, -2, 0), 4.1, arena.TowerSize / 2 + 5, Enum.Material.Cobblestone)
 	-- Los caminos angostos por donde llegan los zombis
 	MedievalBuilder.paintPaths(terrain)
+	-- El barranco con el río (borra lo que se pintó encima)
+	BridgeBuilder.carveTerrain(terrain)
 
 	-- Pasto 3D animado (si Roblox lo permite desde un script)
 	pcall(function()
@@ -103,80 +105,12 @@ local function onLand(position: Vector3, margin: number): boolean
 	return position.Z < Config.Arena.CliffZ - margin
 end
 
+-- La campana (destruida al empezar) sobre su montículo, con los avisos para
+-- reconstruirla y repararla
 local function buildTower(map: Instance)
-	local arena = Config.Arena
-	local size, height = arena.TowerSize, arena.TowerHeight
+	local mound = BellTower.build(map)
 
-	makePart({ Name = "TowerBase", Size = Vector3.new(size, height, size), Position = Vector3.new(0, height / 2, 0), Material = Enum.Material.Cobblestone, Color = STONE, Parent = map })
-	makePart({ Name = "Deck", Size = Vector3.new(size - 1, 0.4, size - 1), Position = Vector3.new(0, height + 0.2, 0), Material = Enum.Material.WoodPlanks, Color = WOOD, Parent = map })
-	local top = height + 0.4
-	local edge = size / 2 - 0.5
-
-	-- Rampa hacia el campamento (lado +Z)
-	makePart({
-		Name = "Ramp",
-		Size = Vector3.new(5, height, 13),
-		CFrame = CFrame.new(0, height / 2, size / 2 + 6.5) * CFrame.Angles(0, math.pi, 0),
-		Material = Enum.Material.WoodPlanks,
-		Color = WOOD,
-		Parent = map,
-	}, "WedgePart")
-
-	-- Baranda con hueco donde llega la rampa
-	makePart({ Name = "Rail", Size = Vector3.new(size, 0.4, 0.4), Position = Vector3.new(0, top + 2.2, -edge), Material = Enum.Material.Wood, Color = DARK_WOOD, Parent = map })
-	for _, side in { -1, 1 } do
-		makePart({ Name = "Rail", Size = Vector3.new(0.4, 0.4, size), Position = Vector3.new(side * edge, top + 2.2, 0), Material = Enum.Material.Wood, Color = DARK_WOOD, Parent = map })
-		makePart({ Name = "Rail", Size = Vector3.new(size / 2 - 3, 0.4, 0.4), Position = Vector3.new(side * (size / 4 + 1.5), top + 2.2, edge), Material = Enum.Material.Wood, Color = DARK_WOOD, Parent = map })
-	end
-	for offset = -edge, edge, 2.6 do
-		local spots = { Vector3.new(offset, 0, -edge), Vector3.new(-edge, 0, offset), Vector3.new(edge, 0, offset) }
-		if math.abs(offset) > 3 then
-			table.insert(spots, Vector3.new(offset, 0, edge))
-		end
-		for _, spot in spots do
-			makePart({ Name = "Post", Size = Vector3.new(0.5, 2.4, 0.5), Position = spot + Vector3.new(0, top + 1.2, 0), Material = Enum.Material.Wood, Color = DARK_WOOD, Parent = map })
-		end
-	end
-	for _, corner in { Vector3.new(-1, 0, -1), Vector3.new(1, 0, -1), Vector3.new(-1, 0, 1), Vector3.new(1, 0, 1) } do
-		Props.lantern(map, corner * (edge - 0.6) + Vector3.new(0, top, 0))
-	end
-
-	-- Estructura que sostiene la campana
-	local frameHeight = 11
-	for _, corner in { Vector3.new(-1, 0, -1), Vector3.new(1, 0, -1), Vector3.new(-1, 0, 1), Vector3.new(1, 0, 1) } do
-		makePart({ Name = "Pillar", Size = Vector3.new(1, frameHeight, 1), Position = corner * 3.2 + Vector3.new(0, top + frameHeight / 2, 0), Material = Enum.Material.Wood, Color = DARK_WOOD, Parent = map })
-	end
-	for _, side in { -1, 1 } do
-		makePart({ Name = "Beam", Size = Vector3.new(7.4, 0.8, 1), Position = Vector3.new(0, top + frameHeight, side * 3.2), Material = Enum.Material.Wood, Color = DARK_WOOD, Parent = map })
-		makePart({ Name = "Beam", Size = Vector3.new(1, 0.8, 7.4), Position = Vector3.new(side * 3.2, top + frameHeight, 0), Material = Enum.Material.Wood, Color = DARK_WOOD, Parent = map })
-	end
-	local roofY = top + frameHeight + 1.9
-	for _, side in { -1, 1 } do
-		makePart({
-			Name = "Roof",
-			Size = Vector3.new(9, 3, 4.6),
-			CFrame = CFrame.new(0, roofY, side * 2.3) * CFrame.Angles(0, if side > 0 then math.pi else 0, 0),
-			Material = Enum.Material.WoodPlanks,
-			Color = DARK_WOOD,
-			Parent = map,
-		}, "WedgePart")
-	end
-
-	-- La campana
-	local bell = Instance.new("Model")
-	bell.Name = "Bell"
-	local bellTop = top + frameHeight - 0.6
-	makePart({ Name = "Yoke", Size = Vector3.new(3, 0.6, 1), Position = Vector3.new(0, bellTop, 0), Material = Enum.Material.Wood, Color = DARK_WOOD, Parent = bell })
-	local y = bellTop - 0.3
-	for _, layer in { { 1.6, 0.8 }, { 2.6, 1.6 }, { 3.4, 1.4 }, { 4, 0.5 } } do
-		y -= layer[2] / 2
-		makePart({ Name = "BellBody", Size = Vector3.new(layer[1], layer[2], layer[1]), Position = Vector3.new(0, y, 0), Material = Enum.Material.Metal, Color = BRASS, Parent = bell })
-		y -= layer[2] / 2
-	end
-	makePart({ Name = "Clapper", Size = Vector3.new(0.6, 0.8, 0.6), Position = Vector3.new(0, y - 0.3, 0), Material = Enum.Material.Metal, Color = BRASS:Lerp(Color3.new(0, 0, 0), 0.4), Parent = bell })
-	bell.Parent = map
-
-	-- Talento Reparador: mantener E junto a la base
+	-- Talento Reparador: mantener E junto al montículo
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.Name = "RepairPrompt"
 	prompt.ActionText = "Reparar campana"
@@ -185,18 +119,75 @@ local function buildTower(map: Instance)
 	prompt.MaxActivationDistance = 14
 	prompt.RequiresLineOfSight = false
 	prompt:SetAttribute("Repair", true)
-	prompt.Parent = map:FindFirstChild("TowerBase")
+	prompt.Parent = mound
 
-	-- Durante la preparación: tocar la campana para empezar la partida
+	-- Durante la preparación: reconstruir la campana para empezar la partida
 	local start = Instance.new("ProximityPrompt")
 	start.Name = "StartPrompt"
-	start.ActionText = "Empezar partida"
-	start.ObjectText = "Tocar la campana"
-	start.HoldDuration = 1
-	start.MaxActivationDistance = 16
+	start.ActionText = "Reconstruir la campana"
+	start.ObjectText = "Campana destruida"
+	start.HoldDuration = 1.5
+	start.MaxActivationDistance = 18
 	start.RequiresLineOfSight = false
 	start.UIOffset = Vector2.new(0, 60)
-	start.Parent = map:FindFirstChild("TowerBase")
+	start.Parent = mound
+end
+
+-- Círculo negro de runas donde aparecen los jugadores (como en Guns 'n
+-- Goblins): un octágono oscuro con runas que brillan un poco, rodeado de losas
+local function buildSpawnCircle(map: Instance)
+	local center = Config.Arena.SpawnCircle
+	local radius = 5
+	local circle = Instance.new("Model")
+	circle.Name = "SpawnCircle"
+	-- Cuatro rectángulos girados de a 45° forman el octágono
+	local side = radius * 2 * math.tan(math.rad(22.5))
+	for index = 0, 3 do
+		makePart({ Name = "RuneStone", Size = Vector3.new(side, 0.35, radius * 2), CFrame = CFrame.new(center + Vector3.new(0, 0.175, 0)) * CFrame.Angles(0, index * math.pi / 4, 0), Material = Enum.Material.Slate, Color = Color3.fromRGB(24, 26, 30), Parent = circle })
+	end
+	-- Losas claras alrededor, una por cada lado del octágono
+	for index = 0, 7 do
+		local angle = index * math.pi / 4 + math.pi / 8
+		local flag = CFrame.new(center) * CFrame.Angles(0, angle, 0) * CFrame.new(0, 0.12, -(radius + 1.1))
+		makePart({ Name = "CircleFlagstone", Size = Vector3.new(side + 1.6, 0.24, 2.2), CFrame = flag, Material = Enum.Material.Slate, Color = Props.vary(Color3.fromRGB(150, 150, 140), 0.08, random), Parent = circle })
+		if random:NextNumber() < 0.5 then
+			makeProp({ Name = "Moss", Size = Vector3.new(random:NextNumber(0.6, 1.4), 0.06, random:NextNumber(0.4, 1)), CFrame = flag * CFrame.new(random:NextNumber(-1, 1), 0.14, random:NextNumber(-0.5, 0.5)), Material = Enum.Material.LeafyGrass, Color = Color3.fromRGB(80, 130, 60), Parent = circle })
+		end
+	end
+	-- Runas: tres renglones de marcas que brillan apenas
+	local rune = Color3.fromRGB(150, 210, 190)
+	for row = -1, 1 do
+		local count = if row == 0 then 7 else 5
+		for column = 1, count do
+			local x = (column - (count + 1) / 2) * 1.05
+			local base = CFrame.new(center + Vector3.new(x, 0.36, row * 1.8))
+			for stroke = 1, random:NextInteger(2, 3) do
+				local tall = random:NextNumber() < 0.5
+				local size = if tall then Vector3.new(0.14, 0.04, random:NextNumber(0.5, 0.9)) else Vector3.new(random:NextNumber(0.4, 0.7), 0.04, 0.14)
+				makeProp({ Name = "Rune", Size = size, CFrame = base * CFrame.new(random:NextNumber(-0.25, 0.25), 0, random:NextNumber(-0.3, 0.3)) * CFrame.Angles(0, if stroke == 3 then math.rad(45) else 0, 0), Material = Enum.Material.Neon, Color = rune, Transparency = 0.35, CastShadow = false, Parent = circle })
+			end
+		end
+	end
+	local glow = makeProp({ Name = "RuneGlow", Size = Vector3.one * 0.2, Position = center + Vector3.new(0, 1, 0), Transparency = 1, Parent = circle })
+	Props.light(glow, rune, 12, 0.6)
+	circle.Parent = map
+
+	-- Donde aparecen: invisible, sobre el círculo, mirando a la campana
+	local spawn = Instance.new("SpawnLocation")
+	spawn.Name = "RuneSpawn"
+	spawn.Anchored = true
+	spawn.Neutral = true
+	spawn.Duration = 0
+	spawn.Size = Vector3.new(6, 1, 6)
+	spawn.CFrame = CFrame.lookAt(center + Vector3.new(0, 0.5, 0), Vector3.new(0, 0.5, 0))
+	spawn.Transparency = 1
+	spawn.CanCollide = false
+	spawn.CanQuery = false
+	spawn.Parent = map
+	local decal = spawn:FindFirstChildOfClass("Decal")
+	if decal then
+		decal:Destroy()
+	end
 end
 
 local function buildPine(map: Instance, position: Vector3, scale: number)
@@ -354,7 +345,7 @@ end
 local function buildPathFence(map: Instance)
 	for _, x in { -5.5, 5.5 } do
 		local previous = nil
-		for z = 22, 34, 4 do
+		for z = 26, 34, 4 do
 			makePart({ Name = "PathPost", Size = Vector3.new(0.5, 2.6, 0.5), Position = Vector3.new(x, 1.3, z), Material = Enum.Material.Wood, Color = TRUNK, Parent = map })
 			if previous then
 				for _, height in { 1, 2.1 } do
@@ -373,8 +364,9 @@ local function randomRingPoint(minRadius: number, maxRadius: number): Vector3
 end
 
 local function buildScenery(map: Instance)
-	-- Cementerio y ruinas donde empiezan los caminos (y casas en el tema medieval)
+	-- Cementerio, castillo (y casas en el tema medieval) y el puente de piedra
 	MedievalBuilder.build(map)
+	BridgeBuilder.build(map)
 
 	-- Rocas sueltas
 	for _ = 1, 45 do
@@ -640,11 +632,13 @@ function MapBuilder.build(): Folder
 	if Config.Style.Tiles then
 		-- Pixel art 3D: suelo de baldosas en vez del terreno de Roblox
 		VoxelBuilder.build(map)
+		BridgeBuilder.buildVoxelRavine(map)
 	else
 		buildTerrain()
 	end
 	buildScenery(map)
 	buildTower(map)
+	buildSpawnCircle(map)
 	CampBuilder.build(map)
 	map.Parent = workspace
 

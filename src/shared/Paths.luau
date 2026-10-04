@@ -56,6 +56,49 @@ function Paths.segmentDistance(point: Vector3, a: Vector3, b: Vector3): number
 	return math.sqrt(dx * dx + dz * dz)
 end
 
+-- El barranco cruza todo el mapa; solo se pasa por el puente.
+-- true si el punto está sobre el barranco (con `margin` studs de más)
+function Paths.inChasm(point: Vector3, margin: number?): boolean
+	local ravine = Config.Arena.Ravine
+	local extra = margin or 0
+	return point.Z > ravine.ZMin - extra and point.Z < ravine.ZMax + extra
+end
+
+-- true si el punto está dentro del ancho del puente (sin contar los muros)
+function Paths.onBridge(point: Vector3): boolean
+	local bridge = Config.Arena.Bridge
+	return math.abs(point.X - bridge.X) <= bridge.Width / 2 - 1
+end
+
+-- true si ir en línea recta de a hasta b obliga a cruzar el barranco por
+-- fuera del puente (los zombis no pueden: se caerían)
+function Paths.crossesChasm(a: Vector3, b: Vector3): boolean
+	local ravine = Config.Arena.Ravine
+	local low, high = math.min(a.Z, b.Z), math.max(a.Z, b.Z)
+	if high <= ravine.ZMin or low >= ravine.ZMax then
+		return false
+	end
+	if a.Z == b.Z then
+		return not Paths.onBridge(a) or not Paths.onBridge(b)
+	end
+	-- En un tramo recto X cambia parejo con Z: basta revisar dónde entra y sale
+	local function xAt(z: number): number
+		return a.X + (b.X - a.X) * (z - a.Z) / (b.Z - a.Z)
+	end
+	local enter, leave = math.max(low, ravine.ZMin), math.min(high, ravine.ZMax)
+	return not Paths.onBridge(Vector3.new(xAt(enter), 0, enter)) or not Paths.onBridge(Vector3.new(xAt(leave), 0, leave))
+end
+
+-- Si el punto cae sobre el barranco, lo corre hasta el puente
+function Paths.clampToBridge(point: Vector3): Vector3
+	if not Paths.inChasm(point) or Paths.onBridge(point) then
+		return point
+	end
+	local bridge = Config.Arena.Bridge
+	local half = bridge.Width / 2 - 1
+	return Vector3.new(math.clamp(point.X, bridge.X - half, bridge.X + half), point.Y, point.Z)
+end
+
 -- Distancia al camino más cercano (para no poner árboles encima)
 function Paths.distanceToAny(point: Vector3): number
 	local best = math.huge

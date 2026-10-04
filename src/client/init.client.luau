@@ -40,6 +40,7 @@ Hud.init({
 	setSprint = MovementController.setSprint,
 	dash = MovementController.dash,
 	getAmmo = WeaponController.getAmmoState,
+	getMeleeEnergy = WeaponController.getMeleeEnergy,
 	ammoGranted = WeaponController.AmmoGranted,
 	getEquipped = WeaponController.getEquipped,
 	isAiming = WeaponController.isAiming,

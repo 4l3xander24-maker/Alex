@@ -44,14 +44,11 @@ local function tileKind(center: Vector3): string
 	if Vector3.new(campOffset.X, 0, campOffset.Z).Magnitude < arena.CampRadius then
 		return "Dirt"
 	end
-	local width = Config.PathStyle.Width / 2 + 1
-	-- El de las ruinas es de piedra; los demás de tierra
-	local sidePoints = Paths.getPoints("Side")
-	for index = 2, #sidePoints do
-		if Paths.segmentDistance(center, sidePoints[index - 1], sidePoints[index]) < width then
-			return "Stone"
-		end
+	-- Sobre el barranco no hay baldosas
+	if Paths.inChasm(center, TILE / 2) then
+		return "Chasm"
 	end
+	local width = Config.PathStyle.Width / 2 + 1
 	if Paths.distanceToAny(center) < width then
 		return "Dirt"
 	end
@@ -96,6 +93,9 @@ local function buildTiles(map: Instance)
 			local x = -HALF_WIDTH + (column - 0.5) * TILE
 			local center = Vector3.new(x, 0, z)
 			local kind = tileKind(center)
+			if kind == "Chasm" then
+				continue
+			end
 			local color = COLORS[kind]
 			-- Tonos al azar, y en la piedra un damero suave
 			local amount = random:NextNumber(0.86, 1.12)
@@ -121,8 +121,12 @@ local function buildBase(map: Instance)
 	base.Name = "GroundBase"
 	base.ModelStreamingMode = Enum.ModelStreamingMode.Persistent
 	local cliffZ = Config.Arena.CliffZ
-	local length = BASE_SIZE / 2 + cliffZ
-	makePart({ Name = "Base", Size = Vector3.new(BASE_SIZE, 2, length), Position = Vector3.new(0, -1.05, cliffZ - length / 2), Color = shade(theme.Ground, 0.95), Parent = base })
+	-- Dos pedazos: entre el acantilado y el barranco, y del barranco hasta el horizonte
+	local ravine = Config.Arena.Ravine
+	for _, span in { { ravine.ZMax, cliffZ }, { -BASE_SIZE / 2, ravine.ZMin } } do
+		local length = span[2] - span[1]
+		makePart({ Name = "Base", Size = Vector3.new(BASE_SIZE, 2, length), Position = Vector3.new(0, -1.05, (span[1] + span[2]) / 2), Color = shade(theme.Ground, 0.95), Parent = base })
+	end
 
 	-- Acantilado: columnas de bloques de roca de distintos tonos
 	local rock = Color3.fromRGB(96, 96, 104)

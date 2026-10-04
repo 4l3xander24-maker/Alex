@@ -1,8 +1,8 @@
 -- Partes del mapa de la Edad Media:
---   * Caminos angostos de tierra (principal) y de piedra (el de las ruinas)
---     por donde llegan los zombis, con antorchas y velas a los lados.
---   * Cementerio con cripta al principio del camino principal, y ruinas de
---     un castillo al principio del camino secundario: de ahí salen los zombis.
+--   * Caminos angostos de tierra por donde llegan los zombis, con antorchas y
+--     velas a los lados. Todos se juntan antes del puente de piedra.
+--   * Cementerio con cripta al principio del camino del cementerio.
+--   * Ruinas de un castillo detrás de la campana: el camino pasa por su arco.
 --   * Casas con entramado de madera, pozo, carreta y estandartes.
 -- Las velas y antorchas solo se ponen en el tema medieval.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -36,9 +36,17 @@ function MedievalBuilder.getEntrances(): { Vector3 }
 	return entrances
 end
 
--- true si el punto está libre de caminos y entradas (para árboles, rocas...)
+-- true si el punto está libre de caminos, entradas, castillo y barranco (para
+-- árboles, rocas, casas...)
 function MedievalBuilder.isClear(position: Vector3, margin: number): boolean
 	if Paths.distanceToAny(position) < Config.PathStyle.Width / 2 + margin then
+		return false
+	end
+	if Paths.inChasm(position, margin + 4) then
+		return false
+	end
+	local castle = Config.Arena.Castle
+	if (Vector3.new(position.X, 0, position.Z) - castle).Magnitude < 40 + margin then
 		return false
 	end
 	for _, entrance in MedievalBuilder.getEntrances() do
@@ -49,9 +57,9 @@ function MedievalBuilder.isClear(position: Vector3, margin: number): boolean
 	return true
 end
 
--- Pinta los caminos en el terreno: piedra el de las ruinas, tierra los demás.
--- Primero los senderos del bosque, así los tramos compartidos quedan del
--- material del camino al que se unen.
+-- Pinta los caminos de tierra en el terreno. Primero los senderos del bosque,
+-- así los tramos compartidos quedan del material del camino al que se unen.
+-- (Lo que cae sobre el barranco lo borra después BridgeBuilder.)
 function MedievalBuilder.paintPaths(terrain: Terrain)
 	local width = Config.PathStyle.Width
 	local order = {}
@@ -66,7 +74,7 @@ function MedievalBuilder.paintPaths(terrain: Terrain)
 		end
 	end
 	for _, name in order do
-		local material = if name == "Side" then Enum.Material.Cobblestone else Enum.Material.Ground
+		local material = Enum.Material.Ground
 		local points = Paths.getPoints(name)
 		for index = 2, #points do
 			local a, b = points[index - 1], points[index]
@@ -99,6 +107,10 @@ local function lightPaths(map: Instance)
 			local point, direction = Paths.pointFromBell(name, distance)
 			if (point - Config.Paths[name].Points[1]).Magnitude < 20 then
 				break
+			end
+			-- El puente tiene sus propias antorchas, y junto al castillo no caben
+			if Paths.inChasm(point, 8) or (point - Config.Arena.Castle).Magnitude < 14 then
+				continue
 			end
 			local across = Vector3.new(-direction.Z, 0, direction.X)
 			Props.torch(map, point + across * side * (width / 2 + 1.5))
@@ -181,8 +193,9 @@ local function buildGraveyard(map: Instance, entrance: Vector3, outward: Vector3
 	end
 end
 
--- Ruinas de un castillo: muros rotos, una torre partida y un arco
-local function buildRuins(map: Instance, entrance: Vector3, outward: Vector3)
+-- Ruinas de un castillo: muros rotos, una torre partida y un arco por donde
+-- pasa el camino (archHalf: medio ancho del hueco del arco)
+local function buildRuins(map: Instance, entrance: Vector3, outward: Vector3, archHalf: number)
 	local frame = CFrame.lookAt(entrance, entrance + outward)
 	local function wall(offset: CFrame, length: number, height: number, battlements: boolean)
 		local cf = frame * offset
@@ -200,17 +213,21 @@ local function buildRuins(map: Instance, entrance: Vector3, outward: Vector3)
 			makeProp({ Name = "Rubble", Size = Vector3.one * size, CFrame = cf * CFrame.new(random:NextNumber(-length / 2, length / 2), size / 2, random:NextNumber(2, 4)) * CFrame.Angles(random:NextNumber(0, 1), random:NextNumber(0, 3), 0), Material = Enum.Material.Cobblestone, Color = STONE, Parent = map })
 		end
 	end
-	-- Arco por donde salen los zombis
+	-- Arco por donde pasan los zombis
+	local pillarX = archHalf + 1.5
 	for _, side in { -1, 1 } do
-		makePart({ Name = "ArchPillar", Size = Vector3.new(3, 12, 3), CFrame = frame * CFrame.new(side * 6, 6, -3), Material = Enum.Material.Slate, Color = STONE, Parent = map })
-		wall(CFrame.new(side * 17, 0, -3), 18, random:NextNumber(5, 10), true)
+		makePart({ Name = "ArchPillar", Size = Vector3.new(3, 14, 3), CFrame = frame * CFrame.new(side * pillarX, 7, -3), Material = Enum.Material.Slate, Color = STONE, Parent = map })
+		wall(CFrame.new(side * (pillarX + 11), 0, -3), 19, random:NextNumber(7, 11), true)
 	end
-	makePart({ Name = "ArchTop", Size = Vector3.new(15, 3, 3), CFrame = frame * CFrame.new(0, 13.5, -3), Material = Enum.Material.Slate, Color = STONE, Parent = map })
-	wall(CFrame.new(-26, 0, -14) * CFrame.Angles(0, math.pi / 2, 0), 20, 7, true)
-	wall(CFrame.new(26, 0, -16) * CFrame.Angles(0, math.pi / 2, 0), 16, 4, false)
+	makePart({ Name = "ArchTop", Size = Vector3.new(pillarX * 2 + 3, 3, 3), CFrame = frame * CFrame.new(0, 15.5, -3), Material = Enum.Material.Slate, Color = STONE, Parent = map })
+	for x = -pillarX, pillarX, 3 do
+		makeProp({ Name = "Merlon", Size = Vector3.new(1.6, 1.6, 3), CFrame = frame * CFrame.new(x, 17.8, -3), Material = Enum.Material.Slate, Color = STONE, Parent = map })
+	end
+	wall(CFrame.new(-(pillarX + 20), 0, -14) * CFrame.Angles(0, math.pi / 2, 0), 20, 7, true)
+	wall(CFrame.new(pillarX + 20, 0, -16) * CFrame.Angles(0, math.pi / 2, 0), 16, 4, false)
 
 	-- Torre redonda partida
-	local towerCenter = frame * CFrame.new(24, 0, -24)
+	local towerCenter = frame * CFrame.new(pillarX + 18, 0, -20)
 	local y = 0
 	for index, height in { 8, 8, 5 } do
 		local radius = 11 - index
@@ -218,9 +235,9 @@ local function buildRuins(map: Instance, entrance: Vector3, outward: Vector3)
 		y += height
 	end
 	if theme.Medieval then
-		Props.torch(map, (frame * CFrame.new(-6, 0, -6)).Position)
-		Props.torch(map, (frame * CFrame.new(6, 0, -6)).Position)
-		Props.banner(map, (frame * CFrame.new(-11, 0, -6)).Position, math.atan2(-outward.X, -outward.Z), Color3.fromRGB(70, 30, 90))
+		Props.torch(map, (frame * CFrame.new(-pillarX, 0, 0)).Position)
+		Props.torch(map, (frame * CFrame.new(pillarX, 0, 0)).Position)
+		Props.banner(map, (frame * CFrame.new(-(pillarX + 5), 0, 0)).Position, math.atan2(-outward.X, -outward.Z), Color3.fromRGB(40, 110, 60))
 	end
 end
 
@@ -298,13 +315,13 @@ local function buildCart(map: Instance, frame: CFrame)
 	end
 end
 
--- Cementerio y ruinas existen en todos los temas (de ahí salen los zombis);
--- casas, velas, antorchas y estandartes solo en el medieval.
+-- Cementerio y castillo existen en todos los temas; casas, velas, antorchas
+-- y estandartes solo en el medieval.
 function MedievalBuilder.build(map: Instance)
 	local mainPoints = Config.Paths.Main.Points
-	local sidePoints = Config.Paths.Side.Points
 	buildGraveyard(map, mainPoints[1], (mainPoints[1] - mainPoints[2]).Unit)
-	buildRuins(map, sidePoints[1], (sidePoints[1] - sidePoints[2]).Unit)
+	-- El castillo mira hacia el puente; el arco deja pasar a los jefes grandes
+	buildRuins(map, Config.Arena.Castle, Vector3.new(0, 0, -1), 8.5)
 	if not theme.Medieval then
 		return
 	end
@@ -330,13 +347,9 @@ function MedievalBuilder.build(map: Instance)
 	buildWell(map, Vector3.new(-30, 0, -12))
 	buildCart(map, CFrame.new(-44, 0, 2) * CFrame.Angles(0, 0.6, 0))
 
-	-- Estandartes junto a la campana y velas al pie del campanario
-	Props.banner(map, Vector3.new(-11, 0, -10), 0, Color3.fromRGB(150, 24, 34))
-	Props.banner(map, Vector3.new(12, 0, 8), 0, Color3.fromRGB(150, 24, 34))
-	for _, corner in { Vector3.new(-8.6, 0, -8.6), Vector3.new(8.6, 0, -8.6), Vector3.new(-8.6, 0, 8.6), Vector3.new(8.6, 0, 8.6) } do
-		if Paths.distanceToAny(corner) > Config.PathStyle.Width / 2 + 1 then
-			Props.candles(map, corner, 5, true)
-		end
+	-- Velas al pie del montículo de la campana
+	for _, corner in { Vector3.new(-12, 0, 6), Vector3.new(12, 0, 6), Vector3.new(-12, 0, -6), Vector3.new(12, 0, -6) } do
+		Props.candles(map, corner, 5, true)
 	end
 end
 

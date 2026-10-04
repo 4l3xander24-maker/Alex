@@ -2,7 +2,8 @@
 
 ## La idea en una frase
 Defiendes una **campana** junto a tu **campamento**, al borde de un acantilado sobre el mar, mientras hordas de
-muertos vivientes llegan en oleadas por dos caminos, en una noche de la Edad Media. Empiezas con un machete y una pistola. Antes de cada partida
+muertos vivientes llegan en oleadas desde el bosque y cruzan el único puente de piedra, en una noche de la Edad
+Media. Empiezas con un cuchillo y una pistola. Antes de cada partida
 compras armas, mejoras, poderes y trampas a los NPC, y al terminar ganas **XP de cuenta** para subir de nivel,
 mejorar tus estadísticas y aprender talentos.
 
@@ -53,8 +54,14 @@ mejorar tus estadísticas y aprender talentos.
 - 5 armas de bloques en primera persona con manos, retroceso, destello y mira telescópica.
 
 ## El mapa
-- **Campanario** (en el centro, al frente): lo que hay que defender. Tiene rampa y baranda; desde arriba los zombis
-  no te alcanzan, pero tampoco proteges a la campana de cerca.
+- **La campana** (en el centro, al frente, `BellTower`): sobre un montículo de pasto con muros y escalones de
+  piedra y una rampa hacia el círculo de runas. Dos postes de 20 studs con una cruz arriba, brazos de hierro con
+  estandartes verdes y la campana de cobre. Detrás, un castillo en ruinas con un arco por donde pasa el camino.
+  - **Destruida** en la preparación: postes caídos y cruzados, la campana de costado y los estandartes en el
+    suelo. Cada pieza guarda dónde va armada y dónde cae: al **reconstruirla** (mantener E) vuelan a su lugar
+    (los postes primero, la campana al final) y al destruirla los zombis se derrumban rebotando.
+- **Círculo de runas** (`Config.Arena.SpawnCircle`, entre la campana y el campamento): octágono negro con runas
+  que brillan apenas, rodeado de losas. Ahí aparecen los jugadores, mirando a la campana.
 - **Campamento** (detrás): fogata con bancos, 4 tiendas de campaña, empalizada de troncos y faroles.
 - **Acantilado y mar** (detrás del campamento): cerca de madera, mirador con catalejo. Caer al mar = morir.
 - **NPC del campamento** (se habla con ellos con **E**):
@@ -64,26 +71,32 @@ mejorar tus estadísticas y aprender talentos.
   | Morgana, la Bruja | Caldero | Poderes y sus mejoras |
   | Don Ramiro, el Veterano | Campo de entrenamiento | Puntos de mejora y talentos |
   | Gustavo, el Intendente | Intendencia | Cartuchera (más balas) y trampas: minas y rejas |
-- **Caminos** (al frente): dos caminos angostos (8 studs) hasta la campana, con antorchas y velas a los lados.
-  - **Camino del cementerio** (tierra, `Main`): empieza en una cripta rodeada de tumbas y reja de hierro.
-    Lo usan 3 de cada 4 zombis.
-  - **Camino de las ruinas** (piedra, `Side`): empieza en el arco de un castillo en ruinas con una torre partida.
-  - **Senderos del bosque** (`ForestNorth`, `ForestWest`, `ForestEast`, 55% de los zombis): nacen entre los
-    árboles, sin entrada; los zombis salen desparramados (`SpawnSpread` = 12 studs) y el sendero se une al
-    camino del cementerio cerca de la campana, así el portón y las minas los alcanzan.
+- **Barranco y puente** (`BridgeBuilder`, `Config.Arena.Ravine`/`Bridge`): un barranco de 40 studs con un río
+  abajo cruza todo el mapa entre z = -122 y -82. El único paso es el puente de piedra (12 de ancho): losas con
+  musgo y pasto, muros bajos con postes de madera oscura, un pilar en el medio con arcos escalonados y
+  columnas con antorchas en las esquinas. Caer al barranco = morir ("¡Caíste al río!").
+  - Los zombis nunca cruzan el barranco por fuera del puente: no persiguen a nadie si tendrían que saltarlo
+    (`Paths.crossesChasm`), al volver a su camino primero van a la entrada del puente, y el Campanazo o el
+    Gordo al reventar no los dejan fuera del puente (`Paths.clampToBridge`).
+- **Un solo camino a la campana** (8 studs de ancho), con antorchas y velas a los lados: todos los caminos se
+  juntan en z = -150 y siguen por el puente y el arco del castillo.
+  - **Camino del cementerio** (tierra, `Main`, 35%): empieza en una cripta rodeada de tumbas y reja de hierro.
+  - **Senderos del bosque** (`ForestNorth`, `ForestWest`, `ForestEast`, 65% de los zombis): nacen entre los
+    árboles, sin entrada; los zombis salen desparramados (`SpawnSpread` = 12 studs).
   - Alrededor del mapa hay una pared de bosque (190 pinos entre 200 y 280 studs).
   - Cada zombi va un poco desviado del centro (hasta 2.5 studs) para que la horda no parezca una fila.
 - **Aldea**: casas con ventanas encendidas, pozo y carreta a los lados del campo.
 
 ## Ciclo de juego
 0. **Preparación** (hasta 2 minutos): el único momento para comprar en el campamento. Termina cuando alguien
-   toca la campana (mantener E) o se acaba el tiempo. Durante la partida las tiendas están cerradas.
+   reconstruye la campana (mantener E) o se acaba el tiempo (entonces se arma sola). Durante la partida las
+   tiendas están cerradas.
 1. **Entre oleadas** hay 12 segundos de respiro (sin tiendas).
 2. **Oleada**: los zombis van a la campana. Si te acercas a menos de 22 studs te persiguen y te atacan;
    si te alejas más de 45, vuelven a su camino. Cada 5 oleadas salen jefes (ver abajo).
 3. **Cada baja** da monedas a quien la hizo (se guardan siempre).
-4. **Si mueres** reapareces en el campamento a los 5 segundos.
-5. **Si la campana cae** termina la partida: ves un resumen y recibes la **XP de cuenta**:
+4. **Si mueres** reapareces en el círculo de runas a los 5 segundos.
+5. **Si la campana cae** (se derrumba) termina la partida: ves un resumen y recibes la **XP de cuenta**:
    25 por oleada superada + 2 por baja + 40 por jefe.
 
 ## Progresión permanente (se guarda con DataStore)
@@ -122,14 +135,14 @@ mejorar tus estadísticas y aprender talentos.
 - Cada arma de fuego tiene **cargador** y **reserva**. Recargar pasa balas de la reserva al cargador.
 - Empiezas cada partida con la reserva inicial de cada arma.
 - **Cada zombi eliminado te da balas** para el arma que tienes en la mano (o la última que usaste si lo
-  mataste con el machete), hasta el máximo de reserva.
+  mataste con el cuchillo), hasta el máximo de reserva.
 - La **cartuchera** del Intendente (8 niveles) sube un 25% por nivel el máximo y las balas iniciales.
 
 ## Trampas (Intendente, duran una partida)
 | Trampa | Precio | Efecto |
 |---|---|---|
 | 🪤 Mina (hasta 8) | 40 | Explota cuando pasa un zombi (12 de daño en 10 studs, crece con la oleada) |
-| 🚧 Reja (portón de piedra) del cementerio / de las ruinas | 150 c/u | Cierra ese camino a 36 studs de la campana: los zombis se paran a romperla (800 de vida); no persiguen a quien está detrás. El dragón pasa volando |
+| 🚧 Reja de metal (portón de piedra) en la entrada / salida del puente | 150 c/u | Solo aparece si la compras. Cierra el puente en ese extremo (a 123.5 y 80.5 studs de la campana por el camino): los zombis se paran a romperla (800 de vida); no persiguen a quien está detrás. El dragón pasa volando |
 
 ## Zombis
 | Zombi | Desde la oleada | Cómo es |
@@ -157,7 +170,7 @@ Cada mejora cambia el color del arma: Normal → Bronce → Plata → Oro → Es
 
 | Arma | Precio | Estilo |
 |---|---|---|
-| 🔪 Machete | gratis | Cuerpo a cuerpo, sin munición, hasta 3 zombis por tajo |
+| 🔪 Cuchillo | gratis | Cuerpo a cuerpo, sin munición, hasta 3 zombis por tajo. Cada tajo gasta 20% de energía (círculo blanco); se recarga sola al 50% por segundo después de 0.4 s sin atacar (`MeleeEnergy`, cliente y servidor) |
 | 🔫 Pistola | gratis | Equilibrada |
 | 💥 Escopeta | 300 | 7 perdigones, corto alcance |
 | 🪖 Rifle de asalto | 700 | Rápido, cargador de 30 |
@@ -198,4 +211,7 @@ Cada arma se mejora 5 veces (+20% daño, +15% cargador, recarga más rápida). C
 - **Fase 4.0 (hecha)**: estilo Guns 'n Goblins: texturas y sprites pixelados con subida automática, zombis que
   salen del bosque, portón de piedra, cobertizos en el campamento, números de daño, ¡SUBISTE DE NIVEL! y
   pantalla del Veterano en dos columnas.
+- **Fase 4.1 (hecha)**: puente de piedra sobre un barranco (un solo camino), rejas compradas en los dos
+  extremos del puente, campana destruida que se reconstruye para empezar, círculo de runas para aparecer y
+  cuchillo con energía al estilo Guns 'n Goblins.
 - **Fase 4**: sonidos y música, más mapas (paletas morado/ámbar), más jefes, misiones diarias, pases de juego y lanzamiento.

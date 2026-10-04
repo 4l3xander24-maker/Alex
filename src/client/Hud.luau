@@ -29,6 +29,7 @@ export type Actions = {
 	setSprint: (boolean) -> (),
 	dash: () -> (),
 	getAmmo: () -> (number, number, number, number?, boolean),
+	getMeleeEnergy: () -> (number, boolean),
 	ammoGranted: RBXScriptSignal,
 	getEquipped: () -> string,
 	isAiming: () -> boolean,
@@ -73,6 +74,96 @@ local function makeBar(parent: Instance, position: UDim2, size: UDim2): (Frame, 
 
 	local text = makeLabel({ Size = UDim2.fromScale(1, 1), TextSize = 13, ZIndex = 2, Parent = back })
 	return back, fill, text
+end
+
+-- Silueta pixelada del cuchillo (hoja a la izquierda, mango a la derecha)
+local KNIFE_PIXELS = {
+	"...........##.....",
+	"##########.##.....",
+	"#############.####",
+	"#############.####",
+	".#########.##.....",
+	"...........##.....",
+}
+
+local function buildKnifeIcon(parent: Instance, pixel: number): Frame
+	local holder = Instance.new("Frame")
+	holder.BackgroundTransparency = 1
+	holder.Size = UDim2.fromOffset(#KNIFE_PIXELS[1] * pixel + 3, #KNIFE_PIXELS * pixel + 3)
+	holder.Parent = parent
+	-- Sombra oscura corrida y la silueta blanca encima, como el ícono de Guns 'n Goblins
+	for layer, color in { Color3.fromRGB(16, 18, 22), Color3.fromRGB(240, 240, 236) } do
+		local shift = if layer == 1 then 3 else 0
+		for row, line in KNIFE_PIXELS do
+			for column = 1, #line do
+				if string.sub(line, column, column) == "#" then
+					local square = Instance.new("Frame")
+					square.BorderSizePixel = 0
+					square.BackgroundColor3 = color
+					square.Size = UDim2.fromOffset(pixel, pixel)
+					square.Position = UDim2.fromOffset((column - 1) * pixel + shift, (row - 1) * pixel + shift)
+					square.ZIndex = layer
+					square.Parent = holder
+				end
+			end
+		end
+	end
+	return holder
+end
+
+-- Círculo que se vacía como una torta (en el sentido del reloj, desde arriba).
+-- Dos mitades recortadas, cada una con un degradado de transparencia que gira.
+local function buildPie(parent: Instance, size: number): (Frame, (number, Color3) -> ())
+	local holder = Instance.new("Frame")
+	holder.BackgroundTransparency = 1
+	holder.Size = UDim2.fromOffset(size, size)
+	holder.Parent = parent
+	local back = Instance.new("Frame")
+	back.Size = UDim2.fromScale(1, 1)
+	back.BackgroundColor3 = Color3.new(1, 1, 1)
+	back.BackgroundTransparency = 0.8
+	back.BorderSizePixel = 0
+	back.Parent = holder
+	round(back, UDim.new(1, 0))
+	local sharp = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0),
+		NumberSequenceKeypoint.new(0.499, 0),
+		NumberSequenceKeypoint.new(0.5, 1),
+		NumberSequenceKeypoint.new(1, 1),
+	})
+	local halves = {}
+	for index, isRight in { true, false } do
+		local clip = Instance.new("Frame")
+		clip.BackgroundTransparency = 1
+		clip.ClipsDescendants = true
+		clip.Size = UDim2.fromScale(0.5, 1)
+		clip.Position = UDim2.fromScale(if isRight then 0.5 else 0, 0)
+		clip.ZIndex = 2
+		clip.Parent = holder
+		local circle = Instance.new("Frame")
+		circle.BorderSizePixel = 0
+		circle.BackgroundColor3 = Color3.new(1, 1, 1)
+		circle.Size = UDim2.fromScale(2, 1)
+		circle.Position = UDim2.fromScale(if isRight then -1 else 0, 0)
+		circle.ZIndex = 2
+		circle.Parent = clip
+		round(circle, UDim.new(1, 0))
+		local gradient = Instance.new("UIGradient")
+		gradient.Transparency = sharp
+		gradient.Parent = circle
+		halves[index] = { Clip = clip, Circle = circle, Gradient = gradient }
+	end
+	local right, left = halves[1], halves[2]
+	local function set(fraction: number, color: Color3)
+		fraction = math.clamp(fraction, 0, 1)
+		-- Mitad derecha: de 0 a 180°. Mitad izquierda: de 180° a 360°.
+		right.Gradient.Rotation = math.min(fraction, 0.5) * 360
+		left.Clip.Visible = fraction > 0.5
+		left.Gradient.Rotation = 180 + (math.max(fraction, 0.5) - 0.5) * 360
+		right.Circle.BackgroundColor3 = color
+		left.Circle.BackgroundColor3 = color
+	end
+	return holder, set
 end
 
 local function buildCrosshair(parent: Instance): Frame
@@ -301,6 +392,33 @@ function Hud.init(actions: Actions)
 	local reloadBack, reloadFill = makeBar(gui, UDim2.new(1, -140, 1, -8), UDim2.fromOffset(120, 5))
 	reloadFill.BackgroundColor3 = GOLD
 
+	-- Con el cuchillo: su silueta y el círculo blanco de energía, que se gasta
+	-- con cada tajo y se recarga solo
+	local melee = Instance.new("Frame")
+	melee.AnchorPoint = Vector2.new(1, 1)
+	melee.Position = UDim2.new(1, -20, 1, -12)
+	melee.Size = UDim2.fromOffset(160, 40)
+	melee.BackgroundTransparency = 1
+	melee.Visible = false
+	melee.Parent = gui
+	local meleeLayout = Instance.new("UIListLayout")
+	meleeLayout.FillDirection = Enum.FillDirection.Horizontal
+	meleeLayout.HorizontalAlignment = Enum.HorizontalAlignment.Right
+	meleeLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+	meleeLayout.Padding = UDim.new(0, 8)
+	meleeLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	meleeLayout.Parent = melee
+	local knifeIcon = buildKnifeIcon(melee, 4)
+	knifeIcon.LayoutOrder = 1
+	local divider = Instance.new("Frame")
+	divider.LayoutOrder = 2
+	divider.BorderSizePixel = 0
+	divider.BackgroundColor3 = Color3.fromRGB(240, 240, 236)
+	divider.Size = UDim2.fromOffset(4, 34)
+	divider.Parent = melee
+	local energyPie, setEnergy = buildPie(melee, 34)
+	energyPie.LayoutOrder = 3
+
 	local crosshair = buildCrosshair(gui)
 
 	local aimButton, sprintButton
@@ -335,7 +453,7 @@ function Hud.init(actions: Actions)
 		local countdown = gameState:GetAttribute("Countdown") or 0
 		if state == "Lobby" then
 			waveLabel.Text = "PREPARACIÓN"
-			statusLabel.Text = `Compra en el campamento · empieza en {countdown} s · toca la campana para empezar ya`
+			statusLabel.Text = `Compra en el campamento · empieza en {countdown} s · reconstruye la campana (E) para empezar ya`
 		elseif state == "Intermission" then
 			statusLabel.Text = `Siguiente oleada en {countdown}`
 		elseif state == "Wave" then
@@ -419,19 +537,23 @@ function Hud.init(actions: Actions)
 			clockLabel.Text = text
 		end
 
-		local ammo, _, reserve, reloadProgress, melee = actions.getAmmo()
-		local empty = not melee and ammo == 0 and reserve == 0
-		if melee then
-			ammoLabel.Text = "🔪 ∞"
+		local ammo, _, reserve, reloadProgress, isMelee = actions.getAmmo()
+		local empty = not isMelee and ammo == 0 and reserve == 0
+		melee.Visible = isMelee
+		ammoLabel.Visible = not isMelee
+		if isMelee then
+			-- Blanco si alcanza para otro tajo; gris rojizo mientras se recarga
+			local energy, ready = actions.getMeleeEnergy()
+			setEnergy(energy, if ready then Color3.new(1, 1, 1) else Color3.fromRGB(200, 120, 110))
 		elseif reloadProgress then
 			ammoLabel.Text = "RECARGANDO"
 		elseif empty then
-			ammoLabel.Text = `SIN BALAS <font size="16">· usa el machete (1)</font>`
+			ammoLabel.Text = `SIN BALAS <font size="16">· usa el cuchillo (1)</font>`
 		else
 			ammoLabel.Text = `{ammo} <font size="22" transparency="0.25">/ {reserve}</font>`
 		end
 		ammoLabel.TextSize = if reloadProgress or empty then 24 else 38
-		ammoLabel.TextColor3 = if (ammo == 0 and not reloadProgress and not melee) then HEALTH_EMPTY else Color3.new(1, 1, 1)
+		ammoLabel.TextColor3 = if (ammo == 0 and not reloadProgress and not isMelee) then HEALTH_EMPTY else Color3.new(1, 1, 1)
 		reloadBack.Visible = reloadProgress ~= nil
 		reloadFill.Size = UDim2.fromScale(reloadProgress or 0, 1)
 

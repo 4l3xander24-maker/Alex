@@ -1,12 +1,14 @@
 -- El cliente solo dice "disparé desde aquí hacia allá"; el servidor decide si
 -- le dio a algo y lleva la cuenta de la munición de cada arma (cargador y
 -- reserva). Así no se puede hacer trampa mandando "maté al zombi 5" o
--- disparando sin balas. El machete no usa munición.
+-- disparando sin balas. El cuchillo no usa munición, pero cada tajo gasta
+-- energía (MeleeEnergy) que se recarga sola.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage.Shared
 local Config = require(Shared.Config)
+local MeleeEnergy = require(Shared.MeleeEnergy)
 local Progression = require(Shared.Progression)
 local Remotes = require(Shared.Remotes)
 local DataService = require(script.Parent.DataService)
@@ -23,6 +25,7 @@ type State = {
 	ReloadWeapon: string?,
 	LastShot: number,
 	LastGun: string, -- última arma de fuego usada (recibe las balas si matas con el machete)
+	Energy: MeleeEnergy.State, -- energía del cuchillo
 }
 
 local CombatService = {}
@@ -32,7 +35,7 @@ local states: { [Player]: State } = {}
 local function getState(player: Player): State
 	local state = states[player]
 	if not state then
-		state = { Ammo = {}, Reserve = {}, ReloadEnd = nil, ReloadWeapon = nil, LastShot = 0, LastGun = "Pistol" }
+		state = { Ammo = {}, Reserve = {}, ReloadEnd = nil, ReloadWeapon = nil, LastShot = 0, LastGun = "Pistol", Energy = MeleeEnergy.new() }
 		states[player] = state
 	end
 	return state
@@ -74,6 +77,8 @@ function CombatService.resetAmmo(player: Player)
 	table.clear(state.Reserve)
 	state.ReloadEnd = nil
 	state.ReloadWeapon = nil
+	-- El cliente también llena la energía del cuchillo al recibir AmmoSync
+	MeleeEnergy.refill(state.Energy)
 	for weaponId in data.Weapons do
 		local stats = Progression.getWeaponStats(data, weaponId, false)
 		if not stats.Melee then
@@ -168,6 +173,10 @@ local function onShoot(player: Player, origin: any, direction: any, shotTime: an
 	if stats.Melee then
 		local aim, time = CombatService.validateAim(player, origin, direction, shotTime)
 		if not aim then
+			return
+		end
+		-- Sin energía no hay tajo (con margen por el lag)
+		if not MeleeEnergy.use(state.Energy, now, 0.35) then
 			return
 		end
 		state.LastShot = now

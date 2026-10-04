@@ -5,6 +5,7 @@ local Shared = ReplicatedStorage.Shared
 local Config = require(Shared.Config)
 local DayCycle = require(Shared.DayCycle)
 local Remotes = require(Shared.Remotes)
+local BellTower = require(script.Parent.BellTower)
 local CombatService = require(script.Parent.CombatService)
 local EnemyService = require(script.Parent.EnemyService)
 local GameState = require(script.Parent.GameState)
@@ -21,15 +22,18 @@ local currentWave = 0
 local startRequested = false
 local startPrompt: ProximityPrompt? = nil
 
--- Aviso "Empezar partida" en la campana: solo se ve durante la preparación
+-- Aviso "Reconstruir la campana": solo se ve durante la preparación. Al
+-- reconstruirla se arma con animación y la partida empieza en unos segundos.
 function WaveService.setStartPrompt(prompt: ProximityPrompt)
 	startPrompt = prompt
 	prompt.Enabled = false
 	prompt.Triggered:Connect(function(player)
 		if GameState.get("State") == "Lobby" and not startRequested then
 			startRequested = true
+			prompt.Enabled = false
+			BellTower.rebuild()
 			for _, other in Players:GetPlayers() do
-				Remotes.Notify:FireClient(other, `🔔 {player.DisplayName} tocó la campana: ¡la partida empieza!`)
+				Remotes.Notify:FireClient(other, `🔔 {player.DisplayName} reconstruyó la campana: ¡la partida empieza!`)
 			end
 		end
 	end)
@@ -98,8 +102,9 @@ function WaveService.pickType(wave: number): string
 	return weights[#weights].Type
 end
 
--- Preparación: el único momento para comprar. Termina al tocar la campana
--- o cuando se acaba el tiempo. Devuelve false si todos se fueron.
+-- Preparación: el único momento para comprar. La campana está destruida;
+-- termina al reconstruirla o cuando se acaba el tiempo (entonces se
+-- reconstruye sola). Devuelve false si todos se fueron.
 local function runLobby(): boolean
 	GameState.set("State", "Lobby")
 	GameState.set("Wave", 0)
@@ -128,6 +133,7 @@ local function runLobby(): boolean
 	if startPrompt then
 		startPrompt.Enabled = false
 	end
+	BellTower.rebuild()
 	GameState.set("Countdown", 0)
 	return true
 end
@@ -206,6 +212,8 @@ function WaveService.start()
 			until not runWave(wave)
 
 			GameState.set("State", "GameOver")
+			-- La campana se derrumba; en la próxima preparación hay que reconstruirla
+			BellTower.collapse()
 			EnemyService.clear()
 			GameState.set("EnemiesLeft", 0)
 			MatchService.endMatch(wave)

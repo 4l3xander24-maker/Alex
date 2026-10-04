@@ -1,7 +1,9 @@
 -- El arma y las manos que se ven en primera persona. Son piezas locales
 -- pegadas a la cámara, con retroceso, balanceo al caminar, animación de
--- recarga, tajo del machete y posición de apuntar. Cada arma tiene su propio
+-- recarga, tajo del cuchillo y posición de apuntar. Cada arma tiene su propio
 -- modelo de bloques, y cambia de color con cada mejora (Config.WeaponTiers).
+-- El cuchillo se agarra como en Guns 'n Goblins: un guante grande de cuero
+-- con tachas, el mango hacia abajo a la izquierda y la hoja hacia la derecha.
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
@@ -16,6 +18,14 @@ local SKIN = Color3.fromRGB(150, 105, 80)
 local SLEEVE = Color3.fromRGB(60, 70, 60)
 local FLASH = Color3.fromRGB(255, 210, 90)
 local LENS = Color3.fromRGB(120, 200, 255)
+-- Hoja del cuchillo: un tono claro del color de mejora
+local BLADE = Color3.fromRGB(200, 202, 206)
+local EDGE = Color3.fromRGB(236, 240, 244)
+local GLOVE = Color3.fromRGB(122, 86, 86)
+local GLOVE_DARK = Color3.fromRGB(92, 62, 64)
+local STUD = Color3.fromRGB(236, 234, 222)
+local HANDLE = Color3.fromRGB(62, 42, 30)
+local POMMEL = Color3.fromRGB(150, 152, 158)
 
 local SWING_TIME = 0.28
 
@@ -24,7 +34,9 @@ local AIM_OFFSET = CFrame.new(0, -0.55, -1.7)
 local BASE_FOV = 80
 
 type PieceSpec = { Size: Vector3, Offset: CFrame, Color: Color3, Neon: boolean? }
-type ModelSpec = { Pieces: { PieceSpec }, Muzzle: CFrame, LeftHand: Vector3 }
+-- Arm reemplaza la mano derecha de siempre; sin LeftHand no hay mano izquierda;
+-- Hip cambia dónde se ve el arma en la pantalla
+type ModelSpec = { Pieces: { PieceSpec }, Muzzle: CFrame, LeftHand: Vector3?, Arm: { PieceSpec }?, Hip: CFrame? }
 
 local function p(size: Vector3, offset: CFrame, color: Color3, neon: boolean?): PieceSpec
 	return { Size = size, Offset = offset, Color = color, Neon = neon }
@@ -33,18 +45,50 @@ end
 -- Piezas relativas al centro del arma (el cañón apunta hacia -Z).
 -- Las piezas GUNMETAL y STEEL toman los colores del nivel de mejora.
 local MODELS: { [string]: ModelSpec } = {
-	Machete = {
-		Muzzle = CFrame.new(0, 0.1, -2),
-		-- La mano izquierda queda fuera de la vista
-		LeftHand = Vector3.new(-1.6, -1.6, 0.6),
-		Pieces = {
-			p(Vector3.new(0.26, 0.3, 0.85), CFrame.new(0, -0.25, 0.45), WOOD),
-			p(Vector3.new(0.55, 0.12, 0.18), CFrame.new(0, -0.05, 0.02), GUNMETAL),
-			p(Vector3.new(0.07, 0.42, 1.7), CFrame.new(0, 0.05, -0.85), STEEL),
-			p(Vector3.new(0.07, 0.3, 0.55), CFrame.new(0, 0.16, -1.85) * CFrame.Angles(0.35, 0, 0), STEEL),
-			p(Vector3.new(0.08, 0.08, 1.5), CFrame.new(0, -0.17, -0.8), GUNMETAL),
-		},
-	},
+	Machete = (function(): ModelSpec
+		-- Todo relativo al puño. `knife` apunta la hoja hacia la derecha y un poco
+		-- adelante, con la punta levantada.
+		local knife = CFrame.Angles(0, 0.25, 0) * CFrame.Angles(0, 0, 0.1)
+		local forearm = CFrame.new(0.6, -0.55, 1.15) * CFrame.Angles(0.45, -0.5, 0)
+		local fist = CFrame.Angles(0, 0, 0.25)
+		local pieces = {
+			-- Mango, pomo, guarda
+			p(Vector3.new(1.1, 0.26, 0.26), knife * CFrame.new(-0.45, 0, 0), HANDLE),
+			p(Vector3.new(0.32, 0.34, 0.34), knife * CFrame.new(-1.05, 0, 0), POMMEL),
+			p(Vector3.new(0.2, 0.75, 0.36), knife * CFrame.new(0.5, 0, 0), GUNMETAL),
+			-- Hoja ancha de cuchillo grande, con el lomo y el filo de otro tono
+			p(Vector3.new(2.9, 0.62, 0.07), knife * CFrame.new(2.05, 0.05, 0), BLADE),
+			p(Vector3.new(2.9, 0.12, 0.08), knife * CFrame.new(2.05, 0.34, 0), STEEL),
+			p(Vector3.new(2.6, 0.1, 0.08), knife * CFrame.new(2.0, -0.22, 0), EDGE),
+			p(Vector3.new(0.75, 0.46, 0.07), knife * CFrame.new(3.6, 0.13, 0) * CFrame.Angles(0, 0, 0.5), BLADE),
+			p(Vector3.new(0.26, 0.18, 0.08), knife * CFrame.new(0.78, -0.21, 0), DARK),
+		}
+		local arm = {
+			-- Puño de cuero con nudillos y pulgar
+			p(Vector3.new(0.82, 0.78, 0.78), fist, GLOVE),
+			p(Vector3.new(0.84, 0.26, 0.34), fist * CFrame.new(0, 0.3, -0.26), GLOVE_DARK),
+			p(Vector3.new(0.32, 0.32, 0.5), fist * CFrame.new(-0.38, 0.22, -0.08), GLOVE),
+			-- Antebrazo con el puño de la manga, hacia abajo a la derecha
+			p(Vector3.new(0.78, 0.78, 2.3), forearm, GLOVE),
+			p(Vector3.new(0.98, 0.98, 0.6), forearm * CFrame.new(0, 0, 1.0), GLOVE_DARK),
+		}
+		-- Tachas blancas sobre el guante
+		for _, spot in { Vector3.new(-0.2, 0.4, 0.15), Vector3.new(0.2, 0.4, 0.15) } do
+			table.insert(arm, p(Vector3.new(0.16, 0.05, 0.16), fist * CFrame.new(spot), STUD))
+		end
+		for _, z in { -0.7, 0, 0.7 } do
+			for _, x in { -0.2, 0.2 } do
+				table.insert(arm, p(Vector3.new(0.16, 0.05, 0.16), forearm * CFrame.new(x, 0.41, z), STUD))
+			end
+			table.insert(arm, p(Vector3.new(0.05, 0.16, 0.16), forearm * CFrame.new(0.41, 0, z), STUD))
+		end
+		return {
+			Muzzle = knife * CFrame.new(3.8, 0, 0),
+			Hip = CFrame.new(0.45, -1.4, -2.6),
+			Arm = arm,
+			Pieces = pieces,
+		}
+	end)(),
 	Pistol = {
 		Muzzle = CFrame.new(0, 0.1, -1.3),
 		LeftHand = Vector3.new(-0.12, -0.32, 0.05),
@@ -146,6 +190,7 @@ local cframes: { CFrame } = {}
 local flashPart: Part
 local flashLight: PointLight
 local muzzleOffset = MODELS.Pistol.Muzzle
+local hipOffset = HIP_OFFSET
 
 local currentWeapon = ""
 local currentLevel = -1
@@ -206,10 +251,14 @@ function Viewmodel.setWeapon(weaponId: string, zoomFactor: number, level: number
 
 	local model = MODELS[weaponId] or MODELS.Pistol
 	muzzleOffset = model.Muzzle
+	hipOffset = model.Hip or HIP_OFFSET
 	local specs = table.clone(model.Pieces)
-	table.move(RIGHT_ARM, 1, #RIGHT_ARM, #specs + 1, specs)
-	local left = leftArm(model.LeftHand)
-	table.move(left, 1, #left, #specs + 1, specs)
+	local arm = model.Arm or RIGHT_ARM
+	table.move(arm, 1, #arm, #specs + 1, specs)
+	if model.LeftHand then
+		local left = leftArm(model.LeftHand)
+		table.move(left, 1, #left, #specs + 1, specs)
+	end
 	for _, spec in specs do
 		local part = newPart(spec)
 		-- Color del nivel de mejora: cuerpo (Main) y detalles (Accent)
@@ -220,6 +269,8 @@ function Viewmodel.setWeapon(weaponId: string, zoomFactor: number, level: number
 			if tier.Glow then
 				part.Material = Enum.Material.Neon
 			end
+		elseif spec.Color == BLADE then
+			part.Color = tier.Accent:Lerp(Color3.new(1, 1, 1), 0.55)
 		end
 		table.insert(parts, part)
 		table.insert(offsets, spec.Offset)
@@ -250,14 +301,15 @@ local function update(dt: number)
 	local bobX = if moving then math.sin(walkTime * 8) * 0.05 * sway else 0
 	local bobY = if moving then math.abs(math.cos(walkTime * 8)) * 0.05 * sway else 0
 
-	local base = HIP_OFFSET:Lerp(AIM_OFFSET, aimAlpha)
-	-- Tajo del machete: de arriba a la derecha hacia abajo a la izquierda
+	local base = hipOffset:Lerp(AIM_OFFSET, aimAlpha)
+	-- Tajo del cuchillo: de la derecha hacia la izquierda, cruzando la pantalla
 	local swing = CFrame.identity
 	local swingAlpha = (os.clock() - swingStart) / SWING_TIME
 	if swingAlpha >= 0 and swingAlpha <= 1 then
 		local arc = math.sin(swingAlpha * math.pi)
 		local sweep = swingAlpha * 2 - 1
-		swing = CFrame.new(-0.7 * arc, 0.25 * arc - 0.3 * sweep, -0.4 * arc) * CFrame.Angles(-0.9 * arc, 0.8 * arc, -0.5 * sweep)
+		-- El puño avanza y gira: la hoja barre de la derecha hacia adelante a la izquierda
+		swing = CFrame.new(-0.55 * sweep * arc - 0.2 * arc, 0.15 * arc, -0.6 * arc) * CFrame.Angles(-0.2 * arc, 1.1 * arc, 0.25 * sweep * arc)
 	end
 	local root = camera.CFrame
 		* base

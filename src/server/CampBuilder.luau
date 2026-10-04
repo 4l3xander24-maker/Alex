@@ -445,16 +445,7 @@ function CampBuilder.build(map: Instance)
 		end
 	end
 
-	local spawn = Instance.new("SpawnLocation")
-	spawn.Name = "CampSpawn"
-	spawn.Anchored = true
-	spawn.Neutral = true
-	spawn.Duration = 0
-	spawn.Size = Vector3.new(10, 1, 6)
-	spawn.CFrame = CFrame.new(camp + Vector3.new(0, 0.5, -12))
-	spawn.Transparency = 1
-	spawn.CanCollide = false
-	spawn.Parent = map
+	-- Los jugadores aparecen en el círculo de runas (MapBuilder)
 end
 
 return CampBuilder

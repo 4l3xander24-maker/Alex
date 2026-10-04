@@ -6,6 +6,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage.Shared
 local Config = require(Shared.Config)
+local Paths = require(Shared.Paths)
 local Progression = require(Shared.Progression)
 local Remotes = require(Shared.Remotes)
 local DataService = require(script.Parent.DataService)
@@ -160,12 +161,13 @@ function PlayerService.init()
 				if state and now - state.LastDamaged >= talents.RegenDelay and hasTalent(player, "Regen") then
 					PlayerService.heal(player, talents.RegenPerSecond * REGEN_TICK)
 				end
-				-- Quien cae por el acantilado se lo lleva el mar
+				-- Quien cae por el acantilado (o al barranco) se lo lleva el agua
 				local humanoid = getHumanoid(player)
 				local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
 				if humanoid and humanoid.Health > 0 and root and (root :: BasePart).Position.Y < Config.Arena.FallKillY then
 					humanoid.Health = 0
-					Remotes.Notify:FireClient(player, "🌊 ¡Caíste al mar!")
+					local fellInRiver = Paths.inChasm((root :: BasePart).Position, 10)
+					Remotes.Notify:FireClient(player, if fellInRiver then "🌊 ¡Caíste al río!" else "🌊 ¡Caíste al mar!")
 				end
 			end
 		end
