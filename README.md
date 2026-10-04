@@ -8,6 +8,9 @@ comprando armas, mejoras, poderes y trampas a los NPC del campamento.
 
 _Vista previa: recreación con las medidas, colores y sprites del juego, no es captura de Roblox._
 
+🗺️ Plano del mapa visto desde arriba: [`docs/capturas/puente/07-plano-del-mapa.png`](docs/capturas/puente/07-plano-del-mapa.png)
+y el centro de cerca: [`docs/capturas/puente/08-plano-del-centro.png`](docs/capturas/puente/08-plano-del-centro.png).
+
 🎬 Video de la horda al anochecer: [`docs/capturas/pixel/horda-de-noche.mp4`](docs/capturas/pixel/horda-de-noche.mp4)
 (recreación, no captura de Roblox).
 
