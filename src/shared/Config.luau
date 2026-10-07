@@ -668,6 +668,55 @@ Config.Traps = {
 	},
 }
 
+-- Mascotas que vende la Bruja en la aldea. Te siguen y, durante las oleadas,
+-- atacan solas al zombi más cercano que esté a su alcance (Range, desde ti).
+-- Damage crece con la oleada igual que la vida de los zombis. Splash: daño en
+-- área alrededor del zombi. Se compran una vez y quedan guardadas.
+Config.Pets = {
+	Bat = {
+		DisplayName = "Murciélago",
+		Icon = "🦇",
+		Price = 600,
+		Damage = 1,
+		Rate = 1.6, -- ataques por segundo
+		Range = 26,
+		Color = Color3.fromRGB(70, 60, 80),
+		Description = "Muerde rápido a los zombis cercanos",
+	},
+	Wolf = {
+		DisplayName = "Lobo",
+		Icon = "🐺",
+		Price = 1200,
+		Damage = 3.2,
+		Rate = 0.8,
+		Range = 18,
+		Color = Color3.fromRGB(130, 132, 140),
+		Description = "Muerde fuerte a los que se te acercan",
+	},
+	Owl = {
+		DisplayName = "Búho",
+		Icon = "🦉",
+		Price = 1800,
+		Damage = 2.6,
+		Rate = 0.7,
+		Range = 45,
+		Color = Color3.fromRGB(150, 110, 70),
+		Description = "Ataca desde lejos",
+	},
+	Dragonling = {
+		DisplayName = "Dragoncito",
+		Icon = "🐲",
+		Price = 3500,
+		Damage = 2.2,
+		Rate = 0.6,
+		Range = 32,
+		Splash = 7,
+		Color = Color3.fromRGB(80, 170, 90),
+		Description = "Escupe fuego que quema a varios zombis",
+	},
+}
+Config.PetOrder = { "Bat", "Wolf", "Owl", "Dragonling" }
+
 Config.CritMultiplier = 2
 Config.BaseCritChance = 0.05
 

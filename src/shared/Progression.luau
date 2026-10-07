@@ -15,6 +15,9 @@ export type Profile = {
 	Equipped: string,
 	Powers: { [string]: number }, -- poderes comprados y su nivel (1 = recién comprado)
 	AmmoStorage: number, -- nivel de la cartuchera del Intendente
+	VillageBridge: boolean, -- ya reparó el puente a la aldea
+	Pets: { [string]: boolean }, -- mascotas compradas a la Bruja
+	Pet: string, -- mascota que lo acompaña ("" = ninguna)
 }
 
 local Progression = {}
@@ -42,6 +45,9 @@ function Progression.defaultProfile(): Profile
 		Equipped = "Pistol",
 		Powers = {},
 		AmmoStorage = 0,
+		VillageBridge = false,
+		Pets = {},
+		Pet = "",
 	}
 end
 

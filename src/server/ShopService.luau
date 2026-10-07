@@ -16,7 +16,7 @@ local TrapService = require(script.Parent.TrapService)
 local NOT_ENOUGH = "No tienes suficientes monedas"
 local CLOSED = "🔒 Las tiendas solo abren antes de la partida"
 -- Acciones que se pueden hacer en cualquier momento
-local ALWAYS_ALLOWED = { EquipWeapon = true }
+local ALWAYS_ALLOWED = { EquipWeapon = true, RepairVillageBridge = true, EquipPet = true }
 
 local ShopService = {}
 
@@ -164,6 +164,61 @@ function actions.BuyGate(player, _data, id)
 	end
 	TrapService.buildGate(id)
 	return true, `🚧 {slot.Name} construida`
+end
+
+-- Puente roto a la aldea: cada jugador lo repara una vez (queda guardado)
+function actions.RepairVillageBridge(player, data, _id)
+	if data.VillageBridge then
+		return false, "Ya reparaste el puente a la aldea"
+	end
+	local price = Config.Arena.VillageBridge.Price
+	if not DataService.spendCoins(player, price) then
+		return false, `Reparar el puente cuesta {price} 🪙`
+	end
+	data.VillageBridge = true
+	return true, "🔨 ¡Reparaste el puente! Ya puedes ir a la aldea"
+end
+
+-- Mascotas de la Bruja (Config.Pets)
+function actions.BuyPet(player, data, id)
+	local pet = Config.Pets[id]
+	if not pet then
+		return false, "Mascota desconocida"
+	end
+	if data.Pets[id] then
+		return false, "Ya tienes esta mascota"
+	end
+	if not DataService.spendCoins(player, pet.Price) then
+		return false, NOT_ENOUGH
+	end
+	data.Pets[id] = true
+	data.Pet = id
+	return true, `{pet.Icon} ¡{pet.DisplayName} ahora te acompaña!`
+end
+
+function actions.EquipPet(_player, data, id)
+	if id == "" then
+		data.Pet = ""
+		return true, "Tu mascota se queda en la aldea"
+	end
+	if not data.Pets[id] then
+		return false, "No tienes esta mascota"
+	end
+	data.Pet = id
+	return true, `{Config.Pets[id].Icon} {Config.Pets[id].DisplayName} te acompaña`
+end
+
+-- Para avisos fuera de las ventanas de tienda (como el letrero del puente)
+function ShopService.run(player: Player, action: string, id: string): (boolean, string)
+	local data = DataService.get(player)
+	if not data then
+		return false, "Tu perfil aún está cargando"
+	end
+	local ok, message = actions[action](player, data, id)
+	if ok then
+		DataService.changed(player, "Shop")
+	end
+	return ok, message
 end
 
 function ShopService.isOpen(): boolean

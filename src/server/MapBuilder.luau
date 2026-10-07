@@ -343,6 +343,18 @@ local function buildScenery(map: Instance)
 	-- Cementerio, castillo (y casas en el tema medieval) y el puente de piedra
 	MedievalBuilder.build(map)
 	BridgeBuilder.build(map)
+	-- Puente roto a la aldea: las tablas que faltan quedan guardadas para que
+	-- cada cliente las ponga cuando su jugador lo repara (VillageService)
+	local planks, sign = BridgeBuilder.buildVillageBridge(map)
+	planks.Parent = ReplicatedStorage
+	local repair = Instance.new("ProximityPrompt")
+	repair.Name = "VillageRepairPrompt"
+	repair.ActionText = `Reparar puente ({Config.Arena.VillageBridge.Price} 🪙)`
+	repair.ObjectText = "Puente a la aldea"
+	repair.HoldDuration = 1
+	repair.MaxActivationDistance = 12
+	repair.RequiresLineOfSight = false
+	repair.Parent = sign
 
 	-- Rocas sueltas
 	for _ = 1, 45 do
@@ -429,7 +441,22 @@ local function buildScenery(map: Instance)
 	end
 
 	-- El molino está en la aldea (VillageService cura a quien está cerca entre oleadas)
-	buildWindmill(map, Config.Arena.Windmill.Position)
+	local windmillPosition = Config.Arena.Windmill.Position
+	buildWindmill(map, windmillPosition)
+	local note = makeProp({ Name = "WindmillNote", Size = Vector3.one * 0.2, Position = windmillPosition + Vector3.new(0, 28, 0), Transparency = 1, Parent = map })
+	local billboard = Instance.new("BillboardGui")
+	billboard.Size = UDim2.fromOffset(220, 46)
+	billboard.MaxDistance = 90
+	billboard.Parent = note
+	local text = Instance.new("TextLabel")
+	text.Size = UDim2.fromScale(1, 1)
+	text.BackgroundTransparency = 1
+	text.Font = Config.PixelFont
+	text.TextScaled = true
+	text.TextColor3 = Color3.fromRGB(255, 225, 140)
+	text.TextStrokeTransparency = 0.2
+	text.Text = "🍞 MOLINO\nentre oleadas te cura"
+	text.Parent = billboard
 	buildPathFence(map)
 
 	-- Montañas de bloques en el horizonte. Con StreamingEnabled se quedan
