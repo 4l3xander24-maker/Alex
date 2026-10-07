@@ -18,14 +18,21 @@ local IslandBuilder = {}
 local arena = Config.Arena
 local DEEP = arena.SeaLevel - 25 -- fondo del mar
 
--- Rocas que asoman de las paredes del acantilado a lo largo de una línea
+-- Paredes naturales: rocas grandes y chicas que sobresalen a distintas
+-- alturas (como acantilados de terreno de Roblox) y pasto que cuelga del borde
 local function rockyEdge(terrain: Terrain, from: Vector3, to: Vector3)
 	local offset = to - from
-	local steps = math.max(1, math.floor(offset.Magnitude / 9))
+	local steps = math.max(1, math.floor(offset.Magnitude / 6))
 	for index = 0, steps do
 		local point = from + offset * (index / steps)
-		local position = Vector3.new(point.X + random:NextNumber(-3, 3), random:NextNumber(arena.SeaLevel - 4, -12), point.Z + random:NextNumber(-3, 3))
-		terrain:FillBall(position, random:NextNumber(4, 8), Enum.Material.Rock)
+		for _ = 1, 3 do
+			local position = Vector3.new(point.X + random:NextNumber(-4, 4), random:NextNumber(arena.SeaLevel - 4, -10), point.Z + random:NextNumber(-4, 4))
+			terrain:FillBall(position, random:NextNumber(4, 9), Enum.Material.Rock)
+		end
+		-- Labio de pasto que sobresale arriba
+		if random:NextNumber() < 0.6 then
+			terrain:FillBall(Vector3.new(point.X + random:NextNumber(-2, 2), random:NextNumber(-3.5, -2), point.Z + random:NextNumber(-2, 2)), random:NextNumber(2.5, 4), Enum.Material.Grass)
+		end
 	end
 end
 
