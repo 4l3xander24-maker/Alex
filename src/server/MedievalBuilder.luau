@@ -42,8 +42,8 @@ function MedievalBuilder.isClear(position: Vector3, margin: number): boolean
 	if Paths.distanceToAny(position) < Config.PathStyle.Width / 2 + margin then
 		return false
 	end
-	if Paths.inChasm(position, margin + 4) then
-		return false
+	if not Paths.isGround(position, margin) then
+		return false -- en el agua o pegado al acantilado
 	end
 	local castle = Config.Arena.Castle
 	if (Vector3.new(position.X, 0, position.Z) - castle).Magnitude < 40 + margin then
@@ -109,7 +109,7 @@ local function lightPaths(map: Instance)
 				break
 			end
 			-- El puente tiene sus propias antorchas, y junto al castillo no caben
-			if Paths.inChasm(point, 8) or (point - Config.Arena.Castle).Magnitude < 14 then
+			if not Paths.isGround(point, 8) or (point - Config.Arena.Castle).Magnitude < 14 then
 				continue
 			end
 			local across = Vector3.new(-direction.Z, 0, direction.X)
@@ -328,24 +328,22 @@ function MedievalBuilder.build(map: Instance)
 
 	lightPaths(map)
 
-	-- Aldea a los lados del campo, mirando hacia la campana
+	-- La aldea, en su isla: casas mirando a la plaza, el pozo y una carreta
+	local village = Config.Arena.Islands.Village.Disks[1]
+	local plaza = Vector3.new(village.Center.X, 0, village.Center.Y)
 	local houses = {
-		{ Vector3.new(-100, 0, -30), 14, 10 },
-		{ Vector3.new(-128, 0, -78), 12, 9 },
-		{ Vector3.new(-150, 0, -24), 16, 11 },
-		{ Vector3.new(112, 0, -14), 13, 10 },
-		{ Vector3.new(-96, 0, -125), 12, 9 },
-		{ Vector3.new(150, 0, -40), 12, 9 },
+		{ Vector3.new(125, 0, -45), 14, 10 },
+		{ Vector3.new(160, 0, -35), 12, 9 },
+		{ Vector3.new(168, 0, 5), 13, 10 },
+		{ Vector3.new(145, 0, 28), 12, 9 },
 	}
 	for _, house in houses do
-		local position = house[1]
-		if MedievalBuilder.isClear(position, 8) then
-			local frame = CFrame.lookAt(position, Vector3.zero) * CFrame.Angles(0, random:NextNumber(-0.3, 0.3), 0)
-			buildHouse(map, frame, house[2], house[3])
-		end
+		local frame = CFrame.lookAt(house[1], plaza) * CFrame.Angles(0, random:NextNumber(-0.2, 0.2), 0)
+		buildHouse(map, frame, house[2], house[3])
 	end
-	buildWell(map, Vector3.new(-30, 0, -12))
-	buildCart(map, CFrame.new(-44, 0, 2) * CFrame.Angles(0, 0.6, 0))
+	buildWell(map, plaza + Vector3.new(0, 0, 5))
+	buildCart(map, CFrame.new(plaza + Vector3.new(16, 0, -10)) * CFrame.Angles(0, 0.6, 0))
+	Props.banner(map, plaza + Vector3.new(-8, 0, -6), 0, Color3.fromRGB(40, 110, 60))
 
 	-- Velas al pie del montículo de la campana
 	for _, corner in { Vector3.new(-12, 0, 6), Vector3.new(12, 0, 6), Vector3.new(-12, 0, -6), Vector3.new(12, 0, -6) } do

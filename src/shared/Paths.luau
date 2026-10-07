@@ -56,47 +56,99 @@ function Paths.segmentDistance(point: Vector3, a: Vector3, b: Vector3): number
 	return math.sqrt(dx * dx + dz * dz)
 end
 
--- El barranco cruza todo el mapa; solo se pasa por el puente.
--- true si el punto está sobre el barranco (con `margin` studs de más)
-function Paths.inChasm(point: Vector3, margin: number?): boolean
-	local ravine = Config.Arena.Ravine
-	local extra = margin or 0
-	return point.Z > ravine.ZMin - extra and point.Z < ravine.ZMax + extra
-end
+-- Tierra firme: el bosque al norte del canal y las islas del sur (todo lo
+-- demás es agua, abajo de los acantilados). Los zombis solo pisan el bosque,
+-- el puente de piedra y la isla principal: nunca van a la aldea.
 
--- true si el punto está dentro del ancho del puente (sin contar los muros)
-function Paths.onBridge(point: Vector3): boolean
-	local bridge = Config.Arena.Bridge
-	return math.abs(point.X - bridge.X) <= bridge.Width / 2 - 1
-end
-
--- true si ir en línea recta de a hasta b obliga a cruzar el barranco por
--- fuera del puente (los zombis no pueden: se caerían)
-function Paths.crossesChasm(a: Vector3, b: Vector3): boolean
-	local ravine = Config.Arena.Ravine
-	local low, high = math.min(a.Z, b.Z), math.max(a.Z, b.Z)
-	if high <= ravine.ZMin or low >= ravine.ZMax then
+-- true si el punto está dentro de la isla (con `margin` studs hacia adentro)
+function Paths.onIsland(point: Vector3, name: string, margin: number?): boolean
+	local inset = margin or 0
+	local island = Config.Arena.Islands[name]
+	if name == "Main" and point.Z > Config.Arena.CliffZ - inset then
 		return false
 	end
-	if a.Z == b.Z then
-		return not Paths.onBridge(a) or not Paths.onBridge(b)
+	for _, box in island.Boxes do
+		if math.abs(point.X - box.Center.X) <= box.Size.X / 2 - inset and math.abs(point.Z - box.Center.Y) <= box.Size.Y / 2 - inset then
+			return true
+		end
 	end
-	-- En un tramo recto X cambia parejo con Z: basta revisar dónde entra y sale
-	local function xAt(z: number): number
-		return a.X + (b.X - a.X) * (z - a.Z) / (b.Z - a.Z)
+	for _, disk in island.Disks do
+		local dx, dz = point.X - disk.Center.X, point.Z - disk.Center.Y
+		if dx * dx + dz * dz <= (disk.Radius - inset) ^ 2 then
+			return true
+		end
 	end
-	local enter, leave = math.max(low, ravine.ZMin), math.min(high, ravine.ZMax)
-	return not Paths.onBridge(Vector3.new(xAt(enter), 0, enter)) or not Paths.onBridge(Vector3.new(xAt(leave), 0, leave))
+	return false
 end
 
--- Si el punto cae sobre el barranco, lo corre hasta el puente
-function Paths.clampToBridge(point: Vector3): Vector3
-	if not Paths.inChasm(point) or Paths.onBridge(point) then
-		return point
+-- true si está en el bosque, del lado norte del canal
+function Paths.onNorthLand(point: Vector3, margin: number?): boolean
+	return point.Z <= Config.Arena.Ravine.ZMin - (margin or 0)
+end
+
+-- true si es tierra firme (sin contar los puentes)
+function Paths.isGround(point: Vector3, margin: number?): boolean
+	if Paths.onNorthLand(point, margin) then
+		return true
 	end
+	for name in Config.Arena.Islands do
+		if Paths.onIsland(point, name, margin) then
+			return true
+		end
+	end
+	return false
+end
+
+-- Distancia al eje de un puente {From, To} y cuánto se avanzó sobre él (0 a 1)
+local function bridgeOffset(bridge, point: Vector3): (number, number)
+	local from, to = bridge.From, bridge.To
+	local dx, dz = to.X - from.X, to.Z - from.Z
+	local length = math.sqrt(dx * dx + dz * dz)
+	local ux, uz = dx / length, dz / length
+	local px, pz = point.X - from.X, point.Z - from.Z
+	return math.abs(px * uz - pz * ux), (px * ux + pz * uz) / length
+end
+
+-- true si el punto está sobre el puente de piedra (sin contar los muros)
+function Paths.onBridge(point: Vector3): boolean
 	local bridge = Config.Arena.Bridge
-	local half = bridge.Width / 2 - 1
-	return Vector3.new(math.clamp(point.X, bridge.X - half, bridge.X + half), point.Y, point.Z)
+	local across, along = bridgeOffset(bridge, point)
+	return across <= bridge.Width / 2 - 1 and along >= -0.02 and along <= 1.02
+end
+
+-- Donde pueden caminar los zombis: el bosque, el puente de piedra y la isla principal
+function Paths.isEnemyGround(point: Vector3): boolean
+	return Paths.onNorthLand(point) or Paths.onBridge(point) or Paths.onIsland(point, "Main")
+end
+
+local STEP = 2.5
+
+-- true si ir en línea recta de a hasta b obliga a pasar por el agua (los
+-- zombis no pueden: se caerían). Se revisa cada pocos studs.
+function Paths.crossesChasm(a: Vector3, b: Vector3): boolean
+	local offset = Vector3.new(b.X - a.X, 0, b.Z - a.Z)
+	local steps = math.max(1, math.ceil(offset.Magnitude / STEP))
+	for index = 0, steps do
+		if not Paths.isEnemyGround(a + offset * (index / steps)) then
+			return true
+		end
+	end
+	return false
+end
+
+-- El punto más lejos de `from` hacia `to` al que se llega sin pisar el agua
+function Paths.lastWalkable(from: Vector3, to: Vector3): Vector3
+	local offset = Vector3.new(to.X - from.X, 0, to.Z - from.Z)
+	local steps = math.max(1, math.ceil(offset.Magnitude / STEP))
+	local best = from
+	for index = 1, steps do
+		local point = from + offset * (index / steps)
+		if not Paths.isEnemyGround(point) then
+			break
+		end
+		best = point
+	end
+	return Vector3.new(best.X, to.Y, best.Z)
 end
 
 -- Distancia al camino más cercano (para no poner árboles encima)

@@ -44,8 +44,8 @@ local function tileKind(center: Vector3): string
 	if Vector3.new(campOffset.X, 0, campOffset.Z).Magnitude < arena.CampRadius then
 		return "Dirt"
 	end
-	-- Sobre el barranco no hay baldosas
-	if Paths.inChasm(center, TILE / 2) then
+	-- Sobre el agua no hay baldosas
+	if not Paths.isGround(center) then
 		return "Chasm"
 	end
 	local width = Config.PathStyle.Width / 2 + 1
@@ -121,17 +121,17 @@ local function buildBase(map: Instance)
 	base.Name = "GroundBase"
 	base.ModelStreamingMode = Enum.ModelStreamingMode.Persistent
 	local cliffZ = Config.Arena.CliffZ
-	-- Dos pedazos: entre el acantilado y el barranco, y del barranco hasta el horizonte
+	-- Solo al norte (el bosque); al sur todo es mar con islas (IslandBuilder)
 	local ravine = Config.Arena.Ravine
-	for _, span in { { ravine.ZMax, cliffZ }, { -BASE_SIZE / 2, ravine.ZMin } } do
+	for _, span in { { -BASE_SIZE / 2, ravine.ZMin } } do
 		local length = span[2] - span[1]
 		makePart({ Name = "Base", Size = Vector3.new(BASE_SIZE, 2, length), Position = Vector3.new(0, -1.05, (span[1] + span[2]) / 2), Color = shade(theme.Ground, 0.95), Parent = base })
 	end
 
-	-- Acantilado: columnas de bloques de roca de distintos tonos
+	-- Acantilado detrás del campamento: columnas de bloques de roca de distintos tonos
 	local rock = Color3.fromRGB(96, 96, 104)
 	local sea = Config.Arena.SeaLevel
-	for x = -BASE_SIZE / 2, BASE_SIZE / 2 - 1, 16 do
+	for x = -64, 48, 16 do
 		local y = 0
 		while y > sea - 6 do
 			local height = random:NextNumber(8, 16)
@@ -141,10 +141,8 @@ local function buildBase(map: Instance)
 		end
 	end
 
-	-- El mar: un bloque azul con espuma y rocas de cubos
-	local seaLength = BASE_SIZE / 2
-	makeProp({ Name = "Sea", Size = Vector3.new(BASE_SIZE, 1, seaLength), Position = Vector3.new(0, sea - 0.5, cliffZ + seaLength / 2), Color = Color3.fromRGB(38, 104, 150), Material = Enum.Material.Glass, Transparency = 0.15, Reflectance = 0.15, Parent = base })
-	for x = -300, 300, 6 do
+	-- Espuma al pie del acantilado y rocas de cubos en el mar (el agua la pone IslandBuilder)
+	for x = -60, 60, 6 do
 		if random:NextNumber() < 0.6 then
 			makeProp({ Name = "Foam", Size = Vector3.new(random:NextNumber(2, 5), 0.4, random:NextNumber(1, 2.5)), Position = Vector3.new(x, sea + 0.1, cliffZ + random:NextNumber(8, 11)), Color = Color3.fromRGB(225, 240, 245), CastShadow = false, Parent = base })
 		end

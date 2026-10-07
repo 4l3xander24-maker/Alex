@@ -1,9 +1,10 @@
 -- Construye el mapa por código para que el juego funcione en un lugar vacío:
--- un claro con la campana sobre un montículo (BellTower), el círculo de runas
--- donde aparecen los jugadores y el campamento detrás (fogata, tiendas,
--- empalizada y los NPC), al borde de un acantilado que cae al mar. Adelante,
--- un barranco con un río que solo se cruza por el puente de piedra
--- (BridgeBuilder); del otro lado, el bosque de donde salen los zombis.
+-- la isla principal con la campana sobre un montículo (BellTower), el círculo
+-- de runas donde aparecen los jugadores y el campamento detrás (fogata,
+-- tiendas, empalizada y los NPC); la isla de la aldea (la Bruja y el molino),
+-- a la que se llega por un puente de madera roto; y al norte, cruzando el
+-- puente de piedra en diagonal (BridgeBuilder), el bosque de donde salen los
+-- zombis. Todo lo demás es mar (IslandBuilder).
 -- Según el tema: noche medieval con velas, atardecer de otoño o noche con luna.
 -- Usa materiales con textura y luz Future para verse lo más realista posible.
 local Lighting = game:GetService("Lighting")
@@ -11,9 +12,11 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local DayCycle = require(ReplicatedStorage.Shared.DayCycle)
+local Paths = require(ReplicatedStorage.Shared.Paths)
 local BellTower = require(script.Parent.BellTower)
 local BridgeBuilder = require(script.Parent.BridgeBuilder)
 local CampBuilder = require(script.Parent.CampBuilder)
+local IslandBuilder = require(script.Parent.IslandBuilder)
 local MedievalBuilder = require(script.Parent.MedievalBuilder)
 local VoxelBuilder = require(script.Parent.VoxelBuilder)
 local Props = require(script.Parent.Props)
@@ -33,9 +36,6 @@ local MapBuilder = {}
 local function buildTerrain()
 	local terrain = workspace.Terrain
 	local arena = Config.Arena
-	local half = arena.GroundSize / 2
-	local cliffZ = arena.CliffZ
-	local sea = arena.SeaLevel
 	terrain:Clear()
 	terrain:SetMaterialColor(Enum.Material.Grass, theme.Ground)
 	-- Las manchas de LeafyGrass hacen de hojas caídas
@@ -46,38 +46,15 @@ local function buildTerrain()
 	terrain:SetMaterialColor(Enum.Material.Rock, Color3.fromRGB(78, 82, 88))
 	terrain:SetMaterialColor(Enum.Material.Sand, Color3.fromRGB(150, 140, 110))
 
-	-- Suelo de pasto (arriba en y = 0) hasta el borde del acantilado
-	local landLength = cliffZ + half
-	terrain:FillBlock(CFrame.new(0, -4, cliffZ - landLength / 2), Vector3.new(arena.GroundSize, 8, landLength), Enum.Material.Grass)
-
-	-- Pared de roca del acantilado, irregular, hasta debajo del mar
-	local rockTop, rockBottom = -8, sea - 30
-	terrain:FillBlock(CFrame.new(0, (rockTop + rockBottom) / 2, cliffZ - 15), Vector3.new(arena.GroundSize, rockTop - rockBottom, 30), Enum.Material.Rock)
-	for x = -half, half, 16 do
-		local position = Vector3.new(x + random:NextNumber(-6, 6), random:NextNumber(sea - 10, -6), cliffZ + random:NextNumber(-3, 2))
-		terrain:FillBall(position, random:NextNumber(5, 11), Enum.Material.Rock)
-	end
-
-	-- El mar: fondo de arena, agua y rocas que asoman
-	local seaLength = half - cliffZ
-	terrain:FillBlock(CFrame.new(0, sea - 30, cliffZ + seaLength / 2), Vector3.new(arena.GroundSize, 10, seaLength), Enum.Material.Sand)
-	terrain:FillBlock(CFrame.new(0, sea - 12.5, cliffZ + seaLength / 2), Vector3.new(arena.GroundSize, 25, seaLength), Enum.Material.Water)
-	for _ = 1, 30 do
-		local position = Vector3.new(random:NextNumber(-half, half), sea - random:NextNumber(2, 8), cliffZ + random:NextNumber(8, 160))
-		terrain:FillBall(position, random:NextNumber(4, 14), Enum.Material.Rock)
-	end
-	terrain.WaterColor = Color3.fromRGB(25, 70, 80)
-	terrain.WaterTransparency = 0.35
-	terrain.WaterReflectance = 0.6
-	terrain.WaterWaveSize = 0.3
-	terrain.WaterWaveSpeed = 10
+	-- Mar, bosque al norte e islas
+	IslandBuilder.buildTerrain(terrain)
 
 	-- Manchas de pasto alto y lodo en el campo de batalla
 	for _ = 1, 40 do
 		local angle = random:NextNumber(0, math.pi * 2)
 		local radius = random:NextNumber(30, 230)
 		local position = Vector3.new(math.cos(angle) * radius, -3.2, math.sin(angle) * radius)
-		if position.Z < cliffZ - 12 then
+		if Paths.isGround(position, 10) then
 			local material = if random:NextNumber() < 0.6 then Enum.Material.LeafyGrass else Enum.Material.Mud
 			terrain:FillBall(position, random:NextNumber(4, 9), material)
 		end
@@ -89,10 +66,8 @@ local function buildTerrain()
 	-- Camino de adoquines del campamento a la campana, y un anillo alrededor de la torre
 	terrain:FillBlock(CFrame.new(0, -2, camp.Z / 2), Vector3.new(9, 4.1, camp.Z), Enum.Material.Cobblestone)
 	terrain:FillCylinder(CFrame.new(0, -2, 0), 4.1, arena.TowerSize / 2 + 5, Enum.Material.Cobblestone)
-	-- Los caminos angostos por donde llegan los zombis
+	-- Los caminos angostos por donde llegan los zombis (no sobre el agua)
 	MedievalBuilder.paintPaths(terrain)
-	-- El barranco con el río (borra lo que se pintó encima)
-	BridgeBuilder.carveTerrain(terrain)
 
 	-- Pasto 3D animado (si Roblox lo permite desde un script)
 	pcall(function()
@@ -100,9 +75,10 @@ local function buildTerrain()
 	end)
 end
 
--- Los árboles y rocas no van sobre el mar ni pegados al borde
+-- Los árboles y rocas van en tierra firme, no pegados al borde. En la aldea
+-- no hay árboles sueltos: ahí van las casas, el molino y la Bruja.
 local function onLand(position: Vector3, margin: number): boolean
-	return position.Z < Config.Arena.CliffZ - margin
+	return Paths.isGround(position, margin) and not Paths.onIsland(position, "Village", -6)
 end
 
 -- La campana (destruida al empezar) sobre su montículo, con los avisos para
@@ -394,11 +370,18 @@ local function buildScenery(map: Instance)
 			buildTree(map, position, random:NextNumber(1, 1.8))
 		end
 	end
-	-- Muro de bosque alrededor del claro: de aquí salen los zombis
+	-- Muro de bosque alrededor del claro
 	for _ = 1, 190 do
 		local position = randomRingPoint(200, 280)
-		if position.Z < Config.Arena.CliffZ - 30 and MedievalBuilder.isClear(position, 5) then
+		if onLand(position, 6) and MedievalBuilder.isClear(position, 5) then
 			buildTree(map, position, random:NextNumber(1.1, 1.9))
+		end
+	end
+	-- El bosque del norte, tupido: de entre estos árboles salen los zombis
+	for _ = 1, 280 do
+		local position = Vector3.new(random:NextNumber(-430, 430), 0, random:NextNumber(-360, -135))
+		if onLand(position, 8) and MedievalBuilder.isClear(position, 5) then
+			buildTree(map, position, random:NextNumber(1, 1.8))
 		end
 	end
 	-- Algunos pinos sueltos a los lados y detrás del campamento
@@ -445,7 +428,8 @@ local function buildScenery(map: Instance)
 		end
 	end
 
-	buildWindmill(map, Vector3.new(-68, 0, 18))
+	-- El molino está en la aldea (VillageService cura a quien está cerca entre oleadas)
+	buildWindmill(map, Config.Arena.Windmill.Position)
 	buildPathFence(map)
 
 	-- Montañas de bloques en el horizonte. Con StreamingEnabled se quedan
@@ -454,6 +438,18 @@ local function buildScenery(map: Instance)
 	mountains.Name = "Mountains"
 	mountains.ModelStreamingMode = Enum.ModelStreamingMode.Persistent
 	mountains.Parent = map
+	-- Cordillera al norte, detrás del bosque: tapa el horizonte
+	for x = -820, 820, 110 do
+		local base = Vector3.new(x + random:NextNumber(-30, 30), 0, random:NextNumber(-540, -450))
+		local width = random:NextNumber(150, 230)
+		local y = 0
+		for step = 1, 4 do
+			local layerWidth = width * (1 - (step - 1) * 0.22)
+			local layerHeight = random:NextNumber(45, 90)
+			makeProp({ Name = "Mountain", Size = Vector3.new(layerWidth, layerHeight, layerWidth), CFrame = CFrame.new(base + Vector3.new(0, y + layerHeight / 2, 0)) * CFrame.Angles(0, math.rad(45), 0), Material = Enum.Material.Rock, Color = Props.vary(Color3.fromRGB(98, 80, 66), 0.1, random), CastShadow = false, Parent = mountains })
+			y += layerHeight * 0.85
+		end
+	end
 	for index = 1, 16 do
 		local angle = (index / 16) * math.pi * 2 + random:NextNumber(-0.1, 0.1)
 		local radius = random:NextNumber(650, 800)
@@ -632,7 +628,7 @@ function MapBuilder.build(): Folder
 	if Config.Style.Tiles then
 		-- Pixel art 3D: suelo de baldosas en vez del terreno de Roblox
 		VoxelBuilder.build(map)
-		BridgeBuilder.buildVoxelRavine(map)
+		IslandBuilder.buildVoxel(map)
 	else
 		buildTerrain()
 	end

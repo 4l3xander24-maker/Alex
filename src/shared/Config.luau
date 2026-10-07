@@ -177,9 +177,11 @@ Config.Graphics = {
 }
 
 -- La campana está en el origen, sobre un montículo con un castillo en ruinas
--- detrás. El campamento queda atrás (+Z), al borde de un acantilado sobre el
--- mar. Adelante (-Z) un barranco con un río cruza todo el mapa: el único paso
--- es el puente de piedra, y del otro lado está el bosque de donde salen los zombis.
+-- detrás. Todo el sur es agua (el mar, abajo de los acantilados) con dos islas:
+-- la PRINCIPAL (campana, castillo y campamento) y la de la ALDEA (la Bruja, las
+-- mascotas y el molino), unidas por un puente de madera roto que se repara con
+-- monedas. Al norte (-Z), del otro lado del canal, el bosque de donde salen los
+-- zombis: el único paso es el puente de piedra, en diagonal.
 Config.Arena = {
 	GroundSize = 1400,
 	TowerSize = 14,
@@ -193,10 +195,32 @@ Config.Arena = {
 	FallKillY = -30, -- si caes por debajo de esta altura, te lleva el mar (o el río)
 	-- Círculo negro de runas donde aparecen los jugadores
 	SpawnCircle = Vector3.new(0, 0, 17),
-	-- Barranco: franja en Z que cruza todo el mapa, con el río abajo
-	Ravine = { ZMin = -122, ZMax = -82, Bottom = -46, WaterLevel = -37 },
-	-- Puente de piedra sobre el barranco (a lo largo de Z)
-	Bridge = { X = 0, Width = 12 },
+	-- Canal entre el bosque (z < ZMin) y la isla principal (empieza en ZMax)
+	Ravine = { ZMin = -122, ZMax = -82 },
+	-- Puente de piedra sobre el canal, en diagonal: de From (orilla del bosque)
+	-- a To (isla principal)
+	Bridge = { From = Vector3.new(-29, 0, -127), To = Vector3.new(0, 0, -77), Width = 12 },
+	-- Islas de tierra firme al sur (x, z): rectángulos y círculos. La principal
+	-- termina atrás en el acantilado (CliffZ)
+	Islands = {
+		Main = {
+			Boxes = {
+				{ Center = Vector2.new(1, -41), Size = Vector2.new(70, 82) }, -- del puente a la campana
+				{ Center = Vector2.new(41, -7), Size = Vector2.new(22, 26) }, -- muelle hacia la aldea
+			},
+			Disks = { { Center = Vector2.new(0, 38), Radius = 58 } }, -- campamento
+		},
+		Village = {
+			Boxes = {},
+			Disks = { { Center = Vector2.new(135, -10), Radius = 50 } },
+		},
+	},
+	-- Puente de madera a la aldea: empieza ROTO y cada jugador lo repara una vez
+	VillageBridge = { From = Vector3.new(49, 0, -8), To = Vector3.new(88, 0, -8), Width = 6, Price = 500 },
+	-- El molino de la aldea: entre oleadas, cerca de él te curas (pan recién hecho)
+	Windmill = { Position = Vector3.new(112, 0, 20), Radius = 18, HealPerSecond = 15 },
+	-- Puesto de la Bruja (pociones y mascotas) en la aldea, mirando al puente
+	MysticStall = { Position = Vector3.new(108, 0, -16), LookAt = Vector3.new(88, 0, -8) },
 	-- Castillo en ruinas detrás de la campana; el camino pasa por su arco
 	Castle = Vector3.new(0, 0, -40),
 }
@@ -209,9 +233,9 @@ Config.Arena = {
 -- Entrance: qué hay donde empieza (cripta; nada = bosque).
 -- Los jefes voladores no usan caminos: van en línea recta por el aire.
 local BRIDGE_ROAD = {
-	Vector3.new(0, 0, -150), -- cruce de los senderos
-	Vector3.new(0, 0, -127), -- entrada del puente
-	Vector3.new(0, 0, -77), -- salida del puente
+	Vector3.new(-45, 0, -155), -- cruce de los senderos
+	Config.Arena.Bridge.From, -- entrada del puente
+	Config.Arena.Bridge.To, -- salida del puente
 	Vector3.new(0, 0, -40), -- arco del castillo
 }
 local function road(points: { Vector3 }): { Vector3 }
@@ -225,7 +249,7 @@ Config.Paths = {
 		Points = road({
 			Vector3.new(-40, 0, -265),
 			Vector3.new(-55, 0, -215),
-			Vector3.new(-30, 0, -175),
+			Vector3.new(-50, 0, -180),
 		}),
 	},
 	ForestNorth = {
@@ -234,7 +258,7 @@ Config.Paths = {
 		Points = road({
 			Vector3.new(55, 0, -310),
 			Vector3.new(35, 0, -240),
-			Vector3.new(12, 0, -185),
+			Vector3.new(0, 0, -185),
 		}),
 	},
 	ForestWest = {
@@ -244,7 +268,7 @@ Config.Paths = {
 			Vector3.new(-270, 0, -205),
 			Vector3.new(-190, 0, -195),
 			Vector3.new(-110, 0, -180),
-			Vector3.new(-45, 0, -165),
+			Vector3.new(-70, 0, -168),
 		}),
 	},
 	ForestEast = {
@@ -254,7 +278,7 @@ Config.Paths = {
 			Vector3.new(270, 0, -215),
 			Vector3.new(190, 0, -200),
 			Vector3.new(110, 0, -185),
-			Vector3.new(45, 0, -165),
+			Vector3.new(30, 0, -170),
 		}),
 	},
 }
@@ -626,7 +650,7 @@ Config.Traps = {
 		-- Lugares donde se entierran: camino y distancia a la campana por el camino
 		Spots = {
 			{ "Main", 32 }, { "Main", 50 }, { "Main", 66 }, { "Main", 92 },
-			{ "Main", 104 }, { "Main", 116 }, { "Main", 136 }, { "Main", 146 },
+			{ "Main", 104 }, { "Main", 116 }, { "Main", 142 }, { "Main", 155 },
 		},
 	},
 	Gate = {
@@ -637,7 +661,7 @@ Config.Traps = {
 		-- Rejas de metal en los dos extremos del puente; solo aparecen si las
 		-- compras. At: distancia a la campana por el camino
 		Slots = {
-			Start = { Name = "Reja de la entrada del puente", Short = "Entrada del puente", Path = "Main", At = 123.5, Width = 14 },
+			Start = { Name = "Reja de la entrada del puente", Short = "Entrada del puente", Path = "Main", At = 131.3, Width = 14 },
 			End = { Name = "Reja de la salida del puente", Short = "Salida del puente", Path = "Main", At = 80.5, Width = 14 },
 		},
 		SlotOrder = { "Start", "End" },

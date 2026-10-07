@@ -270,8 +270,10 @@ local function buildArmory(map: Instance)
 	}, stall * CFrame.new(0, 0, 1.2))
 end
 
+-- La Bruja vive en la aldea (su propia isla), mirando al puente de madera
 local function buildMystic(map: Instance)
-	local stall = facingCamp(camp + Vector3.new(23, 0, 8))
+	local info = Config.Arena.MysticStall
+	local stall = CFrame.lookAt(info.Position, info.LookAt)
 	buildCanopy(map, stall, Color3.fromRGB(90, 50, 130))
 
 	local cauldron = stall * CFrame.new(0, 0, -2.6)

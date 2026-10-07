@@ -5,8 +5,9 @@
 -- jugador se acerca, el zombi deja el camino y lo persigue (se recalcula su
 -- línea recta varias veces por segundo); al soltarlo vuelve al camino. Si hay
 -- una reja en el camino, se detiene frente a ella y la golpea hasta romperla.
--- Los jefes voladores van en línea recta por el aire. El barranco solo se
--- cruza por el puente: no persiguen a nadie si tendrían que saltarlo.
+-- Los jefes voladores van en línea recta por el aire. Solo caminan por tierra
+-- firme (el bosque, el puente de piedra y la isla principal): no persiguen a
+-- nadie si tendrían que pasar por el agua, y nunca van a la aldea.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -151,7 +152,7 @@ local function routeFrom(enemy: Enemy, from: Vector3): { Vector3 }
 			bestIndex, bestDistance = index, distance
 		end
 	end
-	-- Si en línea recta tendría que cruzar el barranco, primero va a la entrada del puente
+	-- Si en línea recta tendría que pasar por el agua, primero va a la entrada del puente
 	while bestIndex > 2 and Paths.crossesChasm(from, waypoints[bestIndex]) do
 		bestIndex -= 1
 	end
@@ -296,8 +297,8 @@ local function spawnChildren(enemy: Enemy, position: Vector3)
 	for index = 1, children.Count do
 		local angle = index / children.Count * math.pi * 2
 		local offset = Vector3.new(math.cos(angle), 0, math.sin(angle)) * enemy.Radius * 0.6
-		-- Si revienta sobre el puente, los hijos quedan arriba del puente
-		create(children.Type, multiplier, Paths.clampToBridge(position + offset), enemy.Route)
+		-- Si revienta junto al agua, los hijos quedan en tierra firme
+		create(children.Type, multiplier, Paths.lastWalkable(position, position + offset), enemy.Route)
 	end
 end
 
@@ -416,8 +417,8 @@ function EnemyService.knockback(center: Vector3, radius: number, seconds: number
 		local position = EnemyMath.getPosition(enemy.Path, now)
 		local away = Vector3.new(position.X - center.X, 0, position.Z - center.Z)
 		local direction = if away.Magnitude > 0.01 then away.Unit else Vector3.new(0, 0, -1)
-		-- Nunca los tira al barranco: si caen fuera del puente, quedan en el borde
-		local pushed = Paths.clampToBridge(position + direction * enemy.Path.Speed * seconds)
+		-- Nunca los tira al agua: quedan en la orilla
+		local pushed = Paths.lastWalkable(position, position + direction * enemy.Path.Speed * seconds)
 		stopChasing(enemy)
 		-- Arranca más atrás y vuelve a caminar hacia la campana por su camino
 		goToBell(enemy, Vector3.new(pushed.X, enemy.HalfHeight, pushed.Z), now)
@@ -456,7 +457,7 @@ function EnemyService.think(now: number, dt: number)
 				or firstBarrierHit(position, desired)
 				or Paths.crossesChasm(position, desired)
 			then
-				-- Se alejó, murió, quedó detrás de una reja o del otro lado del barranco: vuelve a la campana
+				-- Se alejó, murió, quedó detrás de una reja o del otro lado del agua: vuelve a la campana
 				stopChasing(enemy)
 				goToBell(enemy, position, now)
 			else
@@ -471,7 +472,7 @@ function EnemyService.think(now: number, dt: number)
 			local closest, closestDistance = nil, hunt.AggroRadius
 			for player, playerPosition in players do
 				local distance = flatDistance(position, playerPosition)
-				-- Las rejas y el barranco protegen: no persiguen a quien está del otro lado
+				-- Las rejas y el agua protegen: no persiguen a quien está del otro lado
 				if distance < closestDistance and not firstBarrierHit(position, playerPosition) and not Paths.crossesChasm(position, playerPosition) then
 					closest, closestDistance = player, distance
 				end
