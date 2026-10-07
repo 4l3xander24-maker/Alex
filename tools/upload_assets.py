@@ -91,7 +91,7 @@ def write_assets(ids):
     lines += ["\t},", "\t-- Texturas pixeladas (MaterialVariant)", "\tTextures = {"]
     for name in textures:
         lines.append(f"\t\t{name} = {lua_string(get('textures', name))},")
-    lines += ["\t},", "\tSky = {", f"\t\tMoon = {lua_string(get('sky', 'Moon'))},", f"\t\tSun = {lua_string(get('sky', 'Sun'))},", "\t},", "}", ""]
+    lines += ["\t},", "\tSky = {", f"\t\tMoon = {lua_string(get('sky', 'Moon'))},", f"\t\tMoonRed = {lua_string(get('sky', 'MoonRed'))},", f"\t\tSun = {lua_string(get('sky', 'Sun'))},", "\t},", "}", ""]
     OUTPUT.write_text("\n".join(lines))
 
 

@@ -100,6 +100,9 @@ local function setupSky()
 	if moon ~= "" then
 		sky.MoonTextureId = moon
 	end
+	-- Los clientes cambian a la luna de sangre en las oleadas altas (SkyFx)
+	publish("Sky.Moon", if moon ~= "" then moon else sky.MoonTextureId)
+	publish("Sky.MoonRed", Assets.Sky.MoonRed or "")
 	if sun ~= "" then
 		sky.SunTextureId = sun
 	end

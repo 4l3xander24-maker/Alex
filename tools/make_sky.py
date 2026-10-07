@@ -1,4 +1,4 @@
-"""Genera la luna y el sol pixelados para el cielo en assets/sky/.
+"""Genera la luna, la luna de sangre y el sol pixelados para el cielo en assets/sky/.
 
 Súbelos a Roblox (Asset Manager → Bulk Import) y pega sus ids en
 Config.SkyTextures (Moon y Sun). Si no los subes, se usan los de Roblox.
@@ -42,4 +42,6 @@ if __name__ == "__main__":
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     disc((236, 232, 255), (176, 176, 210), 7).save(OUT_DIR / "Moon.png")
     disc((255, 226, 120), (255, 170, 60), 0).save(OUT_DIR / "Sun.png")
-    print("assets/sky/Moon.png y Sun.png listos")
+    # Luna de sangre: aparece en las oleadas altas, cuando el cielo se pone rojo
+    disc((236, 96, 80), (170, 46, 52), 7).save(OUT_DIR / "MoonRed.png")
+    print("assets/sky/Moon.png, MoonRed.png y Sun.png listos")

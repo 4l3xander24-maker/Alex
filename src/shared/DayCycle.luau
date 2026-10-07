@@ -100,26 +100,34 @@ function DayCycle.getPalette(clock: number): Palette
 	return lerpPalette(theme.Dusk, nightPalette, (night - 0.5) * 2)
 end
 
+-- Qué tan rojo está el cielo en esa oleada (0 = normal, 1 = luna de sangre)
+function DayCycle.getRedness(wave: number): number
+	local full = Config.DayCycle.BloodMoon.FullAtWave
+	return math.clamp((wave - 1) / math.max(full - 1, 1), 0, 1)
+end
+
 -- Pone la hora y los colores en Lighting (lo usa el servidor al empezar y
--- cada cliente varias veces por segundo)
-function DayCycle.applyLighting(clock: number)
+-- cada cliente varias veces por segundo). `redness` tiñe todo de rojo.
+function DayCycle.applyLighting(clock: number, redness: number?)
 	local palette = DayCycle.getPalette(clock)
 	local night = DayCycle.getNightFactor(clock)
+	local red = redness or 0
+	local blood = Config.DayCycle.BloodMoon
 	Lighting.ClockTime = clock
 	Lighting.Brightness = palette.Brightness
-	Lighting.Ambient = palette.Ambient
-	Lighting.OutdoorAmbient = palette.Ambient
+	Lighting.Ambient = palette.Ambient:Lerp(blood.Ambient, red * 0.7)
+	Lighting.OutdoorAmbient = Lighting.Ambient
 	local atmosphere = Lighting:FindFirstChildOfClass("Atmosphere")
 	if atmosphere then
-		atmosphere.Color = palette.Atmosphere
-		atmosphere.Decay = palette.Decay
+		atmosphere.Color = palette.Atmosphere:Lerp(blood.Atmosphere, red * 0.85)
+		atmosphere.Decay = palette.Decay:Lerp(blood.Decay, red * 0.85)
 		atmosphere.Density = palette.Density
 		atmosphere.Haze = palette.Haze
 		atmosphere.Glare = 0.2 + 0.3 * (1 - night)
 	end
 	local correction = Lighting:FindFirstChildOfClass("ColorCorrectionEffect")
 	if correction then
-		correction.TintColor = palette.Tint
+		correction.TintColor = palette.Tint:Lerp(blood.Tint, red * 0.8)
 	end
 	local bloom = Lighting:FindFirstChildOfClass("BloomEffect")
 	if bloom then

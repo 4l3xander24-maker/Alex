@@ -44,6 +44,16 @@ Config.DayCycle = {
 	StartClock = 16, -- hora del día cuando arranca el servidor
 	-- De noche llegan más zombis por segundo (1 = igual que de día)
 	NightSpawnMultiplier = 1.3,
+	-- Con cada oleada el cielo se pone más rojo: en FullAtWave ya está todo
+	-- teñido de sangre (y la luna es roja si subiste MoonRed, ver README)
+	BloodMoon = {
+		FullAtWave = 15,
+		Atmosphere = Color3.fromRGB(150, 50, 46),
+		Decay = Color3.fromRGB(96, 24, 32),
+		Tint = Color3.fromRGB(255, 176, 166),
+		Ambient = Color3.fromRGB(120, 62, 62),
+		RedMoonAt = 0.6, -- desde qué tanto rojo se cambia a la luna roja
+	},
 }
 
 -- Texturas pixeladas opcionales para la luna y el sol (assets/sky/, ver README).

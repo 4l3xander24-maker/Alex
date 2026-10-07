@@ -10,6 +10,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
 local DayCycle = require(Shared.DayCycle)
+local ResolvedAssets = require(Shared.ResolvedAssets)
 
 local PALETTE_INTERVAL = 0.25
 local CLOUD_COUNT = 18
@@ -33,6 +34,9 @@ local voxel = Config.Style.Blocky
 local theme = Config.Themes[Config.Theme] or {}
 local nightFactor = if theme.Night then 1 else 0
 local lastPalette = -math.huge
+-- Cielo rojo que crece con las oleadas (DayCycle.getRedness), suavizado
+local redness = 0
+local redMoon = false
 local random = Random.new()
 local folder: Folder
 local clouds: { Cloud } = {}
@@ -192,15 +196,33 @@ local function updateMotes(dt: number, clock: number)
 	end
 end
 
+-- Con el cielo muy rojo la luna se vuelve de sangre (si se subió MoonRed)
+local function updateMoon()
+	local sky = Lighting:FindFirstChildOfClass("Sky")
+	local wantRed = redness >= Config.DayCycle.BloodMoon.RedMoonAt
+	if not sky or wantRed == redMoon then
+		return
+	end
+	local texture = ResolvedAssets.get(if wantRed then "Sky.MoonRed" else "Sky.Moon")
+	if texture ~= "" then
+		sky.MoonTextureId = texture
+		redMoon = wantRed
+	end
+end
+
 function SkyFx.step(dt: number)
 	local now = workspace:GetServerTimeNow()
+	local gameState = ReplicatedStorage:FindFirstChild("GameState")
+	local wave = gameState and gameState:GetAttribute("Wave") or 0
+	redness += (DayCycle.getRedness(wave) - redness) * math.min(1, dt * 0.4)
 	if DayCycle.isEnabled() then
 		local clock = DayCycle.getClock(now)
 		nightFactor = DayCycle.getNightFactor(clock)
 		-- La hora se mueve en cada cuadro; los colores, varias veces por segundo
 		if os.clock() - lastPalette >= PALETTE_INTERVAL then
 			lastPalette = os.clock()
-			DayCycle.applyLighting(clock)
+			DayCycle.applyLighting(clock, redness)
+			updateMoon()
 		else
 			Lighting.ClockTime = clock
 		end

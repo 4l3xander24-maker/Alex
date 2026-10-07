@@ -37,6 +37,7 @@ return {
 	},
 	Sky = {
 		Moon = "",
+		MoonRed = "",
 		Sun = "",
 	},
 }
