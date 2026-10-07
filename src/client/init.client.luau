@@ -7,6 +7,7 @@ local EnemyRenderer = require(script.EnemyRenderer)
 local Hud = require(script.Hud)
 local LevelUpFx = require(script.LevelUpFx)
 local VillageController = require(script.VillageController)
+local PetRenderer = require(script.PetRenderer)
 local MatchSummary = require(script.MatchSummary)
 local MovementController = require(script.MovementController)
 local Notify = require(script.Notify)
@@ -33,6 +34,7 @@ ShopUI.init()
 MatchSummary.init()
 LevelUpFx.init()
 VillageController.init()
+PetRenderer.init()
 Hud.init({
 	setTrigger = WeaponController.setTrigger,
 	setAiming = WeaponController.setAiming,

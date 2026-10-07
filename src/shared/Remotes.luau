@@ -15,6 +15,7 @@ local EVENTS = {
 	"Notify",
 	"AmmoSync",
 	"AmmoGranted",
+	"PetAttack",
 	-- cliente -> servidor
 	"Shoot",
 	"Reload",

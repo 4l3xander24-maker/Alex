@@ -1,7 +1,7 @@
 -- Ventanas de los NPC del campamento. Se abren con el aviso "E" (o tocando
 -- en celular) al acercarse:
 --   Armero   → comprar, mejorar y equipar armas
---   Bruja    → comprar y mejorar poderes
+--   Bruja    → comprar y mejorar poderes, y mascotas (vive en la aldea)
 --   Veterano → gastar puntos de mejora y aprender talentos
 --   Intendente → cartuchera (más balas) y trampas para la partida
 -- Solo se puede comprar durante la preparación; equipar armas, siempre.
@@ -104,8 +104,8 @@ local function row(icon: string, name: string, description: string, buttons: { B
 
 	for index, spec in buttons do
 		local button = Instance.new("TextButton")
-		-- Fuera de la preparación solo funcionan los botones de equipar
-		if not isOpen() and spec.Text ~= "Equipar" then
+		-- Fuera de la preparación solo funcionan equipar armas y llevar mascotas
+		if not isOpen() and spec.Text ~= "Equipar" and spec.Text ~= "Llevar" and spec.Text ~= "Quitar" then
 			spec.Enabled = false
 		end
 		button.AnchorPoint = Vector2.new(1, 0.5)
@@ -231,6 +231,28 @@ local function renderMystic(data: Progression.Profile, coins: number)
 			end
 		end
 		row(power.Icon, power.DisplayName, description, buttons)
+	end
+
+	-- Mascotas: se compran una vez y una te acompaña en las partidas
+	sectionHeader("Mascotas  ·  te siguen y atacan solas durante las oleadas")
+	for _, id in Config.PetOrder do
+		local pet = Config.Pets[id]
+		local description = `{pet.Description}. Daño {pet.Damage} · {pet.Rate} ataques/s · alcance {pet.Range}{if pet.Splash then ` · en área` else ""}.`
+		local buttons: { ButtonSpec } = {}
+		if not data.Pets[id] then
+			table.insert(buttons, { Text = `Comprar 🪙{pet.Price}`, Enabled = coins >= pet.Price, OnClick = function()
+				runAction("BuyPet", id)
+			end })
+		elseif data.Pet == id then
+			table.insert(buttons, { Text = "Quitar", Enabled = true, OnClick = function()
+				runAction("EquipPet", "")
+			end })
+		else
+			table.insert(buttons, { Text = "Llevar", Enabled = true, OnClick = function()
+				runAction("EquipPet", id)
+			end })
+		end
+		row(pet.Icon, pet.DisplayName .. (if data.Pet == id then "  ·  te acompaña" else ""), description, buttons, if data.Pet == id then GREEN else nil)
 	end
 end
 
