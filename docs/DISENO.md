@@ -71,13 +71,25 @@ mejorar tus estadísticas y aprender talentos.
   | Morgana, la Bruja | Caldero | Poderes y sus mejoras |
   | Don Ramiro, el Veterano | Campo de entrenamiento | Puntos de mejora y talentos |
   | Gustavo, el Intendente | Intendencia | Cartuchera (más balas) y trampas: minas y rejas |
-- **Barranco y puente** (`BridgeBuilder`, `Config.Arena.Ravine`/`Bridge`): un barranco de 40 studs con un río
-  abajo cruza todo el mapa entre z = -122 y -82. El único paso es el puente de piedra (12 de ancho): losas con
-  musgo y pasto, muros bajos con postes de madera oscura, un pilar en el medio con arcos escalonados y
-  columnas con antorchas en las esquinas. Caer al barranco = morir ("¡Caíste al río!").
-  - Los zombis nunca cruzan el barranco por fuera del puente: no persiguen a nadie si tendrían que saltarlo
-    (`Paths.crossesChasm`), al volver a su camino primero van a la entrada del puente, y el Campanazo o el
-    Gordo al reventar no los dejan fuera del puente (`Paths.clampToBridge`).
+- **Islas y mar** (`IslandBuilder`, `Config.Arena.Islands`): al sur del canal (z > -122) todo es mar 50 studs
+  abajo, con dos islas de pasto sobre roca: la **principal** (campana, castillo, campamento y un muelle hacia la
+  aldea) y la **aldea** (casas, pozo, carreta, la Bruja y el molino). Al norte, el bosque hasta una cordillera.
+  Caer al agua = morir ("¡Caíste al agua!").
+- **Puente de piedra en diagonal** (`BridgeBuilder`, `Config.Arena.Bridge` From/To): 12 de ancho, losas con musgo,
+  muros bajos con postes, pilar con arcos escalonados y columnas con antorchas.
+  - Los zombis solo pisan el bosque, el puente y la isla principal (`Paths.isEnemyGround`): no persiguen a nadie
+    si tendrían que pasar por el agua (`Paths.crossesChasm`), al volver a su camino primero van a la entrada del
+    puente, y el Campanazo o el Gordo al reventar los dejan en la orilla (`Paths.lastWalkable`).
+- **Puente roto a la aldea** (`Config.Arena.VillageBridge`): quedan los extremos y tablas colgando. Cada jugador lo
+  repara una vez por 500 monedas (`VillageBridge` en su perfil); las tablas que faltan las pone su propio cliente,
+  así solo lo cruza quien pagó.
+- **Molino** (`Config.Arena.Windmill`): durante el descanso entre oleadas cura 15 de vida por segundo a quien está
+  a menos de 18 studs.
+- **Mascotas** (`Config.Pets`, las vende la Bruja): una acompaña a cada jugador; durante las oleadas ataca sola al
+  zombi más cercano a su alcance (daño × crecimiento de la oleada; el Dragoncito en área). `PetService` decide el
+  daño en el servidor y `PetRenderer` las dibuja en cada cliente.
+- **Cielo rojo** (`Config.DayCycle.BloodMoon`): con cada oleada la atmósfera, la luz y el tinte se van poniendo
+  rojos hasta la oleada 15; con mucho rojo la luna pasa a luna de sangre (`assets/sky/MoonRed.png`).
 - **Un solo camino a la campana** (8 studs de ancho), con antorchas y velas a los lados: todos los caminos se
   juntan en z = -150 y siguen por el puente y el arco del castillo.
   - **Camino del cementerio** (tierra, `Main`, 35%): empieza en una cripta rodeada de tumbas y reja de hierro.
@@ -214,4 +226,7 @@ Cada arma se mejora 5 veces (+20% daño, +15% cargador, recarga más rápida). C
 - **Fase 4.1 (hecha)**: puente de piedra sobre un barranco (un solo camino), rejas compradas en los dos
   extremos del puente, campana destruida que se reconstruye para empezar, círculo de runas para aparecer y
   cuchillo con energía al estilo Guns 'n Goblins.
+- **Fase 4.2 (hecha)**: mapa en islas (mar al sur, isla principal e isla de la aldea), puente de piedra en
+  diagonal, puente roto a la aldea que se repara con monedas, la Bruja en la aldea con mascotas que pelean,
+  molino que cura entre oleadas, cielo que se pone rojo con cada oleada y cordillera al norte.
 - **Fase 4**: sonidos y música, más mapas (paletas morado/ámbar), más jefes, misiones diarias, pases de juego y lanzamiento.

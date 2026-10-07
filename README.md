@@ -8,7 +8,8 @@ comprando armas, mejoras, poderes y trampas a los NPC del campamento.
 
 _Vista previa: recreación con las medidas, colores y sprites del juego, no es captura de Roblox._
 
-🗺️ Plano del mapa visto desde arriba: [`docs/capturas/puente/07-plano-del-mapa.png`](docs/capturas/puente/07-plano-del-mapa.png)
+🗺️ Plano del mapa (islas) visto desde arriba: [`docs/capturas/puente/09-plano-islas.png`](docs/capturas/puente/09-plano-islas.png)
+(el anterior: [`07-plano-del-mapa.png`](docs/capturas/puente/07-plano-del-mapa.png))
 y el centro de cerca: [`docs/capturas/puente/08-plano-del-centro.png`](docs/capturas/puente/08-plano-del-centro.png).
 
 🎬 Video de la horda al anochecer: [`docs/capturas/pixel/horda-de-noche.mp4`](docs/capturas/pixel/horda-de-noche.mp4)
@@ -22,9 +23,18 @@ el círculo de runas y el cuchillo), [`docs/capturas/pixel/`](docs/capturas/pixe
 [`docs/capturas/otono/`](docs/capturas/otono/) (otoño) y [`docs/capturas/`](docs/capturas/) (versiones anteriores). El diseño completo está en [`docs/DISENO.md`](docs/DISENO.md).
 
 ## Qué tiene ya
-- **Un solo camino a la campana: el puente de piedra**. Un barranco con un río cruza todo el mapa y el único
-  paso es un puente de losas con musgo, muros bajos con postes de madera, un pilar hasta el río y columnas con
-  antorchas. Los zombis no pueden saltar el barranco (tampoco te persiguen por el aire); si te caes, te lleva el río.
+- **Mapa en islas**: al sur todo es **mar** abajo de los acantilados. En la **isla principal** están la campana, el
+  castillo y el campamento; al norte, cruzando un canal, el **bosque** de donde salen los zombis, con una
+  **cordillera** que tapa el horizonte. Si te caes al agua, te lleva el mar.
+- **Un solo camino a la campana: el puente de piedra en diagonal** sobre el canal (losas con musgo, muros bajos
+  con postes de madera, un pilar en el medio y columnas con antorchas). Los zombis solo pisan el bosque, el puente
+  y la isla principal: no te persiguen por el agua y nunca van a la aldea.
+- **La aldea**, en su propia isla: casas, pozo, la **Bruja** y el **molino**. Para llegar hay que **reparar el puente
+  de madera roto** (500 monedas, una sola vez, queda guardado; solo lo cruza quien lo reparó).
+  - **Mascotas** (las vende la Bruja): 🦇 Murciélago, 🐺 Lobo, 🦉 Búho y 🐲 Dragoncito. Una te acompaña y durante
+    las oleadas ataca sola al zombi más cercano (el daño crece con la oleada; el Dragoncito quema en área).
+  - **Molino**: en el descanso entre oleadas, quien está cerca come pan caliente y se cura.
+- **El cielo se pone más rojo con cada oleada** (atmósfera, luz y luna de sangre en las oleadas altas).
 - **Rejas de metal en los dos extremos del puente** (entrada y salida): solo aparecen si se las compras al Intendente.
 - **La campana empieza destruida**: postes caídos y cruzados sobre el montículo, la campana tirada de costado y los
   estandartes en el suelo. Para empezar la partida alguien la **reconstruye** (mantener E): cada pieza vuela a su
@@ -74,7 +84,7 @@ el círculo de runas y el cuchillo), [`docs/capturas/pixel/`](docs/capturas/pixe
 - **4 NPC** en el campamento (habla con **E**):
   - **Bruno, el Armero**: 6 armas (cuchillo, pistola, escopeta, rifle, francotirador, ametralladora) y sus
     mejoras. **Cada mejora cambia el color del arma**: Bronce → Plata → Oro → Esmeralda → Legendaria.
-  - **Morgana, la Bruja**: poderes (granada, rayo en cadena, campanazo) y sus mejoras.
+  - **Morgana, la Bruja** (en la aldea): poderes (granada, rayo en cadena, campanazo), sus mejoras y mascotas.
   - **Don Ramiro, el Veterano**: gasta tus puntos de mejora y aprende talentos.
   - **Gustavo, el Intendente**: **cartuchera** (más balas máximas y más balas al empezar) y **trampas**:
     hasta 8 **minas** sobre el camino y 2 **rejas** (entrada y salida del puente) que los detienen hasta que las rompen.
@@ -122,7 +132,9 @@ Los gráficos ya vienen configurados en `default.project.json`: iluminación **F
   (atardecer de otoño), `"Verde"`, `"Morado"` o `"Ambar"` (noches fijas).
 - **Zombis**: `Config.ZombieStyle` = `"Pixel"` (sprites 2D si subiste las imágenes, por defecto) o `"3D"`
   (muñecos de bloques).
-- **Mapa**: el barranco y el puente están en `Config.Arena.Ravine` y `Config.Arena.Bridge`; el círculo de runas en
+- **Mapa**: las islas en `Config.Arena.Islands`, el canal en `Config.Arena.Ravine`, el puente de piedra en
+  `Config.Arena.Bridge` (From/To), el de la aldea en `Config.Arena.VillageBridge`, el molino en `Config.Arena.Windmill`,
+  las mascotas en `Config.Pets`, el cielo rojo en `Config.DayCycle.BloodMoon`; el círculo de runas en
   `Config.Arena.SpawnCircle`.
 - **Caminos**: los puntos de cada camino están en `Config.Paths` (y cuántos zombis van por cada uno en `Weight`).
   Los senderos del bosque no tienen `Entrance`: los zombis salen desparramados `PathStyle.SpawnSpread` studs.
@@ -185,7 +197,7 @@ Para cambiar las imágenes, edita los `tools/make_*.py`, vuelve a generarlas y c
 src/
   shared/                   → ReplicatedStorage.Shared (servidor y cliente)
     Config.luau             ← TODOS los números del juego (enemigos, jefes, caminos, armas, poderes, mejoras, talentos)
-    Paths.luau              ← geometría de los caminos de los zombis y del barranco
+    Paths.luau              ← geometría de los caminos, las islas y dónde pueden caminar los zombis
     DayCycle.luau           ← hora del día, paletas de luz y "es de noche"
     MeleeEnergy.luau        ← energía del cuchillo (el círculo blanco)
     Assets.luau             ← ids de las imágenes subidas (lo escribe tools/upload_assets.py)
@@ -196,7 +208,10 @@ src/
   server/                   → ServerScriptService.Server
     MapBuilder.luau         ← terreno, círculo de runas, bosque, molino, montañas, luz y bruma
     BellTower.luau          ← la campana: montículo, destruida/armada y su animación
-    BridgeBuilder.luau      ← barranco con río y puente de piedra
+    BridgeBuilder.luau      ← puente de piedra en diagonal y puente roto a la aldea
+    IslandBuilder.luau      ← mar, islas y el bosque del norte
+    VillageService.luau     ← reparar el puente a la aldea y el molino que cura
+    PetService.luau         ← mascotas: atacan solas durante las oleadas
     MedievalBuilder.luau    ← caminos, cementerio con cripta, castillo en ruinas, casas, pozo, velas y antorchas
     VoxelBuilder.luau       ← suelo de baldosas, acantilado y mar en pixel art 3D
     CampBuilder.luau        ← fogata, tiendas, empalizada, mirador, puestos y NPC
@@ -220,6 +235,8 @@ src/
     WeaponController.luau   ← disparo, munición, cambio de arma, apuntar
     MovementController.luau ← correr, doble salto, esquivar
     PowerController.luau    ← poderes y sus efectos
+    PetRenderer.luau        ← dibuja las mascotas siguiendo a su dueño
+    VillageController.luau  ← pone las tablas del puente de la aldea a quien lo reparó
     Viewmodel.luau          ← armas y manos en primera persona
     EnemyRenderer.luau      ← dibuja y anima los zombis (3D o pixel, con recorte por distancia)
     ZombieModels.luau       ← piezas de cada zombi, del Gordo, del Rey y del Dragón
@@ -227,7 +244,7 @@ src/
     DamageNumbers.luau      ← números de daño pixelados
     LevelUpFx.luau          ← cartel de ¡SUBISTE DE NIVEL!
     WorldFx.luau            ← molino, viento (ráfagas y cosas que se mecen), fuego y calidad gráfica
-    SkyFx.luau              ← ciclo de día y noche, nubes, luciérnagas y esporas
+    SkyFx.luau              ← ciclo de día y noche, cielo rojo por oleada, nubes, luciérnagas y esporas
     ZombieAnimator.luau     ← manera de caminar de cada zombi, cojera, salir de la tierra, golpes y embestidas
   character/Health.server.luau ← quita la regeneración automática de Roblox
 assets/sprites/             ← PNG de los zombis, jefes y NPC (2 cuadros de caminar cada uno)
