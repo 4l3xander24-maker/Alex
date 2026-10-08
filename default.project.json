@@ -46,6 +46,11 @@
     },
     "MaterialService": {
       "$path": "src/materials"
+    },
+    "ServerStorage": {
+      "Models": {
+        "$path": "src/models"
+      }
     }
   }
 }

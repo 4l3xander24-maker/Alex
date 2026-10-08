@@ -159,6 +159,20 @@ Los gráficos ya vienen configurados en `default.project.json`: iluminación **F
   - El molino, las partículas y el parpadeo de velas y antorchas corren solo en cada cliente.
   - En **calidad gráfica baja o celular** se apagan el desenfoque, los rayos de sol, las partículas y el parpadeo.
 
+## Modelos 3D de la tienda (árboles y casas)
+
+En el estilo `"Realista"` los árboles de otoño y las casas de la aldea son modelos gratis de la Creator Store
+(sin scripts) guardados en `src/models/` y puestos por Rojo en `ServerStorage.Models`
+(`Config.UseStoreModels = false` vuelve a los de bloques). Para cambiarlos o agregar más:
+
+1. En la barra de comandos de Studio cárgalos en `ServerStorage.ImportedModels`
+   (`game:GetObjects("rbxassetid://ID")`, uno por modelo, con el nombre que quieras).
+2. **File → Save to File As** (un `.rbxl`).
+3. `lune run tools/extract_models.luau ruta/al/archivo.rbxl`: los guarda en `src/models/` sin scripts.
+4. Úsalos en el código con `ModelLibrary.place(nombre, cframe, { Height = ... }, sólido, padre)`.
+
+Hace falta **Rojo 7.7** o más nuevo (los modelos nuevos guardan las mallas en un formato que Rojo 7.4 pierde).
+
 ## Subir las imágenes (para el pixel art)
 
 Roblox solo muestra imágenes subidas a tu cuenta, así que las texturas pixeladas, los sprites de los zombis y NPC,

@@ -30,6 +30,10 @@ Config.ArtStyles = {
 }
 Config.Style = Config.ArtStyles[Config.ArtStyle] or Config.ArtStyles.Realista
 
+-- Árboles y casas con modelos 3D de la Creator Store (src/models) en vez de
+-- bloques. Solo en los estilos que no son de cubos (Realista).
+Config.UseStoreModels = true
+
 -- Viento: mueve el pasto 3D del terreno, las nubes, los árboles, los arbustos y
 -- los estandartes. Cada cliente le agrega ráfagas suaves.
 Config.Wind = {

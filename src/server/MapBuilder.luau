@@ -20,6 +20,7 @@ local IslandBuilder = require(script.Parent.IslandBuilder)
 local MedievalBuilder = require(script.Parent.MedievalBuilder)
 local VoxelBuilder = require(script.Parent.VoxelBuilder)
 local Props = require(script.Parent.Props)
+local ModelLibrary = require(script.Parent.ModelLibrary)
 
 local MOON_DIRECTION = Vector3.new(0, 0.42, -1).Unit
 -- De día el sol queda bajo, a un lado y detrás del jugador que mira a la horda
@@ -196,6 +197,12 @@ end
 
 -- Árbol de otoño: tronco, dos ramas y una copa redonda de varias bolas de hojas
 local function buildAutumnTree(map: Instance, position: Vector3, scale: number)
+	-- Modelo 3D de la tienda: casi siempre el árbol B (4 piezas, más liviano)
+	local name = if random:NextNumber() < 0.75 then "TreeB" else "TreeA"
+	local rotation = CFrame.Angles(0, random:NextNumber(0, math.pi * 2), 0)
+	if ModelLibrary.place(name, CFrame.new(position) * rotation, { Height = 14 * scale * random:NextNumber(0.9, 1.1) }, false, map) then
+		return
+	end
 	local tree = Instance.new("Model")
 	tree.Name = "AutumnTree"
 	local height = 8 * scale

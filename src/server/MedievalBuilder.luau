@@ -10,6 +10,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Paths = require(ReplicatedStorage.Shared.Paths)
 local Props = require(script.Parent.Props)
+local ModelLibrary = require(script.Parent.ModelLibrary)
 
 local makePart, makeProp = Props.makePart, Props.makeProp
 local STONE = Props.Colors.Stone
@@ -242,7 +243,19 @@ local function buildRuins(map: Instance, entrance: Vector3, outward: Vector3, ar
 end
 
 -- Casa con entramado de madera, techo de tejas, chimenea y ventanas encendidas
+local HOUSE_MODELS = { "HouseA", "HouseB", "HouseC" }
+local houseCount = 0
+
 local function buildHouse(map: Instance, frame: CFrame, width: number, depth: number)
+	-- Casa medieval de la tienda (se van turnando los tres modelos)
+	houseCount += 1
+	local name = HOUSE_MODELS[(houseCount - 1) % #HOUSE_MODELS + 1]
+	if ModelLibrary.place(name, frame, { Footprint = math.max(width, depth) * 1.7 }, true, map) then
+		if theme.Medieval then
+			Props.candles(map, (frame * CFrame.new(2.6, 0, -depth / 2 - 3)).Position, 3, false)
+		end
+		return
+	end
 	local house = Instance.new("Model")
 	house.Name = "House"
 	local wallHeight = 9
