@@ -54,6 +54,7 @@ local function updateLeaderstats(player: Player, data: Progression.Profile)
 	if stats then
 		stats.Monedas.Value = data.Coins
 		stats.Nivel.Value = data.Level
+		stats["Récord"].Value = data.BestWave
 	end
 end
 
@@ -101,7 +102,7 @@ function DataService.get(player: Player): Progression.Profile?
 end
 
 -- Avisa al cliente y a los demás servicios que el perfil cambió.
--- reason: "Load", "Shop", "Equip" o "Level"
+-- reason: "Load", "Shop", "Equip", "Level", "Record" o "Profile"
 function DataService.changed(player: Player, reason: string)
 	local data = DataService.get(player)
 	if not data then
@@ -166,6 +167,9 @@ function DataService.init(onLoaded: (Player) -> ())
 		local level = Instance.new("IntValue")
 		level.Name = "Nivel"
 		level.Parent = stats
+		local best = Instance.new("IntValue")
+		best.Name = "Récord"
+		best.Parent = stats
 		stats.Parent = player
 
 		load(player)

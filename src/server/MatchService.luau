@@ -67,6 +67,12 @@ function MatchService.award(player: Player, wave: number)
 	local xp = MatchService.getXp(entry)
 	local levels = if xp > 0 then DataService.addXp(player, xp) else 0
 	local data = DataService.get(player)
+	local previousBest = if data then data.BestWave else 0
+	local newRecord = data ~= nil and entry.Waves > previousBest
+	if data and newRecord then
+		data.BestWave = entry.Waves
+		DataService.changed(player, "Record")
+	end
 	if player.Parent and data then
 		player:SetAttribute("MatchXp", 0)
 		player:SetAttribute("MatchKills", 0)
@@ -81,6 +87,9 @@ function MatchService.award(player: Player, wave: number)
 			Level = data.Level,
 			StatPoints = data.StatPoints,
 			TalentPoints = data.TalentPoints,
+			BestWave = data.BestWave,
+			PreviousBest = previousBest,
+			NewRecord = newRecord,
 		})
 	end
 end

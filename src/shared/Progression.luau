@@ -19,6 +19,7 @@ export type Profile = {
 	Pets: { [string]: boolean }, -- mascotas compradas a la Bruja
 	Pet: string, -- mascota que lo acompaña ("" = ninguna)
 	Tutorial: boolean, -- ya terminó (o saltó) el tutorial
+	BestWave: number, -- récord: más oleadas superadas en una partida
 }
 
 local Progression = {}
@@ -50,6 +51,7 @@ function Progression.defaultProfile(): Profile
 		Pets = {},
 		Pet = "",
 		Tutorial = false,
+		BestWave = 0,
 	}
 end
 

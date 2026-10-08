@@ -51,6 +51,12 @@ local function show(summary)
 	makeLabel(panel, "¡LA CAMPANA CAYÓ!", 32, Color3.fromRGB(255, 90, 80))
 	makeLabel(panel, `Llegaste a la oleada {summary.Wave}`, 20)
 	makeLabel(panel, `🌊 Oleadas superadas: {summary.Waves}     🧟 Bajas: {summary.Kills}     💀 Jefes: {summary.BossKills}`, 17, nil, 26)
+	if summary.NewRecord then
+		local beaten = if summary.PreviousBest > 0 then ` (antes {summary.PreviousBest})` else ""
+		makeLabel(panel, `🏆 ¡NUEVO RÉCORD! {summary.BestWave} oleadas{beaten}`, 24, GOLD)
+	elseif summary.BestWave and summary.BestWave > 0 then
+		makeLabel(panel, `🏆 Tu récord: {summary.BestWave} oleadas`, 17)
+	end
 	makeLabel(panel, `🪙 +{summary.Coins} monedas`, 20, GOLD)
 	makeLabel(panel, `⭐ +{summary.Xp} XP de cuenta`, 24, Color3.fromRGB(120, 200, 255))
 

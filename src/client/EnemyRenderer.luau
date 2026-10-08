@@ -260,7 +260,7 @@ local function addEnemy(id: number, typeName: string, points: { Vector3 }, speed
 	local visual = visuals[id]
 	local now = workspace:GetServerTimeNow()
 	local age = now - spawnTime
-	Sfx.onEnemySpawned(typeName, EnemyMath.getPosition(visual.Path, now), age < ZombieAnimator.EMERGE_TIME)
+	Sfx.onEnemySpawned(typeName)
 	if not visual.Flying and age < ZombieAnimator.EMERGE_TIME then
 		visual.SpawnAt = os.clock() - math.max(age, 0)
 		visual.Facing = Vector3.new(visual.Path.Points[#visual.Path.Points].X - points[1].X, 0, visual.Path.Points[#visual.Path.Points].Z - points[1].Z)
@@ -561,20 +561,6 @@ local function render(dt: number)
 	if #parts > 0 then
 		workspace:BulkMoveTo(parts, cframes, Enum.BulkMoveMode.FireCFrameChanged)
 	end
-end
-
--- Posición de algún zombi al azar cerca de la cámara (para los gruñidos)
-function EnemyRenderer.randomNearbyPosition(maxDistance: number): Vector3?
-	local now = workspace:GetServerTimeNow()
-	local cameraPosition = workspace.CurrentCamera.CFrame.Position
-	local nearby = {}
-	for _, visual in visuals do
-		local position = EnemyMath.getPosition(visual.Path, now)
-		if (position - cameraPosition).Magnitude <= maxDistance then
-			table.insert(nearby, position)
-		end
-	end
-	return if #nearby > 0 then nearby[random:NextInteger(1, #nearby)] else nil
 end
 
 function EnemyRenderer.init()

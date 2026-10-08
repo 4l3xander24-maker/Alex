@@ -244,7 +244,10 @@ function ShopService.init()
 		end
 		local ok, message = actions[action](player, data, id)
 		if ok then
-			DataService.changed(player, if action == "EquipWeapon" then "Equip" else "Shop")
+			-- "Shop" llena la munición (solo pasa en la preparación). Lo que se puede
+			-- hacer en plena oleada (puente, mascota, tutorial) no debe regalar balas.
+			local reason = if action == "EquipWeapon" then "Equip" elseif ALWAYS_ALLOWED[action] then "Profile" else "Shop"
+			DataService.changed(player, reason)
 		end
 		return ok, message
 	end

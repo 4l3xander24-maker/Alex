@@ -27,11 +27,7 @@ StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
 Profile.init()
 Notify.init()
 EnemyRenderer.init()
-Sfx.init({
-	randomEnemyPosition = function()
-		return EnemyRenderer.randomNearbyPosition(80)
-	end,
-})
+Sfx.init()
 WorldFx.init()
 Viewmodel.init("Pistol", 1.3, Progression.weaponTier(0))
 MovementController.init()

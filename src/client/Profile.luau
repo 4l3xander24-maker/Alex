@@ -14,7 +14,7 @@ local Profile = {}
 local data: Progression.Profile? = nil
 local changed = Instance.new("BindableEvent")
 
--- Se dispara con la razón del cambio: "Load", "Shop", "Equip" o "Level"
+-- Se dispara con la razón del cambio: "Load", "Shop", "Equip", "Level", "Record" o "Profile"
 Profile.Changed = changed.Event
 
 function Profile.get(): Progression.Profile

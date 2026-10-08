@@ -15,7 +15,6 @@ local Sounds = require(Shared.Sounds)
 -- horda no se vuelva ruido
 local MIN_GAP = {
 	ZombieDeath = 0.08,
-	ZombieGroan = 0.5,
 	HitMarker = 0.05,
 	BellHit = 0.4,
 	PlayerHurt = 0.25,
@@ -33,9 +32,6 @@ local lastPlayed: { [string]: number } = {}
 local bossesAlive = 0
 local musicTrack: string? = nil
 local musicSound: Sound? = nil
-local randomEnemyPosition: () -> Vector3? = function()
-	return nil
-end
 
 local function pickId(spec): number
 	if spec.Ids then
@@ -152,16 +148,12 @@ local function currentState(): string?
 	return if folder then folder:GetAttribute("State") else nil
 end
 
-function Sfx.onEnemySpawned(typeName: string, position: Vector3, fresh: boolean)
+function Sfx.onEnemySpawned(typeName: string)
 	local info = Config.Enemies[typeName]
+	-- Los zombis no hacen ruido al caminar: solo al morir
 	if info and info.IsBoss then
 		bossesAlive += 1
-		if fresh then
-			Sfx.playAt("BossRoar", position)
-		end
 		updateMusic(currentState())
-	elseif fresh and random:NextNumber() < 0.15 then
-		Sfx.playAt("ZombieGroan", position)
 	end
 end
 
@@ -198,9 +190,7 @@ local function bellPosition(): Vector3?
 	return if bell and bell:IsA("Model") then bell:GetPivot().Position else nil
 end
 
-function Sfx.init(options: { randomEnemyPosition: () -> Vector3? })
-	randomEnemyPosition = options.randomEnemyPosition
-
+function Sfx.init()
 	local ambience = newSound(Sounds.Ambience, SoundService)
 	ambience.Looped = true
 	ambience:Play()
@@ -239,18 +229,6 @@ function Sfx.init(options: { randomEnemyPosition: () -> Vector3? })
 	end
 	player.CharacterAdded:Connect(watchHealth)
 
-	-- Gruñidos sueltos de algún zombi cercano durante la oleada
-	task.spawn(function()
-		while true do
-			task.wait(random:NextNumber(Sounds.GroanInterval[1], Sounds.GroanInterval[2]))
-			if folder:GetAttribute("State") == "Wave" then
-				local position = randomEnemyPosition()
-				if position then
-					Sfx.playAt("ZombieGroan", position)
-				end
-			end
-		end
-	end)
 end
 
 return Sfx

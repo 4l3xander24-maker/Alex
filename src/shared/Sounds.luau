@@ -18,10 +18,8 @@ return {
 	HitMarker = { Id = 9113632114, Volume = 0.35, PitchRange = { 1.1, 1.3 } },
 	PlayerHurt = { Id = 9118167124, Volume = 0.6, PitchRange = { 0.9, 1.1 } },
 
-	-- Zombis (suenan en el mundo, más bajo cuanto más lejos)
-	ZombieGroan = { Ids = { 9113980480, 9113980319, 9113985604 }, Volume = 0.55, PitchRange = { 0.55, 0.75 }, Distance = 90 },
+	-- Zombis: solo suenan al morir (en el mundo, más bajo cuanto más lejos)
 	ZombieDeath = { Ids = { 9113607285, 9113607683 }, Volume = 0.6, PitchRange = { 0.8, 1.0 }, Distance = 80 },
-	BossRoar = { Id = 9113980507, Volume = 1, Pitch = 0.5, Distance = 400 },
 
 	-- Poderes y trampas
 	Explosion = { Id = 9114224354, Volume = 0.8, PitchRange = { 0.9, 1.05 }, Distance = 200 },
@@ -45,6 +43,4 @@ return {
 	MusicFade = 2, -- segundos para pasar de una canción a otra
 	-- Viento de fondo, siempre sonando bajito
 	Ambience = { Id = 9114228832, Volume = 0.15 },
-	-- Cada cuántos segundos gruñe algún zombi cercano durante las oleadas
-	GroanInterval = { 2.5, 5 },
 }
