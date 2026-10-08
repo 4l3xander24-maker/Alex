@@ -189,6 +189,18 @@ local function renderQuartermaster(data: Progression.Profile, coins: number)
 			else { Text = "Máximo", Enabled = false },
 	})
 
+	local armor = Config.Bell.Armor
+	local armorLevel = data.BellArmor or 0
+	local armorCost = Progression.bellArmorCost(armorLevel)
+	sectionHeader("Campana  ·  más vida para la campana (queda guardado)")
+	row("🔔", `Refuerzo de la campana  ·  Nv {armorLevel}/{armor.MaxLevel}`, `Vida de la campana: {Config.Bell.MaxHealth + armorLevel * armor.HealthPerLevel}. Cada nivel: +{armor.HealthPerLevel}.\nEn la partida cuenta el refuerzo más alto del servidor.`, {
+		if armorCost
+			then { Text = `Mejorar 🪙{armorCost}`, Enabled = coins >= armorCost, OnClick = function()
+				runAction("UpgradeBell", "")
+			end }
+			else { Text = "Máximo", Enabled = false },
+	})
+
 	local mine = Config.Traps.Mine
 	local gate = Config.Traps.Gate
 	sectionHeader("Trampas  ·  solo duran la próxima partida")

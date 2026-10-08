@@ -20,6 +20,7 @@ export type Profile = {
 	Pet: string, -- mascota que lo acompaña ("" = ninguna)
 	Tutorial: boolean, -- ya terminó (o saltó) el tutorial
 	BestWave: number, -- récord: más oleadas superadas en una partida
+	BellArmor: number, -- nivel del refuerzo de la campana
 }
 
 local Progression = {}
@@ -52,6 +53,7 @@ function Progression.defaultProfile(): Profile
 		Pet = "",
 		Tutorial = false,
 		BestWave = 0,
+		BellArmor = 0,
 	}
 end
 
@@ -120,6 +122,10 @@ end
 -- Costo de subir la cartuchera al siguiente nivel (nil si ya está al máximo)
 function Progression.ammoStorageCost(level: number): number?
 	return Config.AmmoStorage.Prices[level + 1]
+end
+
+function Progression.bellArmorCost(level: number): number?
+	return Config.Bell.Armor.Prices[level + 1]
 end
 
 -- Color del arma según su nivel de mejora

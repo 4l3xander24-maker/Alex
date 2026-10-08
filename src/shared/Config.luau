@@ -302,15 +302,20 @@ Config.PathStyle = {
 -- Antes de cada partida hay una fase de preparación: es el único momento en
 -- que se puede comprar. La campana está destruida; la partida empieza al
 -- reconstruirla (mantener E) o al acabarse el tiempo.
-Config.Match = {
-	LobbyTime = 120,
-	StartCountdown = 5,
-}
+-- La partida empieza solo cuando alguien reconstruye la campana (sin tiempo límite)
 
 Config.Bell = {
-	MaxHealth = 600,
+	MaxHealth = 300,
 	RepairAmount = 30, -- con el talento Reparador
 	RepairCooldown = 1,
+	-- Refuerzo de la campana (lo vende el Intendente, queda guardado). En la
+	-- partida cuenta el nivel más alto entre los jugadores del servidor.
+	Armor = {
+		MaxLevel = 8,
+		HealthPerLevel = 60, -- +60 de vida por nivel (300 -> 780 al máximo)
+		Prices = { 120, 200, 320, 450, 600, 800, 1050, 1350 },
+	},
+	BarHeight = 20, -- altura de la barra de vida sobre la campana (studs)
 }
 
 -- Cómo se comportan los zombis con los jugadores
@@ -487,12 +492,13 @@ Config.Enemies = {
 }
 
 Config.Waves = {
-	FirstIntermission = 5,
+	FirstIntermission = 3,
 	Intermission = 12,
-	FirstWaveCount = 15,
-	CountGrowth = 1.25, -- cada oleada trae 25% más zombis
-	FirstSpawnRate = 3, -- zombis por segundo
-	SpawnRateGrowth = 1.2,
+	FirstWaveCount = 22,
+	CountGrowth = 1.3, -- cada oleada trae 30% más zombis
+	FirstSpawnRate = 4.5, -- zombis por segundo
+	SpawnRateGrowth = 1.5,
+	SpeedMultiplier = 1.2, -- todos los zombis caminan 20% más rápido que su Speed
 	MaxSpawnRate = 30,
 	MaxAlive = 300,
 	HealthGrowth = 0.12, -- +12% de vida por oleada

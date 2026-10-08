@@ -336,8 +336,30 @@ function Hud.init(actions: Actions)
 	top.Parent = gui
 	local waveLabel = makeLabel({ Size = UDim2.new(1, 0, 0, 30), TextSize = 28, Font = Config.PixelFont, Parent = top })
 	local statusLabel = makeLabel({ AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 30), Size = UDim2.fromOffset(640, 22), TextSize = 17, Font = Enum.Font.GothamBold, Parent = top })
-	local _, bellFill, bellText = makeBar(top, UDim2.fromOffset(0, 56), UDim2.new(1, 0, 0, 18))
-	local trapLabel = makeLabel({ Position = UDim2.fromOffset(0, 78), Size = UDim2.new(1, 0, 0, 18), TextSize = 13, Font = Enum.Font.GothamBold, Parent = top })
+	local trapLabel = makeLabel({ Position = UDim2.fromOffset(0, 56), Size = UDim2.new(1, 0, 0, 18), TextSize = 13, Font = Enum.Font.GothamBold, Parent = top })
+	-- Vida de la campana: flota sobre la campana (solo cuando está armada)
+	local bellBillboard = Instance.new("BillboardGui")
+	bellBillboard.Name = "BellHealth"
+	bellBillboard.Size = UDim2.fromOffset(220, 22)
+	bellBillboard.StudsOffset = Vector3.new(0, Config.Bell.BarHeight, 0)
+	bellBillboard.AlwaysOnTop = true
+	bellBillboard.LightInfluence = 0
+	bellBillboard.Enabled = false
+	bellBillboard.Parent = gui
+	local bellBack, bellFill, bellText = makeBar(bellBillboard, UDim2.fromOffset(0, 0), UDim2.fromScale(1, 1))
+	local bellCorner = Instance.new("UICorner")
+	bellCorner.CornerRadius = UDim.new(0, 6)
+	bellCorner.Parent = bellBack
+	task.spawn(function()
+		-- El montículo de la campana no se mueve: sirve de ancla para la barra
+		local map = workspace:WaitForChild("Map")
+		local prompt = map:FindFirstChild("StartPrompt", true)
+		while not prompt do
+			task.wait(1)
+			prompt = map:FindFirstChild("StartPrompt", true)
+		end
+		bellBillboard.Adornee = prompt.Parent :: BasePart
+	end)
 	-- Vida del jefe (solo cuando hay uno vivo)
 	local bossBack, bossFill, bossText = makeBar(top, UDim2.fromOffset(-60, 100), UDim2.new(1, 120, 0, 20))
 	bossFill.BackgroundColor3 = Color3.fromRGB(170, 40, 60)
@@ -450,12 +472,11 @@ function Hud.init(actions: Actions)
 		local isBossWave = wave > 0 and wave % Config.Waves.BossEvery == 0
 		waveLabel.Text = if wave > 0 then `OLEADA {wave}{if isBossWave then " 💀" else ""}` else "PREPÁRATE"
 
-		local countdown = gameState:GetAttribute("Countdown") or 0
 		if state == "Lobby" then
 			waveLabel.Text = "PREPARACIÓN"
-			statusLabel.Text = `Compra en el campamento · empieza en {countdown} s · reconstruye la campana (E) para empezar ya`
+			statusLabel.Text = "Compra en el campamento y reconstruye la campana (E) para empezar"
 		elseif state == "Intermission" then
-			statusLabel.Text = `Siguiente oleada en {countdown}`
+			statusLabel.Text = "¡Prepárate, vienen más zombis!"
 		elseif state == "Wave" then
 			statusLabel.Text = `Zombis restantes: {gameState:GetAttribute("EnemiesLeft")}`
 		elseif state == "GameOver" then
@@ -470,6 +491,7 @@ function Hud.init(actions: Actions)
 		bellFill.Size = UDim2.fromScale(ratio, 1)
 		bellFill.BackgroundColor3 = HEALTH_EMPTY:Lerp(HEALTH_FULL, ratio)
 		bellText.Text = `🔔 {health} / {maxHealth}`
+		bellBillboard.Enabled = state == "Intermission" or state == "Wave"
 
 		-- Trampas compradas para esta partida
 		local parts = {}

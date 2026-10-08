@@ -145,6 +145,19 @@ function actions.UpgradeStorage(player, data)
 	return true, `Cartuchera nivel {level + 1}: puedes cargar más balas`
 end
 
+function actions.UpgradeBell(player, data)
+	local level = data.BellArmor or 0
+	local cost = Progression.bellArmorCost(level)
+	if not cost then
+		return false, "La campana ya está reforzada al máximo"
+	end
+	if not DataService.spendCoins(player, cost) then
+		return false, NOT_ENOUGH
+	end
+	data.BellArmor = level + 1
+	return true, `🔔 Refuerzo nivel {level + 1}: la campana aguanta +{Config.Bell.Armor.HealthPerLevel} más`
+end
+
 function actions.BuyMine(player)
 	if not TrapService.canPlaceMine() then
 		return false, "Ya están todas las minas puestas"

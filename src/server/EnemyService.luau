@@ -248,6 +248,7 @@ local function create(typeName: string, healthMultiplier: number, start: Vector3
 	end
 	origin = Vector3.new(origin.X, halfHeight, origin.Z)
 	local spawnTime = workspace:GetServerTimeNow()
+	local speed = info.Speed * Config.Waves.SpeedMultiplier
 
 	nextId += 1
 	local enemy: Enemy = {
@@ -255,7 +256,7 @@ local function create(typeName: string, healthMultiplier: number, start: Vector3
 		Type = typeName,
 		Health = info.MaxHealth * healthMultiplier,
 		HealthMultiplier = healthMultiplier,
-		Path = EnemyMath.newPath(origin, target, info.Speed, spawnTime),
+		Path = EnemyMath.newPath(origin, target, speed, spawnTime),
 		Radius = info.HitRadius,
 		HalfHeight = halfHeight,
 		BodyHalf = info.Size.Y / 2,
@@ -275,7 +276,7 @@ local function create(typeName: string, healthMultiplier: number, start: Vector3
 	goToBell(enemy, origin, spawnTime)
 	pendingUpdates[nextId] = nil
 
-	table.insert(pendingSpawns, { nextId, typeName, enemy.Path.Points, info.Speed, spawnTime })
+	table.insert(pendingSpawns, { nextId, typeName, enemy.Path.Points, speed, spawnTime })
 	if enemy.IsBoss then
 		publishBoss()
 	end

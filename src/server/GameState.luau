@@ -9,12 +9,12 @@ local GameState = {}
 local folder = Instance.new("Folder")
 folder.Name = "GameState"
 
-local bellHealth = Config.Bell.MaxHealth
+local bellMaxHealth = Config.Bell.MaxHealth
+local bellHealth = bellMaxHealth
 
 function GameState.init()
 	folder:SetAttribute("State", "Waiting")
 	folder:SetAttribute("Wave", 0)
-	folder:SetAttribute("Countdown", 0)
 	folder:SetAttribute("EnemiesLeft", 0)
 	folder:SetAttribute("BellMaxHealth", Config.Bell.MaxHealth)
 	folder:SetAttribute("BellHealth", bellHealth)
@@ -42,10 +42,10 @@ function GameState.damageBell(amount: number)
 end
 
 function GameState.repairBell(amount: number): boolean
-	if bellHealth <= 0 or bellHealth >= Config.Bell.MaxHealth then
+	if bellHealth <= 0 or bellHealth >= bellMaxHealth then
 		return false
 	end
-	bellHealth = math.min(Config.Bell.MaxHealth, bellHealth + amount)
+	bellHealth = math.min(bellMaxHealth, bellHealth + amount)
 	folder:SetAttribute("BellHealth", math.ceil(bellHealth))
 	return true
 end
@@ -54,8 +54,11 @@ function GameState.isBellDestroyed(): boolean
 	return bellHealth <= 0
 end
 
-function GameState.resetBell()
-	bellHealth = Config.Bell.MaxHealth
+-- Campana nueva al empezar la partida. maxHealth incluye el refuerzo comprado.
+function GameState.resetBell(maxHealth: number)
+	bellMaxHealth = maxHealth
+	bellHealth = maxHealth
+	folder:SetAttribute("BellMaxHealth", maxHealth)
 	folder:SetAttribute("BellHealth", bellHealth)
 end
 

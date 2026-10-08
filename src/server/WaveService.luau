@@ -7,6 +7,7 @@ local DayCycle = require(Shared.DayCycle)
 local Remotes = require(Shared.Remotes)
 local BellTower = require(script.Parent.BellTower)
 local CombatService = require(script.Parent.CombatService)
+local DataService = require(script.Parent.DataService)
 local EnemyService = require(script.Parent.EnemyService)
 local GameState = require(script.Parent.GameState)
 local MatchService = require(script.Parent.MatchService)
@@ -23,7 +24,7 @@ local startRequested = false
 local startPrompt: ProximityPrompt? = nil
 
 -- Aviso "Reconstruir la campana": solo se ve durante la preparación. Al
--- reconstruirla se arma con animación y la partida empieza en unos segundos.
+-- reconstruirla se arma con animación y empieza la partida.
 function WaveService.setStartPrompt(prompt: ProximityPrompt)
 	startPrompt = prompt
 	prompt.Enabled = false
@@ -41,6 +42,19 @@ end
 
 function WaveService.getEnemyCount(wave: number): number
 	return math.floor(waves.FirstWaveCount * waves.CountGrowth ^ (wave - 1))
+end
+
+-- Vida de la campana: la base más el refuerzo más alto entre los jugadores
+function WaveService.getBellMaxHealth(): number
+	local armor = Config.Bell.Armor
+	local level = 0
+	for _, player in Players:GetPlayers() do
+		local data = DataService.get(player)
+		if data then
+			level = math.max(level, math.min(data.BellArmor or 0, armor.MaxLevel))
+		end
+	end
+	return Config.Bell.MaxHealth + level * armor.HealthPerLevel
 end
 
 -- Zombis por segundo. De noche llegan más (Config.DayCycle.NightSpawnMultiplier).
@@ -102,9 +116,9 @@ function WaveService.pickType(wave: number): string
 	return weights[#weights].Type
 end
 
--- Preparación: el único momento para comprar. La campana está destruida;
--- termina al reconstruirla o cuando se acaba el tiempo (entonces se
--- reconstruye sola). Devuelve false si todos se fueron.
+-- Preparación: el único momento para comprar. La campana está destruida y la
+-- partida no empieza hasta que alguien la reconstruye (no hay tiempo límite).
+-- Devuelve false si todos se fueron.
 local function runLobby(): boolean
 	GameState.set("State", "Lobby")
 	GameState.set("Wave", 0)
@@ -115,36 +129,22 @@ local function runLobby(): boolean
 		startPrompt.Enabled = true
 	end
 
-	local remaining = Config.Match.LobbyTime
-	local countingDown = false
-	while remaining > 0 do
+	while not startRequested do
 		if #Players:GetPlayers() == 0 then
 			return false
 		end
-		if startRequested and not countingDown then
-			countingDown = true
-			remaining = math.min(remaining, Config.Match.StartCountdown)
-		end
-		GameState.set("Countdown", remaining)
-		task.wait(1)
-		remaining -= 1
+		task.wait(0.25)
 	end
-
 	if startPrompt then
 		startPrompt.Enabled = false
 	end
-	BellTower.rebuild()
-	GameState.set("Countdown", 0)
 	return true
 end
 
+-- Descanso antes de cada oleada (sin conteo en pantalla)
 local function runIntermission(seconds: number)
 	GameState.set("State", "Intermission")
-	for remaining = seconds, 1, -1 do
-		GameState.set("Countdown", remaining)
-		task.wait(1)
-	end
-	GameState.set("Countdown", 0)
+	task.wait(seconds)
 end
 
 -- Devuelve true si la campana sobrevivió la oleada
@@ -202,7 +202,7 @@ function WaveService.start()
 				continue
 			end
 
-			GameState.resetBell()
+			GameState.resetBell(WaveService.getBellMaxHealth())
 			-- Todos empiezan la partida con la munición inicial
 			CombatService.resetAll()
 			local wave = 0

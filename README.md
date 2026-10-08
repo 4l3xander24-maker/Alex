@@ -76,9 +76,11 @@ el círculo de runas y el cuchillo), [`docs/capturas/pixel/`](docs/capturas/pixe
   **acantilado sobre el mar** (con mirador; si te caes, te lleva el mar). Alrededor: aldea con casas de
   entramado de madera, pozo, carreta, estandartes, **velas** y **antorchas** que parpadean, árboles secos y una luna enorme.
 - Si un zombi te persigue y lo pierdes, vuelve a su camino.
-- **Preparación antes de cada partida**: el único momento para comprar. La partida empieza cuando alguien
-  **reconstruye la campana** (mantener E) o cuando se acaba el tiempo (entonces se arma sola). Durante las
-  oleadas las tiendas están cerradas.
+- **Preparación antes de cada partida**: el único momento para comprar. La campana está rota y la partida
+  **solo empieza cuando alguien la reconstruye** (mantener E), sin tiempo límite. No hay conteos en pantalla.
+  Durante las oleadas las tiendas están cerradas.
+- **Vida de la campana**: 300, con la barra flotando sobre la campana. Se mejora con el **refuerzo** del
+  Intendente (+60 por nivel, hasta 8 niveles, queda guardado; cuenta el más alto del servidor).
 - **Empiezas con cuchillo y pistola**. El cuchillo no gasta balas (gasta energía); las armas de fuego tienen cargador y
   **reserva limitada**, y **cada zombi que eliminas te da balas** para el arma que tienes en la mano.
 - **4 NPC** en el campamento (habla con **E**):
@@ -86,7 +88,7 @@ el círculo de runas y el cuchillo), [`docs/capturas/pixel/`](docs/capturas/pixe
     mejoras. **Cada mejora cambia el color del arma**: Bronce → Plata → Oro → Esmeralda → Legendaria.
   - **Morgana, la Bruja** (en la aldea): poderes (granada, rayo en cadena, campanazo), sus mejoras y mascotas.
   - **Don Ramiro, el Veterano**: gasta tus puntos de mejora y aprende talentos.
-  - **Gustavo, el Intendente**: **cartuchera** (más balas máximas y más balas al empezar) y **trampas**:
+  - **Gustavo, el Intendente**: **cartuchera** (más balas máximas y más balas al empezar), **refuerzo de la campana** y **trampas**:
     hasta 8 **minas** sobre el camino y 2 **rejas** (entrada y salida del puente) que los detienen hasta que las rompen.
 - **Zombis que te persiguen** si te acercas, y vuelven a atacar la campana si te alejas. Tienes vida y reapareces.
 - **5 tipos de zombi** de dibujo animado (piel verde, ojos enormes, boca abierta, camisa rota y jean): Zombi,
