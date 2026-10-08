@@ -5,7 +5,10 @@
 -- El cuchillo se agarra como en Guns 'n Goblins: un guante grande de cuero
 -- con tachas, el mango hacia abajo a la izquierda y la hoja hacia la derecha.
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+
+local Config = require(ReplicatedStorage:WaitForChild("Shared").Config)
 
 local player = Players.LocalPlayer
 
@@ -163,6 +166,23 @@ local MODELS: { [string]: ModelSpec } = {
 	},
 }
 
+-- Mallas de la Creator Store (src/weapons → ReplicatedStorage.WeaponModels)
+-- en lugar de las piezas de bloques. Todas vienen con el cañón a lo largo de Z.
+-- Length: largo en studs; Center: dónde va el centro de la malla (mismo
+-- espacio que las piezas de arriba); Turn: giro para que el cañón apunte a -Z
+-- y quede parada (las del paquete de mosquetes vienen acostadas y al revés).
+local MESH_WEAPONS = Config.UseStoreModels and not Config.Style.Blocky
+local MUSKET_TURN = CFrame.Angles(0, math.pi, 0) * CFrame.Angles(0, 0, math.pi / 2)
+local MESHES: { [string]: { Length: number, Center: CFrame, Turn: CFrame? } } = {
+	Pistol = { Length = 2.3, Center = CFrame.new(0, -0.05, -0.7), Turn = MUSKET_TURN },
+	Shotgun = { Length = 4.2, Center = CFrame.new(0, -0.05, -0.9), Turn = MUSKET_TURN },
+	Rifle = { Length = 4.9, Center = CFrame.new(0, -0.05, -0.4), Turn = MUSKET_TURN },
+	Sniper = { Length = 5.5, Center = CFrame.new(0, 0, -0.4), Turn = CFrame.Angles(0, math.pi, 0) },
+	Minigun = { Length = 3, Center = CFrame.new(0.1, -0.45, -0.9), Turn = CFrame.Angles(0, math.pi, 0) },
+	-- El alfanje sigue la hoja del cuchillo (hacia la derecha y un poco adelante)
+	Machete = { Length = 3.8, Center = CFrame.Angles(0, 0.25, 0) * CFrame.Angles(0, 0, 0.1) * CFrame.new(1.3, 0, 0) * CFrame.Angles(0, -math.pi / 2, 0), Turn = CFrame.Angles(0, math.pi, 0) },
+}
+
 -- Mano y antebrazo derechos (siempre en el mango)
 local RIGHT_ARM = {
 	p(Vector3.new(0.42, 0.36, 0.5), CFrame.new(0.02, -0.5, 0.48) * CFrame.Angles(-0.25, 0, 0), SKIN),
@@ -185,6 +205,8 @@ local folder = Instance.new("Folder")
 folder.Name = "Viewmodel"
 
 local parts: { BasePart } = {}
+local meshModel: Model? = nil
+local tierOutline: Highlight? = nil
 local offsets: { CFrame } = {}
 local cframes: { CFrame } = {}
 local flashPart: Part
@@ -248,11 +270,19 @@ function Viewmodel.setWeapon(weaponId: string, zoomFactor: number, level: number
 	table.clear(parts)
 	table.clear(offsets)
 	table.clear(cframes)
+	if meshModel then
+		meshModel:Destroy()
+		meshModel = nil
+	end
 
 	local model = MODELS[weaponId] or MODELS.Pistol
 	muzzleOffset = model.Muzzle
 	hipOffset = model.Hip or HIP_OFFSET
-	local specs = table.clone(model.Pieces)
+	local meshSpec = MESHES[weaponId]
+	local meshFolder = ReplicatedStorage:FindFirstChild("WeaponModels")
+	local source = MESH_WEAPONS and meshSpec and meshFolder and meshFolder:FindFirstChild(weaponId)
+	-- Con malla de la tienda no van las piezas de bloques del arma (los brazos sí)
+	local specs = if source then {} else table.clone(model.Pieces)
 	local arm = model.Arm or RIGHT_ARM
 	table.move(arm, 1, #arm, #specs + 1, specs)
 	if model.LeftHand then
@@ -274,6 +304,42 @@ function Viewmodel.setWeapon(weaponId: string, zoomFactor: number, level: number
 		end
 		table.insert(parts, part)
 		table.insert(offsets, spec.Offset)
+	end
+
+	if source and meshSpec then
+		local mesh = source:Clone() :: Model
+		local box, size = mesh:GetBoundingBox()
+		mesh:ScaleTo(meshSpec.Length / size.Z)
+		box = mesh:GetBoundingBox()
+		local turn = meshSpec.Turn or CFrame.identity
+		for _, descendant in mesh:GetDescendants() do
+			if descendant:IsA("BasePart") then
+				descendant.Anchored = true
+				descendant.CanCollide = false
+				descendant.CanQuery = false
+				descendant.CanTouch = false
+				descendant.CastShadow = false
+				table.insert(parts, descendant)
+				table.insert(offsets, meshSpec.Center * turn * box:ToObjectSpace(descendant.CFrame))
+			end
+		end
+		mesh.Parent = folder
+		meshModel = mesh
+		-- El nivel de mejora se ve como un contorno del color del nivel
+		if level > 0 then
+			local outline = tierOutline or Instance.new("Highlight")
+			outline.FillTransparency = 1
+			outline.OutlineColor = tier.Accent
+			outline.OutlineTransparency = if tier.Glow then 0 else 0.35
+			outline.DepthMode = Enum.HighlightDepthMode.Occluded
+			outline.Adornee = mesh
+			outline.Parent = folder
+			tierOutline = outline
+		elseif tierOutline then
+			tierOutline.Adornee = nil
+		end
+	elseif tierOutline then
+		tierOutline.Adornee = nil
 	end
 	table.insert(parts, flashPart)
 end

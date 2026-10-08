@@ -1,11 +1,14 @@
 -- Saca los modelos de ServerStorage.ImportedModels de un archivo .rbxl y los
--- guarda en src/models/<Nombre>.rbxm (Rojo los pone en ServerStorage.Models).
--- Uso: lune run tools/extract_models.luau ruta/al/lugar.rbxl
+-- guarda en <carpeta>/<Nombre>.rbxm, sin scripts.
+--   src/models  (por defecto) → ServerStorage.Models (árboles, casas, montañas)
+--   src/weapons               → ReplicatedStorage.WeaponModels (armas en primera persona)
+-- Uso: lune run tools/extract_models.luau ruta/al/lugar.rbxl [carpeta]
 local fs = require("@lune/fs")
 local process = require("@lune/process")
 local roblox = require("@lune/roblox")
 
 local path = process.args[1]
+local outDir = process.args[2] or "src/models"
 assert(path, "Falta la ruta del .rbxl")
 local game = roblox.deserializePlace(fs.readFile(path))
 local folder = game:GetService("ServerStorage"):FindFirstChild("ImportedModels")
@@ -24,6 +27,6 @@ for _, model in folder:GetChildren() do
 			parts += 1
 		end
 	end
-	fs.writeFile(`src/models/{model.Name}.rbxm`, roblox.serializeModel({ model }))
+	fs.writeFile(`{outDir}/{model.Name}.rbxm`, roblox.serializeModel({ model }))
 	print(`{model.Name}: {parts} piezas`)
 end

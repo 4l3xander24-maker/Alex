@@ -171,6 +171,11 @@ En el estilo `"Realista"` los árboles de otoño y las casas de la aldea son mod
 3. `lune run tools/extract_models.luau ruta/al/archivo.rbxl`: los guarda en `src/models/` sin scripts.
 4. Úsalos en el código con `ModelLibrary.place(nombre, cframe, { Height = ... }, sólido, padre)`.
 
+Las **armas en primera persona** también son mallas de la tienda (`src/weapons/` → `ReplicatedStorage.WeaponModels`):
+pistola y mosquetes de chispa, trabuco, Brown Bess, minigun y un alfanje para el cuchillo. Se extraen igual, con
+`lune run tools/extract_models.luau archivo.rbxl src/weapons`, y su tamaño y giro están en `MESHES` de
+`src/client/Viewmodel.luau`. El nivel de mejora se ve como un contorno del color del nivel.
+
 Hace falta **Rojo 7.7** o más nuevo (los modelos nuevos guardan las mallas en un formato que Rojo 7.4 pierde).
 
 ## Subir las imágenes (para el pixel art)

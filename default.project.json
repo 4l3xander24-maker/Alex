@@ -5,6 +5,9 @@
     "ReplicatedStorage": {
       "Shared": {
         "$path": "src/shared"
+      },
+      "WeaponModels": {
+        "$path": "src/weapons"
       }
     },
     "ServerScriptService": {
