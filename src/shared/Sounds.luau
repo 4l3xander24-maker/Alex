@@ -32,6 +32,7 @@ return {
 	Rebuild = { Id = 9114755635, Volume = 0.6 },
 	LevelUp = { Id = 1836473422, Volume = 0.5 },
 	Coins = { Id = 9113849651, Volume = 0.5 },
+	XpPickup = { Id = 9113849651, Volume = 0.25, PitchRange = { 1.6, 1.9 } },
 
 	-- Música según el momento de la partida (en bucle)
 	Music = {

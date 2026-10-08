@@ -21,6 +21,7 @@ local DeathFx = require(script.Parent.DeathFx)
 local ZombieAnimator = require(script.Parent.ZombieAnimator)
 local ZombieModels = require(script.Parent.ZombieModels)
 local Sfx = require(script.Parent.Sfx)
+local XpDrops = require(script.Parent.XpDrops)
 
 local FLASH_COLOR = Color3.new(1, 1, 1)
 local FLASH_TINT = Color3.new(1, 0.35, 0.35)
@@ -582,6 +583,11 @@ function EnemyRenderer.init()
 	end)
 	Remotes.EnemyDied.OnClientEvent:Connect(function(deaths)
 		for _, death in deaths do
+			local visual = visuals[death[1]]
+			if visual then
+				-- Rombo de experiencia que vuela hacia quien lo mató
+				XpDrops.spawn(EnemyMath.getPosition(visual.Path, workspace:GetServerTimeNow()), death[3] or 0, visual.Type)
+			end
 			showDamage(death[1], death[2], true)
 			removeEnemy(death[1], true)
 		end

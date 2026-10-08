@@ -111,7 +111,8 @@ end
 -- pixelada, siempre mirando a la cámara y sin suavizado
 local function applyNpcSprites()
 	local map = workspace:FindFirstChild("Map")
-	if not map then
+	-- Solo en el estilo de sprites: en el realista los NPC se ven en 3D trabajando
+	if not map or Config.ZombieStyle ~= "Pixel" then
 		return
 	end
 	for _, model in map:GetDescendants() do

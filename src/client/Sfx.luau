@@ -18,6 +18,7 @@ local MIN_GAP = {
 	HitMarker = 0.05,
 	BellHit = 0.4,
 	PlayerHurt = 0.25,
+	XpPickup = 0.06,
 	SmallExplosion = 0.1,
 }
 local DEFAULT_GAP = 0.03

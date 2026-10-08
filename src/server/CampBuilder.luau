@@ -193,6 +193,31 @@ local function buildNpc(parent: Instance, info, cframe: CFrame)
 		piece("Eye", Vector3.new(0.22, 0.22, 0.05), Vector3.new(x, 4.75, -0.66), Color3.fromRGB(20, 20, 24))
 	end
 	info.Extras(piece)
+
+	-- Trabajo: la herramienta va en la mano derecha y cada cliente mueve los
+	-- brazos (NpcWork). Todo gira sobre la línea de los hombros.
+	local work = info.Work
+	if work then
+		local moving = { "RightArm", "RightHand" }
+		if work.Kind == "lift" then
+			table.insert(moving, "LeftArm")
+			table.insert(moving, "LeftHand")
+		end
+		local tagged = {}
+		for _, name in moving do
+			table.insert(tagged, model:FindFirstChild(name))
+		end
+		for _, part in work.Tool(piece) do
+			table.insert(tagged, part)
+		end
+		local seed = random:NextNumber(0, 10) -- igual para todo el NPC: brazo y herramienta juntos
+		for _, part in tagged do
+			part:SetAttribute("Work", work.Kind)
+			part:SetAttribute("WorkPivot", (cframe * CFrame.new(0, 4, 0)).Position)
+			part:SetAttribute("WorkAxis", cframe.RightVector)
+			part:SetAttribute("WorkSeed", seed)
+		end
+	end
 	model.PrimaryPart = torso
 	-- Si se subió su sprite pixelado, AssetService lo muestra en lugar del muñeco
 	local spriteKeys = { Armory = "Armero", Mystic = "Bruja", Trainer = "Veterano", Quartermaster = "Intendente" }
@@ -253,6 +278,37 @@ local function buildArmory(map: Instance)
 	Props.crate(map, stall * CFrame.new(-6.3, 2.4, -1) * CFrame.Angles(0, 0.3, 0), 1.6)
 	Props.barrel(map, (stall * CFrame.new(6.3, 0, 0)).Position)
 
+	-- Bruno trabaja afuera del puesto: martilla en el yunque junto a la fragua
+	local smith = stall * CFrame.new(-1.5, 0, -6)
+	local anvil = smith * CFrame.new(1.5, 0, -2.4)
+	makePart({ Name = "AnvilBase", Size = Vector3.new(1.1, 1.5, 1.1), CFrame = anvil * CFrame.new(0, 0.75, 0), Material = Enum.Material.Metal, Color = Color3.fromRGB(45, 45, 50), Parent = map })
+	local anvilTop = makePart({ Name = "AnvilTop", Size = Vector3.new(1.2, 0.6, 2.4), CFrame = anvil * CFrame.new(0, 1.8, 0), Material = Enum.Material.Metal, Color = Color3.fromRGB(60, 60, 66), Parent = map })
+	local hot = makeProp({ Name = "HotIron", Size = Vector3.new(0.3, 0.2, 1.2), CFrame = anvil * CFrame.new(0, 2.2, -0.2), Material = Enum.Material.Neon, Color = Color3.fromRGB(255, 120, 40), Parent = map })
+	Props.light(hot, Color3.fromRGB(255, 140, 60), 8, 1)
+	local sparks = Instance.new("ParticleEmitter")
+	sparks.Rate = 10
+	sparks.Lifetime = NumberRange.new(0.2, 0.5)
+	sparks.Speed = NumberRange.new(4, 9)
+	sparks.SpreadAngle = Vector2.new(70, 70)
+	sparks.Acceleration = Vector3.new(0, -25, 0)
+	sparks.Size = NumberSequence.new(0.12)
+	sparks.LightEmission = 1
+	sparks.Color = ColorSequence.new(Color3.fromRGB(255, 200, 90), Color3.fromRGB(255, 90, 30))
+	sparks.Parent = anvilTop
+	-- Fragua de piedra con brasas
+	local forge = smith * CFrame.new(4.2, 0, -1)
+	makePart({ Name = "Forge", Size = Vector3.new(2.6, 2.4, 2.6), CFrame = forge * CFrame.new(0, 1.2, 0), Material = Enum.Material.Cobblestone, Color = Props.Colors.Stone, Parent = map })
+	local coals = makeProp({ Name = "Coals", Size = Vector3.new(1.9, 0.3, 1.9), CFrame = forge * CFrame.new(0, 2.5, 0), Material = Enum.Material.Neon, Color = Color3.fromRGB(255, 90, 30), Parent = map })
+	Props.light(coals, Color3.fromRGB(255, 120, 50), 14, 1.6)
+	local smoke = Instance.new("ParticleEmitter")
+	smoke.Rate = 4
+	smoke.Lifetime = NumberRange.new(2, 3)
+	smoke.Speed = NumberRange.new(2, 3)
+	smoke.Size = NumberSequence.new(0.8, 2.4)
+	smoke.Transparency = NumberSequence.new(0.6, 1)
+	smoke.Color = ColorSequence.new(Color3.fromRGB(90, 90, 90))
+	smoke.Parent = coals
+
 	buildNpc(map, {
 		Name = "Bruno",
 		Role = "Armero",
@@ -267,7 +323,16 @@ local function buildArmory(map: Instance)
 			piece("CapBrim", Vector3.new(1.4, 0.15, 0.6), Vector3.new(0, 5.3, -0.9), Color3.fromRGB(150, 50, 46), Enum.Material.Fabric)
 			piece("Beard", Vector3.new(1.1, 0.5, 0.15), Vector3.new(0, 4.2, -0.7), Color3.fromRGB(70, 45, 30))
 		end,
-	}, stall * CFrame.new(0, 0, 1.2))
+		Work = {
+			Kind = "hammer",
+			Tool = function(piece)
+				return {
+					piece("HammerHandle", Vector3.new(0.22, 0.22, 1.6), Vector3.new(1.5, 2.15, -0.8), Color3.fromRGB(110, 75, 45), Enum.Material.Wood),
+					piece("HammerHead", Vector3.new(0.5, 0.5, 0.9), Vector3.new(1.5, 2.15, -1.7) , Color3.fromRGB(70, 70, 78), Enum.Material.Metal),
+				}
+			end,
+		},
+	}, smith)
 end
 
 -- La Bruja vive en la aldea (su propia isla), mirando al puente de madera
@@ -276,7 +341,9 @@ local function buildMystic(map: Instance)
 	local stall = CFrame.lookAt(info.Position, info.LookAt)
 	buildCanopy(map, stall, Color3.fromRGB(90, 50, 130))
 
-	local cauldron = stall * CFrame.new(0, 0, -2.6)
+	-- Morgana revuelve el caldero afuera del puesto
+	local witch = stall * CFrame.new(-1.5, 0, -4.4)
+	local cauldron = witch * CFrame.new(1.5, 0, -2.6)
 	makePart({ Name = "Cauldron", Shape = Enum.PartType.Cylinder, Size = Vector3.new(2.4, 4, 4), CFrame = cauldron * CFrame.new(0, 1.4, 0) * CFrame.Angles(0, 0, math.pi / 2), Material = Enum.Material.Metal, Color = Color3.fromRGB(40, 40, 46), Parent = map })
 	local potion = makeProp({ Name = "Potion", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.2, 3.4, 3.4), CFrame = cauldron * CFrame.new(0, 2.6, 0) * CFrame.Angles(0, 0, math.pi / 2), Material = Enum.Material.Neon, Color = Color3.fromRGB(110, 255, 120), Parent = map })
 	Props.light(potion, Color3.fromRGB(110, 255, 120), 18, 2)
@@ -314,7 +381,13 @@ local function buildMystic(map: Instance)
 			piece("HatTop", Vector3.new(0.9, 0.9, 0.9), Vector3.new(0.1, 6.7, 0.1), Color3.fromRGB(30, 22, 40), Enum.Material.Fabric)
 			piece("HatTip", Vector3.new(0.5, 0.7, 0.5), Vector3.new(0.3, 7.4, 0.3), Color3.fromRGB(30, 22, 40), Enum.Material.Fabric)
 		end,
-	}, stall * CFrame.new(0, 0, 1.2))
+		Work = {
+			Kind = "stir",
+			Tool = function(piece)
+				return { piece("Ladle", Vector3.new(0.22, 3.2, 0.22), Vector3.new(1.5, 0.8, 0), Color3.fromRGB(90, 60, 40), Enum.Material.Wood) }
+			end,
+		},
+	}, witch)
 end
 
 local function buildQuartermaster(map: Instance)
@@ -337,6 +410,12 @@ local function buildQuartermaster(map: Instance)
 	end
 	Props.sign(map, stall * CFrame.new(0, 7.3, -3.6), "INTENDENCIA", Color3.fromRGB(200, 230, 120))
 
+	-- Gustavo acomoda cajas de munición afuera del puesto
+	local quartermaster = stall * CFrame.new(1.5, 0, -6)
+	Props.crate(map, quartermaster * CFrame.new(-2.8, 0, -1.4), 1.8)
+	Props.crate(map, quartermaster * CFrame.new(-2.7, 1.8, -1.3) * CFrame.Angles(0, 0.25, 0), 1.4)
+	Props.crate(map, quartermaster * CFrame.new(2.8, 0, -0.8) * CFrame.Angles(0, -0.2, 0), 1.8)
+
 	buildNpc(map, {
 		Name = "Gustavo",
 		Role = "Intendente",
@@ -351,15 +430,25 @@ local function buildQuartermaster(map: Instance)
 			piece("Mustache", Vector3.new(0.9, 0.2, 0.1), Vector3.new(0, 4.35, -0.68), Color3.fromRGB(50, 35, 25))
 			piece("Goggles", Vector3.new(1.35, 0.25, 0.1), Vector3.new(0, 4.78, -0.69), Color3.fromRGB(30, 30, 30))
 		end,
-	}, stall * CFrame.new(0, 0, 1.2))
+		Work = {
+			Kind = "lift",
+			Tool = function(piece)
+				return {
+					piece("CarryBox", Vector3.new(2.4, 1.3, 1.4), Vector3.new(0, 2.3, -1), Color3.fromRGB(80, 90, 55), Enum.Material.Metal),
+					piece("CarryStripe", Vector3.new(2.42, 0.2, 1.42), Vector3.new(0, 2.5, -1), Color3.fromRGB(230, 190, 60)),
+				}
+			end,
+		},
+	}, quartermaster)
 end
 
 local function buildTrainer(map: Instance)
 	local stall = facingCamp(camp + Vector3.new(0, 0, 26))
 	buildCanopy(map, stall, Color3.fromRGB(50, 80, 130))
 
-	-- Muñeco de entrenamiento
-	local dummy = stall * CFrame.new(-4, 0, -2.5)
+	-- Don Ramiro entrena afuera del puesto: le pega con la espada al muñeco
+	local veteran = stall * CFrame.new(-2, 0, -5)
+	local dummy = veteran * CFrame.new(1.2, 0, -3.4)
 	makePart({ Name = "DummyPost", Size = Vector3.new(0.6, 5, 0.6), CFrame = dummy * CFrame.new(0, 2.5, 0), Material = Enum.Material.Wood, Color = DARK_WOOD, Parent = map })
 	makePart({ Name = "DummyBody", Shape = Enum.PartType.Cylinder, Size = Vector3.new(2.6, 1.8, 1.8), CFrame = dummy * CFrame.new(0, 3.4, 0) * CFrame.Angles(0, 0, math.pi / 2), Material = Enum.Material.Fabric, Color = Color3.fromRGB(200, 170, 90), Parent = map })
 	makePart({ Name = "DummyHead", Shape = Enum.PartType.Ball, Size = Vector3.one * 1.4, CFrame = dummy * CFrame.new(0, 5.3, 0), Material = Enum.Material.Fabric, Color = Color3.fromRGB(200, 170, 90), Parent = map })
@@ -387,7 +476,17 @@ local function buildTrainer(map: Instance)
 			piece("Beard", Vector3.new(1.2, 0.8, 0.15), Vector3.new(0, 4.1, -0.7), Color3.fromRGB(235, 235, 235))
 			piece("Belt", Vector3.new(2.05, 0.3, 1.05), Vector3.new(0, 2.15, 0), Color3.fromRGB(60, 40, 25))
 		end,
-	}, stall * CFrame.new(0, 0, 1.2))
+		Work = {
+			Kind = "swing",
+			Tool = function(piece)
+				return {
+					piece("SwordGrip", Vector3.new(0.25, 0.25, 0.7), Vector3.new(1.5, 2.15, -0.35), Color3.fromRGB(70, 45, 30), Enum.Material.Wood),
+					piece("SwordGuard", Vector3.new(0.9, 0.2, 0.2), Vector3.new(1.5, 2.15, -0.75), Color3.fromRGB(180, 150, 70), Enum.Material.Metal),
+					piece("SwordBlade", Vector3.new(0.15, 0.32, 3), Vector3.new(1.5, 2.15, -2.3), Color3.fromRGB(200, 205, 215), Enum.Material.Metal),
+				}
+			end,
+		},
+	}, veteran)
 end
 
 -- Refugio de madera junto a la fogata (como en Guns 'n Goblins): techo de

@@ -569,14 +569,14 @@ Config.Waves = {
 -- Armas que vende el Armero. Zoom solo se usa con el talento Puntería.
 -- StartReserve: balas de reserva al empezar la partida.
 -- MaxReserve: máximo de balas de reserva (lo sube la cartuchera del Intendente).
--- AmmoPerKill: balas que ganas por cada zombi eliminado con esa arma en la mano.
+-- AmmoPerKill: balas que ganas por cada zombi eliminado con esa arma en la mano (1 en todas).
 Config.Weapons = {
 	Machete = {
 		DisplayName = "Cuchillo",
 		Icon = "🔪",
 		Price = 0,
 		Melee = true,
-		Damage = 3,
+		Damage = 1.5, -- antes 3: el cuchillo es para emergencias
 		FireRate = 2.2, -- golpes por segundo
 		Range = 7,
 		Arc = 70, -- grados frente al jugador que cubre el tajo
@@ -595,7 +595,7 @@ Config.Weapons = {
 		Magazine = 12,
 		StartReserve = 36,
 		MaxReserve = 96,
-		AmmoPerKill = 3,
+		AmmoPerKill = 1,
 		ReloadTime = 1.4,
 		Range = 350,
 		Pellets = 1,
@@ -612,7 +612,7 @@ Config.Weapons = {
 		Magazine = 6,
 		StartReserve = 18,
 		MaxReserve = 48,
-		AmmoPerKill = 2,
+		AmmoPerKill = 1,
 		ReloadTime = 2.2,
 		Range = 110,
 		Pellets = 7,
@@ -629,7 +629,7 @@ Config.Weapons = {
 		Magazine = 30,
 		StartReserve = 60,
 		MaxReserve = 240,
-		AmmoPerKill = 6,
+		AmmoPerKill = 1,
 		ReloadTime = 1.8,
 		Range = 400,
 		Pellets = 1,
@@ -663,7 +663,7 @@ Config.Weapons = {
 		Magazine = 120,
 		StartReserve = 240,
 		MaxReserve = 720,
-		AmmoPerKill = 15,
+		AmmoPerKill = 1,
 		ReloadTime = 4.5,
 		Range = 350,
 		Pellets = 1,

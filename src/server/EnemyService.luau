@@ -324,7 +324,8 @@ function EnemyService.damage(enemyId: number, amount: number, player: Player)
 	enemies[enemyId] = nil
 	pendingUpdates[enemyId] = nil
 	aliveCount -= 1
-	table.insert(pendingDeaths, { enemyId, amount })
+	-- Id, daño y quién lo mató (los rombos de experiencia vuelan hacia él)
+	table.insert(pendingDeaths, { enemyId, amount, if player then player.UserId else 0 })
 	if killHandler then
 		killHandler(player, enemy)
 	end
