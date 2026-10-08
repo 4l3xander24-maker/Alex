@@ -624,6 +624,13 @@ local function setupLighting()
 		end
 		Lighting.GeographicLatitude = bestLatitude
 		DayCycle.applyLighting(DayCycle.getClock(workspace:GetServerTimeNow()))
+		-- Rayos de sol entre los árboles de día (en pixel art todo nítido)
+		if not voxel then
+			local sunRays = Instance.new("SunRaysEffect")
+			sunRays.Intensity = 0.06
+			sunRays.Spread = 0.5
+			sunRays.Parent = Lighting
+		end
 	elseif theme.Night then
 		aimSky(function()
 			return Lighting:GetMoonDirection()

@@ -4,8 +4,10 @@ local Config = {}
 -- Paleta y hora del mapa:
 --   "Medieval" → noche medieval con luna, velas, antorchas y árboles secos
 --   "Otono"    → atardecer dorado de otoño (árboles naranjas, camino de adoquines)
+--   "OtonoMedieval" → la aldea medieval con día y noche, pero de otoño: árboles
+--                      naranjas y dorados, cielo azul y luz cálida (estilo realista)
 --   "Verde", "Morado", "Ambar" → de noche con luna enorme
-Config.Theme = "Medieval"
+Config.Theme = "OtonoMedieval"
 
 -- Estilo de dibujo del mundo:
 --   "Pixel"     → pixel art 3D como Guns 'n Goblins: cubos con texturas pixeladas
@@ -14,7 +16,7 @@ Config.Theme = "Medieval"
 --   "Texturado" → cubos con las texturas normales de Roblox (madera, piedra, hojas)
 --   "Voxel"     → pixel art 3D: cubos de colores planos y suelo de baldosas
 --   "Realista"  → formas redondas, materiales con textura, desenfoque y fuego de partículas
-Config.ArtStyle = "Pixel"
+Config.ArtStyle = "Realista"
 
 -- Qué implica cada estilo: Blocky = bolas y cilindros se vuelven bloques (y el
 -- fuego, las nubes y las luciérnagas son de cubitos); Flat = colores planos sin
@@ -40,8 +42,8 @@ Config.Wind = {
 -- Todos los jugadores ven la misma hora: se calcula con el reloj del servidor.
 Config.DayCycle = {
 	Enabled = true,
-	Length = 600, -- segundos que dura un día completo (10 minutos)
-	StartClock = 16, -- hora del día cuando arranca el servidor
+	Length = 1200, -- segundos que dura un día completo (20 minutos)
+	StartClock = 10, -- hora del día cuando arranca el servidor
 	-- De noche llegan más zombis por segundo (1 = igual que de día)
 	NightSpawnMultiplier = 1.3,
 	-- Con cada oleada el cielo se pone más rojo: en FullAtWave ya está todo
@@ -105,6 +107,48 @@ Config.Themes = {
 		Haze = 1.7,
 		Tint = Color3.fromRGB(226, 222, 255),
 		Ambient = Color3.fromRGB(70, 72, 105),
+	},
+	-- Como "Medieval" (mismos edificios y ciclo de día y noche) pero de otoño y
+	-- con luz de cine: cielo azul limpio de día, árboles naranjas, hojas en el suelo
+	OtonoMedieval = {
+		Night = true,
+		Medieval = true,
+		Day = {
+			Brightness = 3.2,
+			Ambient = Color3.fromRGB(150, 140, 125),
+			Atmosphere = Color3.fromRGB(180, 205, 240),
+			Decay = Color3.fromRGB(110, 140, 190),
+			Density = 0.12,
+			Haze = 0.15,
+			Tint = Color3.fromRGB(255, 244, 228),
+		},
+		Dusk = {
+			Brightness = 2.2,
+			Ambient = Color3.fromRGB(150, 105, 85),
+			Atmosphere = Color3.fromRGB(255, 175, 120),
+			Decay = Color3.fromRGB(150, 85, 90),
+			Density = 0.3,
+			Haze = 1.5,
+			Tint = Color3.fromRGB(255, 226, 200),
+		},
+		Brightness = 1.5,
+		Ground = Color3.fromRGB(96, 116, 50),
+		LeafLitter = Color3.fromRGB(200, 108, 38),
+		Tree = Color3.fromRGB(46, 84, 56),
+		Foliage = {
+			Color3.fromRGB(230, 108, 32),
+			Color3.fromRGB(244, 162, 42),
+			Color3.fromRGB(204, 64, 32),
+			Color3.fromRGB(250, 200, 70),
+			Color3.fromRGB(176, 124, 40),
+		},
+		Mountain = Color3.fromRGB(96, 118, 150),
+		Atmosphere = Color3.fromRGB(80, 100, 130),
+		Decay = Color3.fromRGB(40, 50, 75),
+		Density = 0.34,
+		Haze = 1.6,
+		Tint = Color3.fromRGB(226, 226, 255),
+		Ambient = Color3.fromRGB(72, 74, 105),
 	},
 	Otono = {
 		Night = false,
@@ -176,7 +220,7 @@ Config.Themes = {
 --   "Pixel" → sprites pixelados de dos cuadros, como Guns 'n Goblins (hay que subir
 --             las imágenes con tools/upload_assets.py; mientras tanto se ven en 3D)
 --   "3D"    → muñecos 3D de bloques con animación de caminar
-Config.ZombieStyle = "Pixel"
+Config.ZombieStyle = "3D"
 
 -- Optimización en el cliente
 Config.Graphics = {

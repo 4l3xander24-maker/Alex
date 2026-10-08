@@ -4,6 +4,7 @@ local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage.Shared
 local Config = require(Shared.Config)
+local DayCycle = require(Shared.DayCycle)
 local Progression = require(Shared.Progression)
 local Remotes = require(Shared.Remotes)
 local AssetService = require(script.AssetService)
@@ -23,6 +24,8 @@ local WaveService = require(script.WaveService)
 
 local random = Random.new()
 
+-- La hora del día cuenta desde ahora (el servidor empieza a la hora StartClock)
+DayCycle.startDay()
 local map = MapBuilder.build()
 -- Imágenes subidas (sprites y texturas pixeladas), en segundo plano
 AssetService.init()

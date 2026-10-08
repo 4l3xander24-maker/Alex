@@ -1,6 +1,7 @@
 -- Ciclo de día y noche. La hora sale del reloj del servidor, así que el
 -- servidor y todos los clientes ven exactamente la misma hora sin mandarla
--- por la red.
+-- por la red. Cuenta desde que arrancó el servidor (atributo DayOrigin de
+-- workspace), así cada servidor empieza a la hora StartClock.
 local Config = require(script.Parent.Config)
 
 local DayCycle = {}
@@ -19,7 +20,13 @@ end
 
 -- Hora del día (0 a 24) para un tiempo del servidor
 function DayCycle.getClock(serverTime: number): number
-	return (cycle.StartClock + (serverTime % cycle.Length) / cycle.Length * 24) % 24
+	local elapsed = serverTime - (workspace:GetAttribute("DayOrigin") or 0)
+	return (cycle.StartClock + (elapsed % cycle.Length) / cycle.Length * 24) % 24
+end
+
+-- Lo llama el servidor al arrancar, antes de construir el mapa
+function DayCycle.startDay()
+	workspace:SetAttribute("DayOrigin", workspace:GetServerTimeNow())
 end
 
 local function smooth(t: number): number

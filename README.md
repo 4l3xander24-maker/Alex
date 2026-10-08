@@ -129,6 +129,10 @@ Los gráficos ya vienen configurados en `default.project.json`: iluminación **F
 (`Terrain.Decoration`) y **StreamingEnabled**. No tienes que tocar nada en Studio.
 
 ## Gráficos y rendimiento
+- **Por defecto**: tema `"OtonoMedieval"` con estilo `"Realista"` y zombis `"3D"`: la aldea medieval de otoño
+  (árboles naranjas y dorados, cielo azul, sol con rayos, adoquines y pasto alto) y de noche la luna. Cada
+  servidor empieza a las 10 de la mañana y el día dura 20 minutos. Para volver al pixel art pon
+  `Config.Theme = "Medieval"`, `Config.ArtStyle = "Pixel"` y `Config.ZombieStyle = "Pixel"`.
 - **Estilo**: `Config.ArtStyle` = `"Pixel"` (pixel art 3D con texturas pixeladas, por defecto), `"Texturado"`
   (bloques con los materiales de Roblox y pasto con viento),
   `"Voxel"` (pixel art 3D de colores planos y baldosas) o `"Realista"` (formas redondas, desenfoque y fuego
