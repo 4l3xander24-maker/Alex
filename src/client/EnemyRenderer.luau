@@ -20,6 +20,7 @@ local DamageNumbers = require(script.Parent.DamageNumbers)
 local DeathFx = require(script.Parent.DeathFx)
 local ZombieAnimator = require(script.Parent.ZombieAnimator)
 local ZombieModels = require(script.Parent.ZombieModels)
+local Sfx = require(script.Parent.Sfx)
 
 local FLASH_COLOR = Color3.new(1, 1, 1)
 local FLASH_TINT = Color3.new(1, 0.35, 0.35)
@@ -259,6 +260,7 @@ local function addEnemy(id: number, typeName: string, points: { Vector3 }, speed
 	local visual = visuals[id]
 	local now = workspace:GetServerTimeNow()
 	local age = now - spawnTime
+	Sfx.onEnemySpawned(typeName, EnemyMath.getPosition(visual.Path, now), age < ZombieAnimator.EMERGE_TIME)
 	if not visual.Flying and age < ZombieAnimator.EMERGE_TIME then
 		visual.SpawnAt = os.clock() - math.max(age, 0)
 		visual.Facing = Vector3.new(visual.Path.Points[#visual.Path.Points].X - points[1].X, 0, visual.Path.Points[#visual.Path.Points].Z - points[1].Z)
@@ -370,10 +372,12 @@ local function removeEnemy(id: number, animate: boolean)
 	visuals[id] = nil
 
 	if not animate then
+		Sfx.onEnemyRemoved(visual.Type, nil, false)
 		destroyPieces(visual)
 		return
 	end
 	local position = EnemyMath.getPosition(visual.Path, workspace:GetServerTimeNow())
+	Sfx.onEnemyRemoved(visual.Type, position, true)
 	local cameraPosition = workspace.CurrentCamera.CFrame.Position
 	-- Muy lejos no vale la pena el efecto: desaparece
 	if (position - cameraPosition).Magnitude > graphics.DeathFxDistance + visual.Extent then
@@ -559,6 +563,20 @@ local function render(dt: number)
 	end
 end
 
+-- Posición de algún zombi al azar cerca de la cámara (para los gruñidos)
+function EnemyRenderer.randomNearbyPosition(maxDistance: number): Vector3?
+	local now = workspace:GetServerTimeNow()
+	local cameraPosition = workspace.CurrentCamera.CFrame.Position
+	local nearby = {}
+	for _, visual in visuals do
+		local position = EnemyMath.getPosition(visual.Path, now)
+		if (position - cameraPosition).Magnitude <= maxDistance then
+			table.insert(nearby, position)
+		end
+	end
+	return if #nearby > 0 then nearby[random:NextInteger(1, #nearby)] else nil
+end
+
 function EnemyRenderer.init()
 	DeathFx.init(folder)
 	DamageNumbers.init()
@@ -597,6 +615,7 @@ function EnemyRenderer.init()
 		end
 		table.clear(deadIds)
 		DeathFx.clear()
+		Sfx.onEnemiesCleared()
 	end)
 
 	task.spawn(function()

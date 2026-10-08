@@ -15,6 +15,7 @@ local Remotes = require(Shared.Remotes)
 local MovementController = require(script.Parent.MovementController)
 local Profile = require(script.Parent.Profile)
 local Viewmodel = require(script.Parent.Viewmodel)
+local Sfx = require(script.Parent.Sfx)
 
 local TRACER_COLOR = Color3.fromRGB(255, 220, 90)
 local TRACER_TIME = 0.05
@@ -101,6 +102,7 @@ local function slash(weaponStats)
 	local cameraCFrame = workspace.CurrentCamera.CFrame
 	Remotes.Shoot:FireServer(cameraCFrame.Position, cameraCFrame.LookVector, workspace:GetServerTimeNow(), false)
 	Viewmodel.swing()
+	Sfx.weapon(equipped)
 
 	-- Marca de golpe si hay algún zombi justo enfrente
 	local params = OverlapParams.new()
@@ -117,6 +119,7 @@ local function fire(weaponStats)
 	local origin = cameraCFrame.Position
 	local direction = cameraCFrame.LookVector
 	Remotes.Shoot:FireServer(origin, direction, workspace:GetServerTimeNow(), isAiming())
+	Sfx.weapon(equipped)
 	Viewmodel.kick(if weaponStats.Pellets > 1 or weaponStats.Damage > 5 then 1.6 else 1)
 
 	-- Lo visual es local; el daño lo decide el servidor
@@ -174,6 +177,7 @@ function WeaponController.reload()
 	reloadEnd = reloadStart + stats().ReloadTime
 	Remotes.Reload:FireServer()
 	Viewmodel.setReloading(true)
+	Sfx.play("Reload")
 end
 
 function WeaponController.setTrigger(held: boolean)

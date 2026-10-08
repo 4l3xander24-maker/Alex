@@ -16,6 +16,7 @@ local Progression = require(Shared.Progression)
 local Remotes = require(Shared.Remotes)
 local Notify = require(script.Parent.Notify)
 local Profile = require(script.Parent.Profile)
+local Sfx = require(script.Parent.Sfx)
 local WeaponController = require(script.Parent.WeaponController)
 
 local player = Players.LocalPlayer
@@ -79,6 +80,9 @@ end
 local function runAction(action: string, id: string)
 	task.spawn(function()
 		local ok, message = Remotes.ShopAction:InvokeServer(action, id)
+		if ok then
+			Sfx.play("Coins")
+		end
 		Notify.show(message, if ok then GREEN else RED)
 	end)
 end

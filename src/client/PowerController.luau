@@ -11,6 +11,7 @@ local UserInputService = game:GetService("UserInputService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
 local Remotes = require(Shared.Remotes)
+local Sfx = require(script.Parent.Sfx)
 local Progression = require(Shared.Progression)
 local Profile = require(script.Parent.Profile)
 local Viewmodel = require(script.Parent.Viewmodel)
@@ -137,11 +138,28 @@ local function bulletExplosionFx(position: Vector3, radius: number)
 end
 
 local fxHandlers = {
-	Grenade = grenadeFx,
-	Chain = chainFx,
-	Bell = bellFx,
-	Explosion = bulletExplosionFx,
-	Mine = explosion,
+	Grenade = function(origin: Vector3, target: Vector3, radius: number, flightTime: number)
+		grenadeFx(origin, target, radius, flightTime)
+		task.delay(flightTime, Sfx.playAt, "Explosion", target)
+	end,
+	Chain = function(points: { Vector3 })
+		chainFx(points)
+		if points[1] then
+			Sfx.playAt("Lightning", points[1])
+		end
+	end,
+	Bell = function(center: Vector3, radius: number)
+		bellFx(center, radius)
+		Sfx.playAt("BellToll", center)
+	end,
+	Explosion = function(position: Vector3, radius: number)
+		bulletExplosionFx(position, radius)
+		Sfx.playAt("SmallExplosion", position)
+	end,
+	Mine = function(position: Vector3, radius: number)
+		explosion(position, radius)
+		Sfx.playAt("Explosion", position)
+	end,
 }
 
 local function isAlive(): boolean

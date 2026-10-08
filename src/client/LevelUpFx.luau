@@ -7,6 +7,7 @@ local TweenService = game:GetService("TweenService")
 
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 local Profile = require(script.Parent.Profile)
+local Sfx = require(script.Parent.Sfx)
 
 local LevelUpFx = {}
 
@@ -53,6 +54,7 @@ local function sparkle(parent: Frame)
 end
 
 function LevelUpFx.show(level: number, gained: number)
+	Sfx.play("LevelUp")
 	showing += 1
 	local token = showing
 	local banner = gui:FindFirstChild("Banner")

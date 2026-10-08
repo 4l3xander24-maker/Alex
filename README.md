@@ -101,6 +101,10 @@ el círculo de runas y el cuchillo), [`docs/capturas/pixel/`](docs/capturas/pixe
   recarga, cadencia, munición, crítico, botín, poder) y cada 5 niveles un **talento** (apuntar, correr,
   regeneración, vampiro, doble salto, esquivar, último aliento, balas explosivas, codicia, reparador).
 - **Todo se guarda** (monedas, nivel, armas, poderes, talentos) con DataStore.
+- **Sonido y música**: cada arma suena distinto, recarga, marca de golpe, zombis que gruñen y revientan cerca
+  tuyo, rugido de los jefes, explosiones, rayo, campanazos, monedas al comprar y fanfarria al subir de nivel.
+  La música cambia sola: medieval en la preparación, tambores de guerra en las oleadas y terror con un jefe.
+  Los ids están en `src/shared/Sounds.luau` (audios públicos de ProSoundEffects y APM, no hay que subir nada).
 - Cooperativo, y funciona en celular.
 
 ## Cómo probarlo en tu Mac
