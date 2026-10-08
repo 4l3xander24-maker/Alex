@@ -77,7 +77,7 @@ RunService.Heartbeat:Connect(function(dt)
 	local now = workspace:GetServerTimeNow()
 	local damagePerSecond = EnemyService.getBellDamagePerSecond(now)
 	if damagePerSecond > 0 then
-		GameState.damageBell(damagePerSecond * dt)
+		GameState.damageBell(damagePerSecond * Config.Bell.DamageTaken * dt)
 	end
 	for gateId, gateDamage in EnemyService.getBarrierDamage(now) do
 		TrapService.damageGate(gateId, gateDamage * dt)

@@ -354,6 +354,9 @@ Config.PathStyle = {
 
 Config.Bell = {
 	MaxHealth = 300,
+	-- Cuánto del DamagePerSecond de los zombis le llega a la campana. Con 1, 22
+	-- zombis la destruían en ~7 segundos en la oleada 1.
+	DamageTaken = 0.35,
 	RepairAmount = 30, -- con el talento Reparador
 	RepairCooldown = 1,
 	-- Refuerzo de la campana (lo vende el Intendente, queda guardado). En la
@@ -544,7 +547,7 @@ Config.Waves = {
 	Intermission = 12,
 	FirstWaveCount = 22,
 	CountGrowth = 1.3, -- cada oleada trae 30% más zombis
-	FirstSpawnRate = 4.5, -- zombis por segundo
+	FirstSpawnRate = 3.5, -- zombis por segundo
 	SpawnRateGrowth = 1.5,
 	SpeedMultiplier = 1.2, -- todos los zombis caminan 20% más rápido que su Speed
 	MaxSpawnRate = 30,
@@ -593,7 +596,7 @@ Config.Weapons = {
 		Damage = 1,
 		FireRate = 5,
 		Magazine = 12,
-		StartReserve = 36,
+		StartReserve = 60,
 		MaxReserve = 96,
 		AmmoPerKill = 1,
 		ReloadTime = 1.4,

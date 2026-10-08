@@ -89,6 +89,29 @@ function CombatService.resetAmmo(player: Player)
 	Remotes.AmmoSync:FireClient(player, state.Ammo, state.Reserve)
 end
 
+-- Descanso entre oleadas: cada arma vuelve como mínimo a sus balas iniciales
+-- (con 1 bala por baja, sin esto te quedabas sin munición en la oleada 1)
+function CombatService.restockAll()
+	for _, player in Players:GetPlayers() do
+		local data = DataService.get(player)
+		if not data then
+			continue
+		end
+		local state = getState(player)
+		-- El cliente cancela la recarga al recibir AmmoSync: el servidor también
+		state.ReloadEnd = nil
+		state.ReloadWeapon = nil
+		for weaponId in data.Weapons do
+			local stats = Progression.getWeaponStats(data, weaponId, false)
+			if not stats.Melee then
+				state.Reserve[weaponId] = math.max(state.Reserve[weaponId] or 0, stats.StartReserve)
+				state.Ammo[weaponId] = state.Ammo[weaponId] or stats.Magazine
+			end
+		end
+		Remotes.AmmoSync:FireClient(player, state.Ammo, state.Reserve)
+	end
+end
+
 function CombatService.resetAll()
 	for _, player in Players:GetPlayers() do
 		CombatService.resetAmmo(player)

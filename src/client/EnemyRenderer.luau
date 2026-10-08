@@ -413,12 +413,36 @@ local function showDamage(id: number, amount: number, killed: boolean)
 	DamageNumbers.show(position + Vector3.new(0, top, 0), amount, killed)
 end
 
+-- Salpicadura de sangre en cubitos (la malla con textura no se pone blanca)
+local function splatter(visual: Visual)
+	local info = Config.Enemies[visual.Type]
+	if not info or DeathFx.budget() < 4 then
+		return
+	end
+	local position = EnemyMath.getPosition(visual.Path, workspace:GetServerTimeNow())
+	local cameraPosition = workspace.CurrentCamera.CFrame.Position
+	if (position - cameraPosition).Magnitude > graphics.DeathFxDistance then
+		return
+	end
+	local scale = info.Size.Y / 5
+	local chest = position + Vector3.new(0, info.Size.Y * 0.15, 0)
+	-- Salen hacia el lado de la cámara, que es de donde vino el tiro
+	local toward = Vector3.new(cameraPosition.X - chest.X, 0, cameraPosition.Z - chest.Z).Unit
+	for _ = 1, 4 do
+		local direction = (toward + Vector3.new(random:NextNumber(-0.8, 0.8), random:NextNumber(0.3, 1.2), random:NextNumber(-0.8, 0.8))).Unit
+		DeathFx.addCube(chest, BLOOD, 0.22 * scale ^ 0.7, direction * random:NextNumber(6, 11), 45, random:NextNumber(0.3, 0.55))
+	end
+end
+
 local function flashEnemy(id: number)
 	local visual = visuals[id]
 	if visual then
 		setFlash(visual, true)
 		visual.FlashUntil = os.clock() + FLASH_TIME
 		visual.HitAt = os.clock()
+		if visual.Pieces[1] and visual.Pieces[1].Spec and visual.Pieces[1].Spec.Mesh then
+			splatter(visual)
+		end
 	end
 end
 

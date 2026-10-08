@@ -81,6 +81,7 @@ el círculo de runas y el cuchillo), [`docs/capturas/pixel/`](docs/capturas/pixe
   Durante las oleadas las tiendas están cerradas.
 - **Vida de la campana**: 300, con la barra flotando sobre la campana. Se mejora con el **refuerzo** del
   Intendente (+60 por nivel, hasta 8 niveles, queda guardado; cuenta el más alto del servidor).
+- **Entre oleadas te reabastecen**: cada arma vuelve como mínimo a sus balas iniciales (además de la bala por baja).
 - **Empiezas con cuchillo y pistola**. El cuchillo no gasta balas (gasta energía); las armas de fuego tienen cargador y
   **reserva limitada**, y **cada zombi que eliminas te da balas** para el arma que tienes en la mano.
 - **4 NPC** en el campamento (habla con **E**):

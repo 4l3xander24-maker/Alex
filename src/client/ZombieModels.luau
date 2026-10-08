@@ -344,7 +344,11 @@ local builders = {
 		local source = meshSource()
 		return if source then meshZombie(info, source) else zombie(info)
 	end,
-	Fat = fat,
+	-- El Bruto y el Gordo: el mismo zombi de malla, más grande (Size del tipo)
+	Fat = function(info)
+		local source = meshSource()
+		return if source then meshZombie(info, source) else fat(info)
+	end,
 	Dragon = dragon,
 }
 
@@ -359,7 +363,7 @@ local HIPS = {
 }
 
 function ZombieModels.getHip(info): Vector3
-	if info.Model == "Zombie" then
+	if info.Model == "Zombie" or info.Model == "Fat" then
 		local source = meshSource()
 		if source and not meshHip then
 			meshZombie(info, source) -- calcula la cadera de la malla

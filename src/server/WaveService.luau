@@ -144,6 +144,7 @@ end
 -- Descanso antes de cada oleada (sin conteo en pantalla)
 local function runIntermission(seconds: number)
 	GameState.set("State", "Intermission")
+	CombatService.restockAll()
 	task.wait(seconds)
 end
 
