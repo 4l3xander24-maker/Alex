@@ -23,6 +23,8 @@ export type PartSpec = {
 	Axis: string?,
 	Group: string,
 	Transparent: boolean?,
+	Mesh: BasePart?, -- pieza de malla a copiar (zombi de la tienda) en vez de un bloque
+	Turn: CFrame?, -- giro propio de la pieza (las mallas vienen mirando al revés)
 }
 
 -- Colores que no dependen del tipo de zombi
@@ -236,8 +238,112 @@ local function dragon(_info): { PartSpec }
 	return list
 end
 
+-- Zombi de malla de la Creator Store (src/zombies → ReplicatedStorage.ZombieMeshes),
+-- un cuerpo R15 normal. Se lleva a 5 studs de alto y mirando a -Z, y cada pieza
+-- se cuelga del pivote de su parte del cuerpo (cadera, hombro, cuello) para que
+-- ZombieAnimator la mueva como a los de bloques. Los brazos van estirados hacia
+-- adelante. Los sombreros (cono, yelmo, corona) son los de bloques.
+local Config = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared").Config)
+local MESH_HEIGHT = 5
+local HAT_PREFIXES = { "Cone", "Helmet", "NoseGuard", "Plume", "Crown", "Jewel" }
+local meshHip: Vector3? = nil
+
+local function meshSource(): Model?
+	if Config.ZombieStyle ~= "3D" or not Config.UseStoreModels or Config.Style.Blocky then
+		return nil
+	end
+	local folder = game:GetService("ReplicatedStorage"):FindFirstChild("ZombieMeshes")
+	local model = folder and folder:FindFirstChild("Zombie")
+	return if model and model:IsA("Model") then model else nil
+end
+
+local function meshZombie(info, source: Model): { PartSpec }
+	local byName: { [string]: BasePart } = {}
+	local low, high = math.huge, -math.huge
+	local sum, count = Vector3.zero, 0
+	for _, descendant in source:GetDescendants() do
+		if descendant:IsA("BasePart") and descendant.Transparency < 1 then
+			byName[descendant.Name] = descendant
+			low = math.min(low, descendant.Position.Y - descendant.Size.Y / 2)
+			high = math.max(high, descendant.Position.Y + descendant.Size.Y / 2)
+			sum += descendant.Position
+			count += 1
+		end
+	end
+	local scale = MESH_HEIGHT / (high - low)
+	local center = Vector3.new(sum.X / count, (low + high) / 2, sum.Z / count)
+	local flip = CFrame.Angles(0, math.pi, 0)
+	local function norm(point: Vector3): Vector3
+		return flip:VectorToWorldSpace((point - center) * scale)
+	end
+	local function top(name: string): Vector3
+		local part = byName[name]
+		return norm(part.Position + Vector3.new(0, part.Size.Y / 2, 0))
+	end
+	local function bottom(name: string): Vector3
+		local part = byName[name]
+		return norm(part.Position - Vector3.new(0, part.Size.Y / 2, 0))
+	end
+
+	-- Parte del cuerpo de cada pieza: { rol, grupo, pivote, inclinación }
+	local hip = bottom("LowerTorso")
+	meshHip = hip
+	local joints = {
+		Leg = { "LegL", "Leg", top("LeftUpperLeg"), 0 },
+		LegR = { "LegR", "Leg", top("RightUpperLeg"), 0 },
+		Arm = { "ArmL", "Arm", top("LeftUpperArm"), -1.4 },
+		ArmR = { "ArmR", "Arm", top("RightUpperArm"), -1.4 },
+		Head = { "Head", "Head", bottom("Head"), 0 },
+		Torso = { nil, "Torso", hip, 0 },
+	}
+	local function jointOf(name: string)
+		local right = string.find(name, "Right") ~= nil
+		if string.find(name, "Leg") or string.find(name, "Foot") then
+			return if right then joints.LegR else joints.Leg
+		elseif string.find(name, "Arm") or string.find(name, "Hand") then
+			return if right then joints.ArmR else joints.Arm
+		elseif name == "Head" then
+			return joints.Head
+		end
+		return joints.Torso
+	end
+
+	local list: { PartSpec } = {}
+	for name, mesh in byName do
+		local joint = jointOf(name)
+		local spec = part(name, mesh.Size * scale, joint[3], norm(mesh.Position) - joint[3], joint[4], "Skin", joint[2], { Role = joint[1] })
+		-- Copia limpia: solo la malla con su textura (sin anclajes ni valores del rig)
+		local clean = mesh:Clone()
+		for _, child in clean:GetChildren() do
+			if not (child:IsA("SurfaceAppearance") or child:IsA("Decal")) then
+				child:Destroy()
+			end
+		end
+		spec.Mesh = clean
+		spec.Turn = flip
+		table.insert(list, spec)
+	end
+	-- Sombreros de bloques, colgados del cuello de la malla
+	for _, spec in zombie(info) do
+		for _, prefix in HAT_PREFIXES do
+			if string.sub(spec.Name, 1, #prefix) == prefix then
+				local hat = table.clone(spec)
+				hat.Pivot = joints.Head[3]
+				hat.Tilt = spec.Tilt - 0.3
+				hat.Role = "Head"
+				table.insert(list, hat)
+				break
+			end
+		end
+	end
+	return list
+end
+
 local builders = {
-	Zombie = zombie,
+	Zombie = function(info)
+		local source = meshSource()
+		return if source then meshZombie(info, source) else zombie(info)
+	end,
 	Fat = fat,
 	Dragon = dragon,
 }
@@ -253,6 +359,15 @@ local HIPS = {
 }
 
 function ZombieModels.getHip(info): Vector3
+	if info.Model == "Zombie" then
+		local source = meshSource()
+		if source and not meshHip then
+			meshZombie(info, source) -- calcula la cadera de la malla
+		end
+		if source and meshHip then
+			return meshHip
+		end
+	end
 	return HIPS[info.Model] or HIPS.Zombie
 end
 

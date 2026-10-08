@@ -36,7 +36,7 @@ local HIP_OFFSET = CFrame.new(1.05, -1.05, -2.1)
 local AIM_OFFSET = CFrame.new(0, -0.55, -1.7)
 local BASE_FOV = 80
 
-type PieceSpec = { Size: Vector3, Offset: CFrame, Color: Color3, Neon: boolean? }
+type PieceSpec = { Size: Vector3, Offset: CFrame, Color: Color3, Neon: boolean?, Shape: Enum.PartType?, Material: Enum.Material? }
 -- Arm reemplaza la mano derecha de siempre; sin LeftHand no hay mano izquierda;
 -- Hip cambia dónde se ve el arma en la pantalla
 type ModelSpec = { Pieces: { PieceSpec }, Muzzle: CFrame, LeftHand: Vector3?, Arm: { PieceSpec }?, Hip: CFrame? }
@@ -190,6 +190,38 @@ local RIGHT_ARM = {
 	p(Vector3.new(0.46, 0.46, 0.8), CFrame.new(0.14, -1.05, 2.15) * CFrame.Angles(0.35, 0, 0), SLEEVE),
 }
 
+-- Estilo realista: guante de cuero y manga redonda de tela (en vez de bloques)
+local GLOVE_LEATHER = Color3.fromRGB(70, 50, 38)
+local SLEEVE_CLOTH = Color3.fromRGB(78, 64, 50)
+local CUFF = Color3.fromRGB(110, 84, 56)
+
+-- Cilindro a lo largo de Z (los cilindros de Roblox van a lo largo de X)
+local function tube(length: number, radius: number, offset: CFrame, color: Color3, material: Enum.Material): PieceSpec
+	return { Size = Vector3.new(length, radius * 2, radius * 2), Offset = offset * CFrame.Angles(0, math.pi / 2, 0), Color = color, Shape = Enum.PartType.Cylinder, Material = material }
+end
+
+local function glove(size: Vector3, offset: CFrame): PieceSpec
+	return { Size = size, Offset = offset, Color = GLOVE_LEATHER, Material = Enum.Material.Leather }
+end
+
+local SMOOTH_RIGHT_ARM = {
+	glove(Vector3.new(0.44, 0.38, 0.52), CFrame.new(0.02, -0.5, 0.48) * CFrame.Angles(-0.25, 0, 0)),
+	tube(0.3, 0.24, CFrame.new(0.07, -0.66, 0.92) * CFrame.Angles(0.35, 0, 0), CUFF, Enum.Material.Leather),
+	tube(1.5, 0.22, CFrame.new(0.13, -0.86, 1.6) * CFrame.Angles(0.35, 0, 0), SLEEVE_CLOTH, Enum.Material.Fabric),
+	tube(0.8, 0.27, CFrame.new(0.16, -1.1, 2.3) * CFrame.Angles(0.35, 0, 0), SLEEVE_CLOTH, Enum.Material.Fabric),
+}
+
+local function smoothLeftArm(hand: Vector3): { PieceSpec }
+	local base = CFrame.new(hand)
+	local forearm = base * CFrame.new(-0.58, -0.38, 0.7) * CFrame.Angles(0.3, -0.55, 0)
+	return {
+		glove(Vector3.new(0.44, 0.34, 0.52), base),
+		tube(0.3, 0.23, forearm * CFrame.new(0, 0, -0.6), CUFF, Enum.Material.Leather),
+		tube(1.5, 0.21, forearm * CFrame.new(0, 0, 0.15), SLEEVE_CLOTH, Enum.Material.Fabric),
+		tube(0.8, 0.26, base * CFrame.new(-1.03, -0.63, 1.4) * CFrame.Angles(0.3, -0.55, 0), SLEEVE_CLOTH, Enum.Material.Fabric),
+	}
+end
+
 local function leftArm(hand: Vector3): { PieceSpec }
 	local base = CFrame.new(hand)
 	return {
@@ -233,7 +265,10 @@ local function newPart(spec: PieceSpec): Part
 	local part = Instance.new("Part")
 	part.Size = spec.Size
 	part.Color = spec.Color
-	part.Material = if spec.Neon then Enum.Material.Neon else Enum.Material.SmoothPlastic
+	part.Material = if spec.Neon then Enum.Material.Neon else spec.Material or Enum.Material.SmoothPlastic
+	if spec.Shape then
+		part.Shape = spec.Shape
+	end
 	part.Anchored = true
 	part.CanCollide = false
 	part.CanQuery = false
@@ -283,10 +318,13 @@ function Viewmodel.setWeapon(weaponId: string, zoomFactor: number, level: number
 	local source = MESH_WEAPONS and meshSpec and meshFolder and meshFolder:FindFirstChild(weaponId)
 	-- Con malla de la tienda no van las piezas de bloques del arma (los brazos sí)
 	local specs = if source then {} else table.clone(model.Pieces)
-	local arm = model.Arm or RIGHT_ARM
+	-- Con mallas (estilo realista) van los brazos de guante y tela; el cuchillo
+	-- conserva su guante con tachas
+	local smooth = source ~= nil and not model.Arm
+	local arm = model.Arm or (if smooth then SMOOTH_RIGHT_ARM else RIGHT_ARM)
 	table.move(arm, 1, #arm, #specs + 1, specs)
 	if model.LeftHand then
-		local left = leftArm(model.LeftHand)
+		local left = if smooth then smoothLeftArm(model.LeftHand) else leftArm(model.LeftHand)
 		table.move(left, 1, #left, #specs + 1, specs)
 	end
 	for _, spec in specs do

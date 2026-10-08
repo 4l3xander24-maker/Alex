@@ -176,6 +176,11 @@ pistola y mosquetes de chispa, trabuco, Brown Bess, minigun y un alfanje para el
 `lune run tools/extract_models.luau archivo.rbxl src/weapons`, y su tamaño y giro están en `MESHES` de
 `src/client/Viewmodel.luau`. El nivel de mejora se ve como un contorno del color del nivel.
 
+Los **zombis** (Zombi, Corredor, Cono, Caballero y el Rey) usan un zombi de malla R15 de la tienda
+(`src/zombies/` → `ReplicatedStorage.ZombieMeshes`): `ZombieModels` lo lleva a 5 studs, cuelga cada pieza
+de su cadera, hombro o cuello y la anima `ZombieAnimator` igual que a los de bloques (con los sombreros de
+bloques encima). El Bruto, el Gordo y el Dragón siguen siendo de bloques.
+
 Hace falta **Rojo 7.7** o más nuevo (los modelos nuevos guardan las mallas en un formato que Rojo 7.4 pierde).
 
 ## Subir las imágenes (para el pixel art)

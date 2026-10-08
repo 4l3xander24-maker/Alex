@@ -159,8 +159,21 @@ local function createBody(typeName: string, info, scale: number): ({ Piece }, Pa
 		if Config.Style.Flat and material ~= Enum.Material.Neon then
 			material = Enum.Material.SmoothPlastic
 		end
-		local part = newPart(spec.Name, spec.Size * scale, material)
-		part.Color = color
+		local part: BasePart
+		if spec.Mesh then
+			-- Malla de la tienda: conserva su textura y color
+			part = spec.Mesh:Clone()
+			part.Size = spec.Size * scale
+			part.Anchored = true
+			part.CanCollide = false
+			part.CanTouch = false
+			part.CanQuery = false
+			part.CastShadow = false
+			color = part.Color
+		else
+			part = newPart(spec.Name, spec.Size * scale, material)
+			part.Color = color
+		end
 		if spec.Transparent then
 			part.Transparency = 1
 			breath, breathLight = addBreath(part, scale)
@@ -182,7 +195,7 @@ local function createBody(typeName: string, info, scale: number): ({ Piece }, Pa
 			OnTorso = not dragon and spec.Group ~= "Leg",
 		}
 		if not role then
-			piece.Static = CFrame.new(pivot) * CFrame.Angles(-spec.Tilt, 0, 0) * CFrame.new(hang)
+			piece.Static = CFrame.new(pivot) * CFrame.Angles(-spec.Tilt, 0, 0) * CFrame.new(hang) * (spec.Turn or CFrame.identity)
 		end
 		table.insert(pieces, piece)
 	end
@@ -521,7 +534,7 @@ local function render(dt: number)
 					cframe = frameOf * static
 				else
 					local spec = piece.Spec :: PartSpec
-					cframe = frameOf * CFrame.new(piece.Pivot) * ZombieAnimator.rotation(piece.Role, spec.Tilt, pose) * CFrame.new(piece.Hang)
+					cframe = frameOf * CFrame.new(piece.Pivot) * ZombieAnimator.rotation(piece.Role, spec.Tilt, pose) * CFrame.new(piece.Hang) * (spec.Turn or CFrame.identity)
 				end
 				table.insert(cframes, cframe)
 				if piece.Part == visual.BreathPart then

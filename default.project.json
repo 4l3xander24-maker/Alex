@@ -8,6 +8,9 @@
       },
       "WeaponModels": {
         "$path": "src/weapons"
+      },
+      "ZombieMeshes": {
+        "$path": "src/zombies"
       }
     },
     "ServerScriptService": {

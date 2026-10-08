@@ -12,7 +12,7 @@ local Profile = require(script.Parent.Profile)
 
 local GOLD = Color3.fromRGB(255, 215, 100)
 local WHITE = Color3.new(1, 1, 1)
-local HIDE_DISTANCE = 14 -- ya está al lado: la flecha estorba
+local HIDE_DISTANCE = 20 -- ya está al lado (se ve el aviso de E): la flecha estorba
 local BOB_SPEED = 3
 local BOB_HEIGHT = 0.6
 local HITS_TO_LEARN = 3
@@ -153,7 +153,8 @@ local function onPrompt(prompt: Instance)
 		end
 	end
 	if prompt:GetAttribute("Shop") then
-		addMarker(prompt.Parent, prompt.ObjectText, false)
+		-- Solo la flecha: el cartel del NPC ya dice quién es
+		addMarker(prompt.Parent, "", false)
 	elseif prompt.Name == "StartPrompt" then
 		addMarker(prompt.Parent, "Reconstruir campana", true)
 	end
@@ -283,6 +284,22 @@ function Guide.init()
 	end
 	map.DescendantAdded:Connect(onPrompt)
 	RunService.RenderStepped:Connect(updateMarkers)
+
+	-- Mientras se ve el aviso de E, el cartel con el nombre del NPC se oculta
+	-- (el aviso ya dice quién es y qué vende)
+	local function setTag(prompt: ProximityPrompt, visible: boolean)
+		local npc = if prompt:GetAttribute("Shop") then prompt:FindFirstAncestorOfClass("Model") else nil
+		local tag = npc and npc:FindFirstChild("NameTag")
+		if tag and tag:IsA("BillboardGui") then
+			tag.Enabled = visible
+		end
+	end
+	ProximityPromptService.PromptShown:Connect(function(prompt)
+		setTag(prompt, false)
+	end)
+	ProximityPromptService.PromptHidden:Connect(function(prompt)
+		setTag(prompt, true)
+	end)
 
 	ProximityPromptService.PromptTriggered:Connect(function(prompt)
 		if prompt:GetAttribute("Shop") then

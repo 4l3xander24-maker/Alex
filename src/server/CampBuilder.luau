@@ -224,6 +224,7 @@ local function buildNpc(parent: Instance, info, cframe: CFrame)
 	model:SetAttribute("SpriteKey", spriteKeys[info.Shop])
 
 	local tag = Instance.new("BillboardGui")
+	tag.Name = "NameTag"
 	tag.Size = UDim2.fromOffset(220, 54)
 	tag.StudsOffset = Vector3.new(0, 2.6, 0)
 	tag.MaxDistance = 70
