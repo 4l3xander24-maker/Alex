@@ -472,10 +472,32 @@ local function buildScenery(map: Instance)
 	mountains.Name = "Mountains"
 	mountains.ModelStreamingMode = Enum.ModelStreamingMode.Persistent
 	mountains.Parent = map
+	-- Montañas de malla de la tienda (estilo realista): las de roca toman el
+	-- color del tema; la nevada conserva su textura. Se hunden un poco para que
+	-- no se vea el borde de la malla.
+	local function meshMountain(base: Vector3, width: number, height: number, snowy: boolean): boolean
+		local name = if snowy then "MountainC" elseif random:NextNumber() < 0.5 then "MountainA" else "MountainB"
+		local frame = CFrame.new(base - Vector3.new(0, height * 0.06, 0)) * CFrame.Angles(0, random:NextNumber(0, math.pi * 2), 0)
+		local part = ModelLibrary.placeStretched(name, frame, Vector3.new(width, height, width), mountains)
+		if not part then
+			return false
+		end
+		part.CastShadow = false
+		if not snowy then
+			part.Material = Enum.Material.Rock
+			part.Color = Props.vary(theme.Mountain, 0.1, random)
+		end
+		return true
+	end
+
 	-- Cordillera al norte, detrás del bosque: tapa el horizonte
 	for x = -820, 820, 110 do
 		local base = Vector3.new(x + random:NextNumber(-30, 30), 0, random:NextNumber(-540, -450))
 		local width = random:NextNumber(150, 230)
+		-- Algunas más altas y nevadas al fondo
+		if meshMountain(base, width * 1.5, random:NextNumber(170, 260), random:NextNumber() < 0.3) then
+			continue
+		end
 		local y = 0
 		for step = 1, 4 do
 			local layerWidth = width * (1 - (step - 1) * 0.22)
@@ -492,6 +514,9 @@ local function buildScenery(map: Instance)
 			continue -- hacia el mar el horizonte queda abierto
 		end
 		local width = random:NextNumber(180, 260)
+		if meshMountain(base, width * 1.6, random:NextNumber(150, 230), random:NextNumber() < 0.4) then
+			continue
+		end
 		local y = 0
 		for step = 1, 3 do
 			local layerWidth = width * (1 - (step - 1) * 0.3)

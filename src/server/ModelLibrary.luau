@@ -81,4 +81,24 @@ function ModelLibrary.place(name: string, cframe: CFrame, size: { Height: number
 	return model
 end
 
+-- Para modelos de UNA sola malla (montañas): la estira a `size` exacto (ancho,
+-- alto, fondo por separado) con la base en `cframe`. Devuelve la pieza.
+function ModelLibrary.placeStretched(name: string, cframe: CFrame, size: Vector3, parent: Instance): BasePart?
+	if not enabled then
+		return nil
+	end
+	local template = prepare(name)
+	local source = template and template.Model:FindFirstChildWhichIsA("BasePart", true)
+	if not source then
+		return nil
+	end
+	local part = source:Clone()
+	part.Size = size
+	part.CFrame = cframe * CFrame.new(0, size.Y / 2, 0)
+	part.CanCollide = false
+	part.CanQuery = false
+	part.Parent = parent
+	return part
+end
+
 return ModelLibrary

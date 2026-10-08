@@ -122,8 +122,8 @@ Config.Themes = {
 			Ambient = Color3.fromRGB(150, 140, 125),
 			Atmosphere = Color3.fromRGB(180, 205, 240),
 			Decay = Color3.fromRGB(110, 140, 190),
-			Density = 0.12,
-			Haze = 0.15,
+			Density = 0.05, -- poca neblina: se ven las montañas del fondo
+			Haze = 0,
 			Tint = Color3.fromRGB(255, 244, 228),
 		},
 		Dusk = {
@@ -146,7 +146,7 @@ Config.Themes = {
 			Color3.fromRGB(250, 200, 70),
 			Color3.fromRGB(176, 124, 40),
 		},
-		Mountain = Color3.fromRGB(96, 118, 150),
+		Mountain = Color3.fromRGB(92, 98, 104),
 		Atmosphere = Color3.fromRGB(80, 100, 130),
 		Decay = Color3.fromRGB(40, 50, 75),
 		Density = 0.34,
