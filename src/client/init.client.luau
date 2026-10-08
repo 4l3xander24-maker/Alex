@@ -4,6 +4,7 @@ local StarterGui = game:GetService("StarterGui")
 local Progression = require(ReplicatedStorage:WaitForChild("Shared").Progression)
 
 local EnemyRenderer = require(script.EnemyRenderer)
+local Guide = require(script.Guide)
 local Hud = require(script.Hud)
 local LevelUpFx = require(script.LevelUpFx)
 local VillageController = require(script.VillageController)
@@ -37,6 +38,7 @@ MovementController.init()
 WeaponController.init(EnemyRenderer.folder, function()
 	Hud.flashHitMarker()
 	Sfx.play("HitMarker")
+	Guide.onEnemyHit()
 end)
 PowerController.init()
 ShopUI.init()
@@ -61,3 +63,6 @@ Hud.init({
 	getCooldown = PowerController.getCooldown,
 	getDashCooldown = MovementController.getDashCooldown,
 })
+
+-- Al final: espera el mapa y el perfil sin frenar lo demás
+task.spawn(Guide.init)

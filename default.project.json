@@ -43,6 +43,9 @@
           "Decoration": true
         }
       }
+    },
+    "MaterialService": {
+      "$path": "src/materials"
     }
   }
 }

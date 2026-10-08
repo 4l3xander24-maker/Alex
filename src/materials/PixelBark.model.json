@@ -1,0 +1,9 @@
+{
+  "ClassName": "MaterialVariant",
+  "Properties": {
+    "BaseMaterial": "Wood",
+    "ColorMap": "rbxassetid://138542852678430",
+    "StudsPerTile": 4,
+    "MaterialPattern": "Regular"
+  }
+}

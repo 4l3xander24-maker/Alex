@@ -18,6 +18,7 @@ export type Profile = {
 	VillageBridge: boolean, -- ya reparó el puente a la aldea
 	Pets: { [string]: boolean }, -- mascotas compradas a la Bruja
 	Pet: string, -- mascota que lo acompaña ("" = ninguna)
+	Tutorial: boolean, -- ya terminó (o saltó) el tutorial
 }
 
 local Progression = {}
@@ -48,6 +49,7 @@ function Progression.defaultProfile(): Profile
 		VillageBridge = false,
 		Pets = {},
 		Pet = "",
+		Tutorial = false,
 	}
 end
 

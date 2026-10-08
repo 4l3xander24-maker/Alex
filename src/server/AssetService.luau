@@ -73,19 +73,18 @@ local function publish(key: string, id: string)
 	end
 end
 
+-- Los MaterialVariant los crea Rojo (src/materials, ver
+-- tools/make_material_variants.py): un script no puede crearlos mientras se
+-- juega. Aquí solo se ponen en lugar del material de Roblox.
 local function setupTextures()
 	for name, info in TEXTURE_MATERIALS do
-		local id = AssetService.resolve(Assets.Textures[name] or "")
-		if id ~= "" then
-			local variant = Instance.new("MaterialVariant")
-			variant.Name = "Pixel" .. name
-			variant.BaseMaterial = info.Material
-			variant.ColorMap = id
-			variant.StudsPerTile = info.Studs
-			variant.MaterialPattern = Enum.MaterialPattern.Regular
-			variant.Parent = MaterialService
+		local variant = MaterialService:FindFirstChild("Pixel" .. name)
+		if variant and variant:IsA("MaterialVariant") then
 			-- Todas las piezas y el terreno con este material usan la textura pixelada
-			MaterialService:SetBaseMaterialOverride(info.Material, variant.Name)
+			local ok, err = pcall(MaterialService.SetBaseMaterialOverride, MaterialService, info.Material, variant.Name)
+			if not ok then
+				warn(`No se pudo usar la textura {name}: {err}`)
+			end
 		end
 	end
 end
@@ -151,7 +150,11 @@ end
 function AssetService.init()
 	task.spawn(function()
 		if Config.Style.PixelTextures then
-			setupTextures()
+			-- Si falla, que igual carguen el cielo y los sprites
+			local ok, err = pcall(setupTextures)
+			if not ok then
+				warn(`Texturas pixeladas: {err}`)
+			end
 		end
 		setupSky()
 		for name, frames in Assets.Sprites do

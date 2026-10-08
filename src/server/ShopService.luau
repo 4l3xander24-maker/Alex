@@ -16,13 +16,18 @@ local TrapService = require(script.Parent.TrapService)
 local NOT_ENOUGH = "No tienes suficientes monedas"
 local CLOSED = "🔒 Las tiendas solo abren antes de la partida"
 -- Acciones que se pueden hacer en cualquier momento
-local ALWAYS_ALLOWED = { EquipWeapon = true, RepairVillageBridge = true, EquipPet = true }
+local ALWAYS_ALLOWED = { EquipWeapon = true, RepairVillageBridge = true, EquipPet = true, FinishTutorial = true }
 
 local ShopService = {}
 
 type Profile = Progression.Profile
 
 local actions: { [string]: (Player, Profile, string) -> (boolean, string) } = {}
+
+function actions.FinishTutorial(_player, data, _id)
+	data.Tutorial = true
+	return true, "¡Listo! Defiende la campana"
+end
 
 function actions.BuyWeapon(player, data, id)
 	local weapon = Config.Weapons[id]

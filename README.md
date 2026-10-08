@@ -101,6 +101,8 @@ el círculo de runas y el cuchillo), [`docs/capturas/pixel/`](docs/capturas/pixe
   recarga, cadencia, munición, crítico, botín, poder) y cada 5 niveles un **talento** (apuntar, correr,
   regeneración, vampiro, doble salto, esquivar, último aliento, balas explosivas, codicia, reparador).
 - **Todo se guarda** (monedas, nivel, armas, poderes, talentos) con DataStore.
+- **Guía para nuevos**: en la preparación hay flechas doradas sobre los vendedores y la campana, y la primera vez
+  sale un tutorial de 4 pasos (vendedor, reconstruir la campana, disparar, poderes) que se puede saltar.
 - **Sonido y música**: cada arma suena distinto, recarga, marca de golpe, zombis que gruñen y revientan cerca
   tuyo, rugido de los jefes, explosiones, rayo, campanazos, monedas al comprar y fanfarria al subir de nivel.
   La música cambia sola: medieval en la preparación, tambores de guerra en las oleadas y terror con un jefe.
@@ -174,7 +176,11 @@ la luna y el sol hay que subirlos **una vez**. Hay un programa que lo hace todo 
    Si el juego es de un grupo, usa `--group-id ID_DEL_GRUPO` en vez de `--user-id`.
    Escribe los ids en `src/shared/Assets.luau` y recuerda lo subido en `assets/uploaded.json`
    (si algo falla, vuelve a correrlo y solo sube lo que falta; `--force` sube todo de nuevo).
-5. Reinicia `rojo serve` y dale **Play**.
+5. **Texturas del mapa**: Roblox no deja crearlas mientras se juega, así que van como archivos de Rojo en
+   `src/materials/`. Pon los ids de **imagen** (no los del Decal) en `assets/texture_images.json` y corre
+   `python3 tools/make_material_variants.py`. El id de imagen de un Decal sale en la barra de comandos de Studio con
+   `print(game:GetService("InsertService"):LoadAsset(ID):FindFirstChildWhichIsA("Decal", true).Texture)`.
+6. Reinicia `rojo serve` y dale **Play**.
 
 **Importante**: el juego tiene que ser **del mismo usuario (o grupo)** que subió las imágenes; si no, Roblox no deja
 leerlas y el juego sigue con el aspecto normal. Las imágenes nuevas pueden tardar unos minutos en pasar la
