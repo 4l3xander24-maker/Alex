@@ -171,8 +171,13 @@ local function createBody(typeName: string, info, scale: number): ({ Piece }, Pa
 			part.CastShadow = false
 			color = part.Color
 		else
-			part = newPart(spec.Name, spec.Size * scale, material)
-			part.Color = color
+			local block = newPart(spec.Name, spec.Size * scale, material)
+			-- En los estilos de cubos todo queda en bloques
+			if spec.Shape and not Config.Style.Blocky then
+				block.Shape = spec.Shape
+			end
+			block.Color = color
+			part = block
 		end
 		if spec.Transparent then
 			part.Transparency = 1

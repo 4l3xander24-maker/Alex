@@ -25,6 +25,7 @@ export type PartSpec = {
 	Transparent: boolean?,
 	Mesh: BasePart?, -- pieza de malla a copiar (zombi de la tienda) en vez de un bloque
 	Turn: CFrame?, -- giro propio de la pieza (las mallas vienen mirando al revés)
+	Shape: Enum.PartType?, -- bola o cilindro (por defecto, bloque)
 }
 
 -- Colores que no dependen del tipo de zombi
@@ -191,49 +192,96 @@ local function fat(_info): { PartSpec }
 	return list
 end
 
--- Dragón zombi: cuerpo podrido con costillas al aire, alas rotas que aletean,
--- cuello largo, mandíbula que se abre para escupir fuego y cola
+-- Dragón zombi: cuerpo podrido con costillas al aire, púas en el lomo, alas
+-- rotas que aletean, cuello largo, mandíbula que se abre para escupir fuego y
+-- cola que se mece. Formas redondas: bolas y cilindros.
+local BALL = Enum.PartType.Ball
+local CYLINDER = Enum.PartType.Cylinder
+local ALONG_Z = CFrame.Angles(0, math.pi / 2, 0) -- cilindro a lo largo de Z
+local UPRIGHT = CFrame.Angles(0, 0, math.pi / 2) -- cilindro parado
+
 local function dragon(_info): { PartSpec }
 	local list: { PartSpec } = {}
 	local slate = Enum.Material.Slate
-	table.insert(list, part("Body", v(2, 1.6, 4.2), v(0, 0, 0), v(0, 0, 0), 0, "Skin", "Torso", { Material = slate }))
-	for index, z in { -1.2, 0, 1.2 } do
-		table.insert(list, part("Spine" .. index, v(0.3, 0.5, 0.6), v(0, 0, 0), v(0, 1, z), 0, "Shirt", "Torso"))
-		table.insert(list, part("Rib" .. index, v(2.18, 0.22, 0.3), v(0, 0, 0), v(0, -0.1, z * 0.7), 0, "Shirt", "Torso"))
+	local function add(name, size, pivot, hang, tilt, color, group, extra)
+		local spec = part(name, size, pivot, hang, tilt, color, group, extra)
+		table.insert(list, spec)
+		return spec
 	end
 
-	-- Cuello, cabeza y mandíbula
-	table.insert(list, part("Neck", v(0.9, 0.9, 2.4), v(0, 0.5, -2), v(0, 0.3, -1.1), -0.45, "Skin", "Head", { Material = slate, Role = "Neck" }))
+	-- Cuerpo: tronco redondo, pecho y panza
+	add("Body", v(4.4, 2, 2), v(0, 0, 0), v(0, 0, 0), 0, "Skin", "Torso", { Material = slate, Shape = CYLINDER, Turn = ALONG_Z })
+	add("Chest", v(2.3, 2.3, 2.3), v(0, 0, 0), v(0, 0.1, -1.6), 0, "Skin", "Torso", { Material = slate, Shape = BALL })
+	add("Hips", v(2, 2, 2), v(0, 0, 0), v(0, 0, 1.7), 0, "Skin", "Torso", { Material = slate, Shape = BALL })
+	-- Costillas al aire (aros de hueso) y púas en el lomo
+	for index, z in { -1.1, -0.4, 0.3, 1 } do
+		add("Rib" .. index, v(0.2, 2.15, 2.15), v(0, 0, 0), v(0, -0.05, z), 0, "Shirt", "Torso", { Shape = CYLINDER, Turn = ALONG_Z })
+	end
+	for index, z in { -1.8, -1, -0.2, 0.6, 1.4, 2.1 } do
+		local height = if index <= 3 then 0.75 else 0.55
+		add("Spike" .. index, v(0.16, height, height), v(0, 0, 0), v(0, 1.05, z), 0.785, "Shirt", "Torso")
+	end
+
+	-- Cuello en tres partes, cabeza con hocico, cejas y cuernos curvos
+	for index, segment in { { -2.3, 0.95 }, { -2.9, 0.82 }, { -3.4, 0.72 } } do
+		add("Neck" .. index, v(1.1, segment[2], segment[2]), v(0, 0.5, -2), v(0, 0.35 * index, segment[1] + 2), -0.45, "Skin", "Head", { Material = slate, Role = "Neck", Shape = CYLINDER, Turn = ALONG_Z })
+	end
 	local headPivot = v(0, 1.5, -3.6)
-	table.insert(list, part("Head", v(1.3, 1, 1.9), headPivot, v(0, 0, -0.8), 0, "Skin", "Head", { Material = slate, Role = "Neck" }))
-	table.insert(list, part("Teeth", v(1, 0.2, 0.1), headPivot, v(0, -0.55, -1.7), 0, "White", "Head", { Role = "Neck" }))
-	for _, side in { -1, 1 } do
-		table.insert(list, part("Horn", v(0.25, 0.25, 1.1), headPivot + v(side * 0.45, 0.35, 0.2), v(0, 0.2, 0.5), -0.6, "Shirt", "Head", { Role = "Neck" }))
-		table.insert(list, part("Eye", v(0.08, 0.25, 0.32), headPivot, v(side * 0.66, 0.22, -1.1), 0, "Eyes", "Head", { Material = Enum.Material.Neon, Role = "Neck" }))
+	add("Head", v(1.4, 1.1, 1.5), headPivot, v(0, 0.05, -0.55), 0, "Skin", "Head", { Material = slate, Role = "Neck" })
+	add("Snout", v(1.4, 0.75, 0.75), headPivot, v(0, -0.08, -1.45), 0, "Skin", "Head", { Material = slate, Role = "Neck", Shape = CYLINDER, Turn = ALONG_Z })
+	add("Skull", v(1.25, 1.25, 1.25), headPivot, v(0, 0.25, -0.2), 0, "Skin", "Head", { Material = slate, Role = "Neck", Shape = BALL })
+	for index = -2, 2 do
+		add("Tooth" .. index, v(0.12, 0.28, 0.12), headPivot, v(index * 0.2, -0.5, -1.7 + math.abs(index) * 0.08), 0, "White", "Head", { Role = "Neck" })
 	end
-	table.insert(list, part("Jaw", v(1.1, 0.35, 1.6), v(0, 1.12, -3.5), v(0, -0.1, -0.75), 0, "Skin", "Head", { Material = slate, Role = "Jaw" }))
+	for _, side in { -1, 1 } do
+		add("Brow", v(0.5, 0.16, 0.35), headPivot, v(side * 0.42, 0.62, -1.05), 0.3, "Shirt", "Head", { Role = "Neck" })
+		add("Eye", v(0.08, 0.26, 0.34), headPivot, v(side * 0.71, 0.3, -1), 0, "Eyes", "Head", { Material = Enum.Material.Neon, Role = "Neck" })
+		add("Nostril", v(0.16, 0.16, 0.16), headPivot, v(side * 0.28, 0.1, -1.82), 0, "Black", "Head", { Role = "Neck", Shape = BALL })
+		-- Cuerno en dos tramos que se curva hacia atrás
+		add("Horn", v(0.32, 0.32, 1), headPivot + v(side * 0.45, 0.55, 0.1), v(0, 0.15, 0.45), -0.7, "Shirt", "Head", { Role = "Neck" })
+		add("HornTip", v(0.2, 0.2, 0.8), headPivot + v(side * 0.45, 0.55, 0.1), v(0, 0.55, 1.05), -0.25, "Shirt", "Head", { Role = "Neck" })
+	end
+	add("Jaw", v(1.1, 0.35, 1.7), v(0, 1.12, -3.5), v(0, -0.1, -0.8), 0, "Skin", "Head", { Material = slate, Role = "Jaw" })
+	for index = -1, 1 do
+		add("LowerTooth" .. index, v(0.12, 0.22, 0.12), v(0, 1.12, -3.5), v(index * 0.3, 0.12, -1.5), 0, "White", "Head", { Role = "Jaw" })
+	end
 	-- Punto invisible de donde sale el fuego (mira adelante y abajo)
-	table.insert(list, part("Breath", v(0.2, 0.2, 0.2), headPivot, v(0, -0.3, -1.9), 0.75, "Skin", "Head", { Role = "Neck", Transparent = true }))
+	add("Breath", v(0.2, 0.2, 0.2), headPivot, v(0, -0.3, -1.9), 0.75, "Skin", "Head", { Role = "Neck", Transparent = true })
 
-	-- Alas: hueso, membrana rota y dedos
+	-- Alas: hueso del brazo, tres dedos y membrana rota en tres paños con huecos
 	for _, side in { -1, 1 } do
 		local name = if side < 0 then "Left" else "Right"
 		local role = if side < 0 then "WingL" else "WingR"
 		local root = v(side * 0.9, 0.6, -0.8)
-		table.insert(list, part(name .. "WingBone", v(5.5, 0.35, 0.35), root, v(side * 2.75, 0, 0), 0, "Shirt", "Wing", { Role = role, Axis = "Z" }))
-		table.insert(list, part(name .. "Wing", v(5.5, 0.12, 2.8), root, v(side * 2.75, 0, 1.4), 0, "Pants", "Wing", { Material = FABRIC, Role = role, Axis = "Z" }))
-		table.insert(list, part(name .. "WingFinger", v(0.25, 0.14, 2.6), root, v(side * 5.25, 0.05, 1.25), 0, "Shirt", "Wing", { Role = role, Axis = "Z" }))
-		table.insert(list, part(name .. "WingFinger2", v(0.22, 0.14, 2.2), root, v(side * 3.2, 0.05, 1.1), 0, "Shirt", "Wing", { Role = role, Axis = "Z" }))
+		local wing = { Role = role, Axis = "Z" }
+		add(name .. "WingShoulder", v(0.9, 0.9, 0.9), root, v(0, 0, 0), 0, "Skin", "Wing", { Material = slate, Role = role, Axis = "Z", Shape = BALL })
+		add(name .. "WingBone", v(5.6, 0.38, 0.38), root, v(side * 2.8, 0, 0), 0, "Shirt", "Wing", { Role = role, Axis = "Z", Shape = CYLINDER })
+		add(name .. "WingJoint", v(0.55, 0.55, 0.55), root, v(side * 5.6, 0, 0), 0, "Shirt", "Wing", { Role = role, Axis = "Z", Shape = BALL })
+		for index, finger in { { 1.9, 2.4 }, { 3.7, 2.8 }, { 5.4, 3.1 } } do
+			add(name .. "WingFinger" .. index, v(0.2, 0.2, finger[2]), root, v(side * finger[1], 0.04, finger[2] / 2), 0, "Shirt", "Wing", wing)
+		end
+		-- Paños de piel entre los dedos (el de afuera roto, más corto)
+		for index, panel in { { 0.95, 1.9, 2.2 }, { 2.8, 1.8, 2.5 }, { 4.55, 1.7, 1.6 } } do
+			add(name .. "Wing" .. index, v(panel[2], 0.1, panel[3]), root, v(side * panel[1], 0, panel[3] / 2 + 0.1), 0, "Pants", "Wing", { Material = FABRIC, Role = role, Axis = "Z" })
+		end
 	end
 
-	-- Cola que se mece y patas colgando
+	-- Cola en cuatro tramos que se afinan, con púas y punta de pala
 	local tailPivot = v(0, 0.1, 2.1)
-	table.insert(list, part("Tail", v(0.8, 0.7, 2.6), tailPivot, v(0, 0, 1.3), 0.1, "Skin", "Tail", { Material = slate, Role = "Tail", Axis = "Y" }))
-	table.insert(list, part("Tail2", v(0.5, 0.45, 2.2), tailPivot, v(0, -0.25, 3.6), 0.1, "Skin", "Tail", { Material = slate, Role = "Tail", Axis = "Y" }))
-	table.insert(list, part("TailSpike", v(0.6, 0.6, 0.6), tailPivot, v(0, -0.4, 4.8), 0.1, "Shirt", "Tail", { Role = "Tail", Axis = "Y" }))
-	for _, corner in { v(-0.8, -0.7, -1.3), v(0.8, -0.7, -1.3), v(-0.8, -0.7, 1.3), v(0.8, -0.7, 1.3) } do
-		table.insert(list, part("Leg", v(0.5, 1.2, 0.5), corner, v(0, -0.6, 0), -0.3, "Skin", "Leg", { Material = slate }))
-		table.insert(list, part("Claw", v(0.6, 0.25, 0.7), corner, v(0, -1.25, -0.1), -0.3, "Shirt", "Leg"))
+	local tail = { Material = slate, Role = "Tail", Axis = "Y", Shape = CYLINDER, Turn = ALONG_Z }
+	for index, segment in { { 1.3, 1.5, 0.95 }, { 2.7, 1.4, 0.75 }, { 4, 1.3, 0.58 }, { 5.2, 1.2, 0.42 } } do
+		add("Tail" .. index, v(segment[2] + 0.2, segment[3], segment[3]), tailPivot, v(0, -0.12 * index, segment[1]), 0.1, "Skin", "Tail", tail)
+		add("TailSpike" .. index, v(0.12, segment[3] * 0.7, segment[3] * 0.7), tailPivot, v(0, -0.12 * index + segment[3] / 2 + 0.1, segment[1]), 0.885, "Shirt", "Tail", { Role = "Tail", Axis = "Y" })
+	end
+	add("TailBlade", v(0.12, 0.9, 0.9), tailPivot, v(0, -0.5, 6.1), 0.785, "Shirt", "Tail", { Role = "Tail", Axis = "Y" })
+
+	-- Patas con muslo, canilla y tres garras
+	for _, corner in { v(-0.85, -0.6, -1.3), v(0.85, -0.6, -1.3), v(-0.75, -0.6, 1.5), v(0.75, -0.6, 1.5) } do
+		add("Thigh", v(0.8, 0.8, 0.8), corner, v(0, 0, 0), -0.3, "Skin", "Leg", { Material = slate, Shape = BALL })
+		add("Leg", v(1.2, 0.48, 0.48), corner, v(0, -0.6, 0), -0.3, "Skin", "Leg", { Material = slate, Shape = CYLINDER, Turn = UPRIGHT })
+		for index = -1, 1 do
+			add("Claw", v(0.14, 0.18, 0.45), corner, v(index * 0.2, -1.22, -0.25), -0.3, "Shirt", "Leg")
+		end
 	end
 	return list
 end
