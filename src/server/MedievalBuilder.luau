@@ -201,6 +201,16 @@ local function buildRuins(map: Instance, entrance: Vector3, outward: Vector3, ar
 	local function wall(offset: CFrame, length: number, height: number, battlements: boolean)
 		local cf = frame * offset
 		makePart({ Name = "RuinWall", Size = Vector3.new(length, height, 3), CFrame = cf * CFrame.new(0, height / 2, 0), Material = Enum.Material.Slate, Color = Props.vary(STONE, 0.08, random), Parent = map })
+		-- Zócalo más ancho abajo y cornisa arriba
+		makePart({ Name = "WallPlinth", Size = Vector3.new(length + 0.4, 1.4, 3.8), CFrame = cf * CFrame.new(0, 0.7, 0), Material = Enum.Material.Cobblestone, Color = Props.vary(STONE, 0.1, random), Parent = map })
+		makeProp({ Name = "WallCornice", Size = Vector3.new(length + 0.3, 0.5, 3.5), CFrame = cf * CFrame.new(0, height - 0.25, 0), Material = Enum.Material.Slate, Color = STONE:Lerp(Color3.new(1, 1, 1), 0.1), Parent = map })
+		-- Hiedra y musgo del lado del campamento
+		for _ = 1, math.floor(length / 7) do
+			local ivyHeight = random:NextNumber(2, height * 0.8)
+			local ivy = makeProp({ Name = "Ivy", Size = Vector3.new(random:NextNumber(1.5, 4), ivyHeight, 0.3), CFrame = cf * CFrame.new(random:NextNumber(-length / 2 + 2, length / 2 - 2), ivyHeight / 2 + 0.6, 1.6), Material = Enum.Material.LeafyGrass, Color = Props.vary(Color3.fromRGB(58, 96, 44), 0.12, random), Parent = map })
+			Props.sway(ivy, (cf * CFrame.new(0, height, 1.6)).Position, 0.01)
+		end
+		makeProp({ Name = "Moss", Size = Vector3.new(length, 0.5, 0.25), CFrame = cf * CFrame.new(0, 1.55, 1.95), Material = Enum.Material.Grass, Color = Color3.fromRGB(70, 104, 50), Parent = map })
 		if battlements then
 			for x = -length / 2 + 1, length / 2 - 1, 3 do
 				if random:NextNumber() < 0.7 then
@@ -214,26 +224,58 @@ local function buildRuins(map: Instance, entrance: Vector3, outward: Vector3, ar
 			makeProp({ Name = "Rubble", Size = Vector3.one * size, CFrame = cf * CFrame.new(random:NextNumber(-length / 2, length / 2), size / 2, random:NextNumber(2, 4)) * CFrame.Angles(random:NextNumber(0, 1), random:NextNumber(0, 3), 0), Material = Enum.Material.Cobblestone, Color = STONE, Parent = map })
 		end
 	end
-	-- Arco por donde pasan los zombis
+	-- Arco de medio punto por donde pasan los zombis (los jefes caben: la
+	-- clave queda a 14 + pillarX studs)
 	local pillarX = archHalf + 1.5
+	local spring = 14 -- altura donde arranca la curva
+	local crown = spring + pillarX + 1.5
 	for _, side in { -1, 1 } do
-		makePart({ Name = "ArchPillar", Size = Vector3.new(3, 14, 3), CFrame = frame * CFrame.new(side * pillarX, 7, -3), Material = Enum.Material.Slate, Color = STONE, Parent = map })
+		makePart({ Name = "ArchPillar", Size = Vector3.new(3.4, crown, 3.4), CFrame = frame * CFrame.new(side * pillarX, crown / 2, -3), Material = Enum.Material.Slate, Color = STONE, Parent = map })
+		makePart({ Name = "ArchBase", Size = Vector3.new(4.2, 1.6, 4.2), CFrame = frame * CFrame.new(side * pillarX, 0.8, -3), Material = Enum.Material.Cobblestone, Color = Props.vary(STONE, 0.1, random), Parent = map })
 		wall(CFrame.new(side * (pillarX + 11), 0, -3), 19, random:NextNumber(7, 11), true)
 	end
-	makePart({ Name = "ArchTop", Size = Vector3.new(pillarX * 2 + 3, 3, 3), CFrame = frame * CFrame.new(0, 15.5, -3), Material = Enum.Material.Slate, Color = STONE, Parent = map })
+	local stones = 13
+	for index = 0, stones - 1 do
+		local angle = (index + 0.5) / stones * math.pi
+		local position = Vector3.new(math.cos(angle) * pillarX, spring + math.sin(angle) * pillarX, -3)
+		local keystone = index == math.floor(stones / 2)
+		makePart({
+			Name = if keystone then "Keystone" else "Voussoir",
+			Size = Vector3.new(pillarX * math.pi / stones * 1.04, if keystone then 3.6 else 3, if keystone then 3.4 else 3),
+			CFrame = frame * CFrame.new(position) * CFrame.Angles(0, 0, angle - math.pi / 2),
+			Material = Enum.Material.Slate,
+			Color = if keystone then STONE:Lerp(Color3.new(1, 1, 1), 0.15) else Props.vary(STONE, 0.07, random),
+			Parent = map,
+		})
+	end
+	makePart({ Name = "ArchTop", Size = Vector3.new(pillarX * 2 + 3.4, 2.4, 3.4), CFrame = frame * CFrame.new(0, crown + 1.2, -3), Material = Enum.Material.Slate, Color = STONE, Parent = map })
 	for x = -pillarX, pillarX, 3 do
-		makeProp({ Name = "Merlon", Size = Vector3.new(1.6, 1.6, 3), CFrame = frame * CFrame.new(x, 17.8, -3), Material = Enum.Material.Slate, Color = STONE, Parent = map })
+		makeProp({ Name = "Merlon", Size = Vector3.new(1.6, 1.8, 3.2), CFrame = frame * CFrame.new(x, crown + 3.3, -3), Material = Enum.Material.Slate, Color = STONE, Parent = map })
 	end
 	wall(CFrame.new(-(pillarX + 20), 0, -14) * CFrame.Angles(0, math.pi / 2, 0), 20, 7, true)
 	wall(CFrame.new(pillarX + 20, 0, -16) * CFrame.Angles(0, math.pi / 2, 0), 16, 4, false)
 
-	-- Torre redonda partida
-	local towerCenter = frame * CFrame.new(pillarX + 18, 0, -20)
-	local y = 0
-	for index, height in { 8, 8, 5 } do
-		local radius = 11 - index
-		makePart({ Name = "RuinTower", Shape = Enum.PartType.Cylinder, Size = Vector3.new(height, radius, radius), CFrame = towerCenter * CFrame.new(index * 0.6, y + height / 2, 0) * CFrame.Angles(0, 0, math.pi / 2), Material = Enum.Material.Slate, Color = Props.vary(STONE, 0.06, random), Parent = map })
-		y += height
+	-- Dos torres redondas con techo cónico de tejas, troneras y bandera
+	for _, side in { 1, -1 } do
+		local towerCenter = frame * CFrame.new(side * (pillarX + 18), 0, -20)
+		local diameter = 10
+		local height = 24
+		makePart({ Name = "TowerBase", Shape = Enum.PartType.Cylinder, Size = Vector3.new(2, diameter + 1.4, diameter + 1.4), CFrame = towerCenter * CFrame.new(0, 1, 0) * CFrame.Angles(0, 0, math.pi / 2), Material = Enum.Material.Cobblestone, Color = Props.vary(STONE, 0.08, random), Parent = map })
+		makePart({ Name = "Tower", Shape = Enum.PartType.Cylinder, Size = Vector3.new(height, diameter, diameter), CFrame = towerCenter * CFrame.new(0, height / 2, 0) * CFrame.Angles(0, 0, math.pi / 2), Material = Enum.Material.Slate, Color = Props.vary(STONE, 0.06, random), Parent = map })
+		makePart({ Name = "TowerRing", Shape = Enum.PartType.Cylinder, Size = Vector3.new(1.2, diameter + 1.2, diameter + 1.2), CFrame = towerCenter * CFrame.new(0, height + 0.6, 0) * CFrame.Angles(0, 0, math.pi / 2), Material = Enum.Material.Slate, Color = STONE:Lerp(Color3.new(1, 1, 1), 0.1), Parent = map })
+		-- Troneras mirando al campamento
+		for _, slitY in { 8, 14, 20 } do
+			makeProp({ Name = "ArrowSlit", Size = Vector3.new(0.5, 2.2, 0.3), CFrame = towerCenter * CFrame.new(0, slitY, diameter / 2 - 0.05), Material = Enum.Material.SmoothPlastic, Color = Color3.fromRGB(24, 22, 26), Parent = map })
+		end
+		-- Techo cónico de tejas
+		local roofY = height + 1.2
+		for index, width in { diameter + 2, diameter, diameter - 2.2, diameter - 4.4, diameter - 6.4, 2, 0.8 } do
+			makePart({ Name = "TowerRoof", Shape = Enum.PartType.Cylinder, Size = Vector3.new(1.6, width, width), CFrame = towerCenter * CFrame.new(0, roofY + (index - 0.5) * 1.6, 0) * CFrame.Angles(0, 0, math.pi / 2), Material = Enum.Material.ClayRoofTiles, Color = Color3.fromRGB(128, 54, 40), Parent = map })
+		end
+		local poleTop = roofY + 7 * 1.6 + 4
+		makeProp({ Name = "FlagPole", Size = Vector3.new(0.3, 5, 0.3), CFrame = towerCenter * CFrame.new(0, poleTop - 2.5, 0), Material = Enum.Material.Wood, Color = Color3.fromRGB(70, 48, 30), Parent = map })
+		local flag = makeProp({ Name = "Flag", Size = Vector3.new(2.8, 1.6, 0.1), CFrame = towerCenter * CFrame.new(1.55, poleTop - 0.9, 0), Material = Enum.Material.Fabric, Color = Color3.fromRGB(40, 110, 60), Parent = map })
+		Props.sway(flag, (towerCenter * CFrame.new(0, poleTop - 0.9, 0)).Position, 0.08)
 	end
 	if theme.Medieval then
 		Props.torch(map, (frame * CFrame.new(-pillarX, 0, 0)).Position)
