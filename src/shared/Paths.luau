@@ -116,6 +116,25 @@ function Paths.onBridge(point: Vector3): boolean
 	return across <= bridge.Width / 2 - 1 and along >= -0.02 and along <= 1.02
 end
 
+-- Altura del suelo en ese punto: el bosque está ForestDrop más abajo que las
+-- islas, y sobre el puente de piedra sube de a poco (rampa)
+function Paths.groundHeight(point: Vector3): number
+	local arena = Config.Arena
+	local drop = arena.ForestDrop or 0
+	if drop == 0 then
+		return 0
+	end
+	local bridge = arena.Bridge
+	local across, along = bridgeOffset(bridge, point)
+	if across <= bridge.Width / 2 + 2 and along >= 0 and along <= 1 then
+		return -drop * (1 - along)
+	end
+	if point.Z <= arena.Ravine.ZMin then
+		return -drop
+	end
+	return 0
+end
+
 -- Donde pueden caminar los zombis: el bosque, el puente de piedra y la isla principal
 function Paths.isEnemyGround(point: Vector3): boolean
 	return Paths.onNorthLand(point) or Paths.onBridge(point) or Paths.onIsland(point, "Main")

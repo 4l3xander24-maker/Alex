@@ -100,34 +100,6 @@ local function buildTent(map: Instance, position: Vector3, color: Color3)
 	Props.crate(map, base * CFrame.new(length / 2 + 1.5, 0, halfWidth + 1), 2)
 end
 
-local function buildPalisade(map: Instance)
-	local radius = 52
-	local step = 1.45 / radius
-	local minAngle = math.rad(40) -- atrás no hay empalizada: está el acantilado
-	local maxAngle = math.rad(135) -- adelante queda abierto hacia la campana
-	local angle = -maxAngle
-	while angle <= maxAngle do
-		if math.abs(angle) >= minAngle then
-			local height = random:NextNumber(8, 10)
-			local position = camp + Vector3.new(math.sin(angle) * radius, height / 2, math.cos(angle) * radius)
-			makePart({
-				Name = "PalisadeLog",
-				Shape = Enum.PartType.Cylinder,
-				Size = Vector3.new(height, 1.5, 1.5),
-				CFrame = CFrame.new(position) * CFrame.Angles(0, 0, math.pi / 2),
-				Material = Enum.Material.Wood,
-				Color = Props.vary(DARK_WOOD, 0.12, random),
-				Parent = map,
-			})
-		end
-		angle += step
-	end
-	for _, degrees in { -120, -80, -45, 45, 80, 120 } do
-		local direction = Vector3.new(math.sin(math.rad(degrees)), 0, math.cos(math.rad(degrees)))
-		Props.lantern(map, camp + direction * (radius - 3))
-	end
-end
-
 -- Cerca baja al borde del acantilado (con hueco para el mirador)
 local function buildCliffFence(map: Instance, lookoutX: number)
 	local z = Config.Arena.CliffZ - 3
@@ -638,7 +610,7 @@ function CampBuilder.build(map: Instance)
 	buildMystic(map)
 	buildTrainer(map)
 	buildQuartermaster(map)
-	buildPalisade(map)
+	-- Sin empalizada de madera alrededor del campamento
 	local lookoutX = 20
 	buildCliffFence(map, lookoutX)
 	buildLookout(map, lookoutX)

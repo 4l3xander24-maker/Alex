@@ -63,7 +63,7 @@ end
 function TrapService.getMineSpot(index: number): Vector3
 	local spot = mineConfig.Spots[index]
 	local position = Paths.pointFromBell(spot[1], spot[2])
-	return position
+	return position + Vector3.new(0, Paths.groundHeight(position), 0)
 end
 
 -- La reja cruza el camino de lado a lado
@@ -121,7 +121,8 @@ function TrapService.buildGate(id: string): boolean
 	model.Name = "Gate" .. id
 	local offset = b - a
 	local length = offset.Magnitude
-	local frame = CFrame.lookAt(a, b) -- -Z va de A hacia B; X atraviesa el muro
+	local lift = Vector3.new(0, Paths.groundHeight((a + b) / 2), 0)
+	local frame = CFrame.lookAt(a + lift, b + lift) -- -Z va de A hacia B; X atraviesa el muro
 	local thickness = 3
 	local wallHeight = 9
 	local opening = 6.5 -- alto del hueco del rastrillo
@@ -169,7 +170,7 @@ function TrapService.buildGate(id: string): boolean
 	Props.hangingLantern(model, (frame * CFrame.new(-thickness - 1.5, 0, -length - 1.5)).Position, frame.RightVector * -1)
 
 	-- Barra de vida flotando sobre la reja
-	local anchor = Props.makeProp({ Name = "HealthAnchor", Size = Vector3.one * 0.2, Position = a:Lerp(b, 0.5) + Vector3.new(0, 12.5, 0), Transparency = 1, Parent = model })
+	local anchor = Props.makeProp({ Name = "HealthAnchor", Size = Vector3.one * 0.2, Position = a:Lerp(b, 0.5) + lift + Vector3.new(0, 12.5, 0), Transparency = 1, Parent = model })
 	local billboard = Instance.new("BillboardGui")
 	billboard.Size = UDim2.fromOffset(120, 12)
 	billboard.MaxDistance = 120

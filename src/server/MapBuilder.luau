@@ -55,6 +55,7 @@ local function buildTerrain()
 		local angle = random:NextNumber(0, math.pi * 2)
 		local radius = random:NextNumber(30, 230)
 		local position = Vector3.new(math.cos(angle) * radius, -3.2, math.sin(angle) * radius)
+		position += Vector3.new(0, Paths.groundHeight(position), 0)
 		if Paths.isGround(position, 10) then
 			local material = if random:NextNumber() < 0.6 then Enum.Material.LeafyGrass else Enum.Material.Mud
 			terrain:FillBall(position, random:NextNumber(4, 9), material)
@@ -65,8 +66,9 @@ local function buildTerrain()
 	local camp = arena.CampCenter
 	terrain:FillCylinder(CFrame.new(camp.X, -2, camp.Z), 4.1, arena.CampRadius, Enum.Material.Ground)
 	-- Camino de adoquines del campamento a la campana, y un anillo alrededor de la torre
-	terrain:FillBlock(CFrame.new(0, -2, camp.Z / 2), Vector3.new(9, 4.1, camp.Z), Enum.Material.Cobblestone)
-	terrain:FillCylinder(CFrame.new(0, -2, 0), 4.1, arena.TowerSize / 2 + 5, Enum.Material.Cobblestone)
+	local bell = arena.Bell
+	terrain:FillBlock(CFrame.new(bell.X, -2, (bell.Z + camp.Z) / 2), Vector3.new(9, 4.1, camp.Z - bell.Z), Enum.Material.Cobblestone)
+	terrain:FillCylinder(CFrame.new(bell.X, -2, bell.Z), 4.1, arena.TowerSize / 2 + 5, Enum.Material.Cobblestone)
 	-- Los caminos angostos por donde llegan los zombis (no sobre el agua)
 	MedievalBuilder.paintPaths(terrain)
 
@@ -715,6 +717,33 @@ local function setupLighting()
 	end
 end
 
+-- Todo se construye a la altura de las islas; lo que quedó en el bosque (al
+-- norte del canal) baja ForestDrop studs junto con el terreno. El puente de
+-- piedra no: ya es una rampa (BridgeBuilder).
+local function lowerForest(map: Instance)
+	local drop = Config.Arena.ForestDrop or 0
+	if drop == 0 or Config.Style.Tiles then
+		return
+	end
+	local offset = Vector3.new(0, -drop, 0)
+	local bridge = map:FindFirstChild("StoneBridge")
+	for _, part in map:GetDescendants() do
+		if not part:IsA("BasePart") or (bridge and part:IsDescendantOf(bridge)) then
+			continue
+		end
+		if not Paths.onNorthLand(part.Position) then
+			continue
+		end
+		part.CFrame += offset
+		-- Los puntos de giro guardados (viento, trabajo) bajan con la pieza
+		for name, value in part:GetAttributes() do
+			if typeof(value) == "Vector3" and string.sub(name, -5) == "Pivot" then
+				part:SetAttribute(name, value + offset)
+			end
+		end
+	end
+end
+
 function MapBuilder.build(): Folder
 	for _, child in workspace:GetChildren() do
 		if child.Name == "Baseplate" or child:IsA("SpawnLocation") then
@@ -739,6 +768,7 @@ function MapBuilder.build(): Folder
 	buildTower(map)
 	buildSpawnCircle(map)
 	CampBuilder.build(map)
+	lowerForest(map)
 	map.Parent = workspace
 
 	setupLighting()

@@ -28,10 +28,19 @@ local BridgeBuilder = {}
 local arena = Config.Arena
 local DECK = 1.5 -- grosor de las losas (arriba en y = 0)
 
--- Marco del puente: -Z va de From a To, X lo cruza de lado a lado
+-- Marco del puente: -Z va de From a To, X lo cruza de lado a lado. El
+-- extremo del bosque está ForestDrop más abajo: el puente es una rampa.
 local function bridgeFrame(from: Vector3, to: Vector3): (CFrame, number)
-	local flatFrom, flatTo = Vector3.new(from.X, 0, from.Z), Vector3.new(to.X, 0, to.Z)
-	return CFrame.lookAt((flatFrom + flatTo) / 2, flatTo), (flatTo - flatFrom).Magnitude
+	local drop = arena.ForestDrop or 0
+	local flatFrom, flatTo = Vector3.new(from.X, -drop, from.Z), Vector3.new(to.X, 0, to.Z)
+	return CFrame.lookAt((flatFrom + flatTo) / 2, flatTo), (Vector3.new(to.X, 0, to.Z) - Vector3.new(from.X, 0, from.Z)).Magnitude
+end
+
+-- Mismo lugar, pero derecho (sin la inclinación de la rampa): torres y pilares
+local function upright(frame: CFrame): CFrame
+	local look = frame.LookVector
+	local flat = Vector3.new(look.X, 0, look.Z).Unit
+	return CFrame.lookAt(frame.Position, frame.Position + flat)
 end
 
 -- Cuánto avanzó (desde el centro, hacia To) el puente cuando cruza esa Z
@@ -44,6 +53,7 @@ end
 -- Torrecita de guardia en cada esquina: base ancha, cuerpo alto, almenas,
 -- antorcha arriba y estandarte colgando hacia el camino
 local function cornerPillar(model: Model, frame: CFrame, side: number)
+	frame = upright(frame)
 	local height = 10
 	makePart({ Name = "PillarBase", Size = Vector3.new(4.6, 1.6, 4.6), CFrame = frame * CFrame.new(0, 0.8, 0), Material = Enum.Material.Cobblestone, Color = Props.vary(DARK_STONE, 0.06, random), Parent = model })
 	makePart({ Name = "BridgePillar", Size = Vector3.new(3.8, height, 3.8), CFrame = frame * CFrame.new(0, height / 2, 0), Material = Enum.Material.Slate, Color = Props.vary(STONE, 0.05, random), Parent = model })
@@ -105,8 +115,8 @@ function BridgeBuilder.build(map: Instance)
 	local pierTop = -DECK - 3
 	local bottom = arena.SeaLevel - 6
 	local pierHeight = pierTop - bottom
-	makePart({ Name = "BridgePier", Size = Vector3.new(width - 1, pierHeight, pierThickness), CFrame = at(0, bottom + pierHeight / 2, middle), Material = Enum.Material.Slate, Color = Props.vary(STONE, 0.05, random), Parent = model })
-	makePart({ Name = "PierCutwater", Size = Vector3.new(width + 1, 4, pierThickness + 2), CFrame = at(0, arena.SeaLevel + 1, middle), Material = Enum.Material.Slate, Color = DARK_STONE, Parent = model })
+	makePart({ Name = "BridgePier", Size = Vector3.new(width - 1, pierHeight, pierThickness), CFrame = upright(at(0, bottom + pierHeight / 2, middle)), Material = Enum.Material.Slate, Color = Props.vary(STONE, 0.05, random), Parent = model })
+	makePart({ Name = "PierCutwater", Size = Vector3.new(width + 1, 4, pierThickness + 2), CFrame = upright(at(0, arena.SeaLevel + 1, middle)), Material = Enum.Material.Slate, Color = DARK_STONE, Parent = model })
 	local span = (nearBank - farBank) / 2 - pierThickness / 2
 	for _, direction in { -1, 1 } do
 		local bank = if direction > 0 then nearBank else farBank
@@ -120,7 +130,7 @@ function BridgeBuilder.build(map: Instance)
 	end
 	-- Apoyos de piedra en las orillas
 	for _, bank in { farBank, nearBank } do
-		makePart({ Name = "Abutment", Size = Vector3.new(width + 6, 16, 3), CFrame = at(0, -DECK - 8, bank + (if bank == farBank then -1.5 else 1.5)), Material = Enum.Material.Slate, Color = Props.vary(STONE, 0.06, random), Parent = model })
+		makePart({ Name = "Abutment", Size = Vector3.new(width + 6, 16, 3), CFrame = upright(at(0, -DECK - 8, bank + (if bank == farBank then -1.5 else 1.5))), Material = Enum.Material.Slate, Color = Props.vary(STONE, 0.06, random), Parent = model })
 	end
 
 	-- Muros bajos a los lados con postes de madera oscura
@@ -130,7 +140,7 @@ function BridgeBuilder.build(map: Instance)
 		for a = -half, half - 0.01, 4 do
 			local segment = math.min(4, half - a)
 			makePart({ Name = "Parapet", Size = Vector3.new(wallThickness, wallHeight, segment - 0.06), CFrame = at(x, wallHeight / 2, a + segment / 2), Material = Enum.Material.Slate, Color = Props.vary(STONE, 0.08, random), Parent = model })
-			makePart({ Name = "ParapetPost", Size = Vector3.new(0.7, wallHeight + 1.6, 0.7), CFrame = at(x + side * 0.1, (wallHeight + 1.6) / 2, a), Material = Enum.Material.Wood, Color = POST, Parent = model })
+			makePart({ Name = "ParapetPost", Size = Vector3.new(1.6, wallHeight + 0.8, 1.6), CFrame = at(x + side * 0.1, (wallHeight + 0.8) / 2, a), Material = Enum.Material.Slate, Color = Props.vary(DARK_STONE, 0.06, random), Parent = model })
 			-- Almena sobre el muro, a la mitad de cada tramo
 			if segment > 2 then
 				makeProp({ Name = "ParapetMerlon", Size = Vector3.new(wallThickness, 1, 1.6), CFrame = at(x, wallHeight + 0.5, a + segment / 2), Material = Enum.Material.Slate, Color = Props.vary(STONE, 0.08, random), Parent = model })

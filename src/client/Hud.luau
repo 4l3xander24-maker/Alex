@@ -376,6 +376,15 @@ function Hud.init(actions: Actions)
 
 	-- Abajo a la izquierda: vida del jugador y poderes
 	local healthBack, healthFill, healthText = makeBar(gui, UDim2.new(0, 16, 1, -100), UDim2.fromOffset(220, 16))
+	-- Barra de experiencia debajo de la vida (sin números: solo se va llenando)
+	local xpBack, xpFill, xpText = makeBar(gui, UDim2.new(0, 16, 1, -80), UDim2.fromOffset(220, 6))
+	xpFill.BackgroundColor3 = XP_COLOR
+	xpText.Visible = false
+	round(xpBack, UDim.new(0, 3))
+	round(xpFill, UDim.new(0, 3))
+	-- Ya no se muestran el nivel ni la XP en números
+	levelLabel.Visible = false
+	matchLabel.Visible = false
 	local powerRow = makeRow(gui, Vector2.new(0, 1), UDim2.new(0, 16, 1, -14), Vector2.new(320, 62))
 	local powerSlots: { [string]: Slot } = {}
 	for order, name in Config.PowerOrder do
@@ -475,6 +484,7 @@ function Hud.init(actions: Actions)
 		weaponRow.Position = UDim2.new(1, -16, 1, -370)
 		weaponName.Position = UDim2.new(1, -20, 1, -402)
 		healthBack.Position = UDim2.new(0, 16, 1, -100)
+		xpBack.Position = UDim2.new(0, 16, 1, -80)
 	end
 
 	local function refreshState()
@@ -533,6 +543,7 @@ function Hud.init(actions: Actions)
 		coinsLabel.Text = `🪙 {Profile.coins()}`
 		local points = data.StatPoints + data.TalentPoints
 		levelLabel.Text = `⭐ Nivel {data.Level} · {data.Xp}/{Progression.xpNeeded(data.Level)} XP{if points > 0 then "  (¡puntos!)" else ""}`
+		xpFill.Size = UDim2.fromScale(math.clamp(data.Xp / math.max(Progression.xpNeeded(data.Level), 1), 0, 1), 1)
 		local matchXp = player:GetAttribute("MatchXp") or 0
 		matchLabel.Text = if matchXp > 0 then `+{matchXp} XP al terminar la partida` else ""
 		for id, slot in weaponSlots do

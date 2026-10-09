@@ -246,7 +246,10 @@ Config.Arena = {
 	TowerHeight = 6,
 	-- Dónde está la campana (su montículo). Antes en el centro (0, 0, 0); más
 	-- adelante = más cerca del puente
-	Bell = Vector3.new(0, 0, -9),
+	Bell = Vector3.new(0, 0, -24), -- frente a la puerta del castillo
+	-- El bosque (al norte del canal) está más abajo que la isla del campamento;
+	-- el puente de piedra sube como una rampa de un lado al otro
+	ForestDrop = 10,
 	StopRadius = 9, -- distancia a la campana donde se paran a golpear
 	StopJitter = 3,
 	CampCenter = Vector3.new(0, 0, 38),
@@ -720,8 +723,8 @@ Config.Traps = {
 		-- Lugares donde se entierran: camino y distancia a la campana por el camino
 		Spots = {
 			-- (distancia a la campana por el camino: la campana está en Arena.Bell)
-			{ "Main", 23 }, { "Main", 41 }, { "Main", 57 }, { "Main", 83 },
-			{ "Main", 95 }, { "Main", 107 }, { "Main", 133 }, { "Main", 146 },
+			{ "Main", 26 }, { "Main", 42 }, { "Main", 68 }, { "Main", 80 },
+			{ "Main", 92 }, { "Main", 105 }, { "Main", 118 }, { "Main", 131 },
 		},
 	},
 	Gate = {
@@ -732,8 +735,8 @@ Config.Traps = {
 		-- Rejas de metal en los dos extremos del puente; solo aparecen si las
 		-- compras. At: distancia a la campana por el camino
 		Slots = {
-			Start = { Name = "Reja de la entrada del puente", Short = "Entrada del puente", Path = "Main", At = 122.3, Width = 20 },
-			End = { Name = "Reja de la salida del puente", Short = "Salida del puente", Path = "Main", At = 71.5, Width = 20 },
+			Start = { Name = "Reja de la entrada del puente", Short = "Entrada del puente", Path = "Main", At = 107.3, Width = 20 },
+			End = { Name = "Reja de la salida del puente", Short = "Salida del puente", Path = "Main", At = 56.5, Width = 20 },
 		},
 		SlotOrder = { "Start", "End" },
 	},

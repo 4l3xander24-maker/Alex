@@ -2,6 +2,8 @@
 -- constante. Como el movimiento es determinista, servidor y clientes calculan
 -- la misma posición a partir del tiempo del servidor sin tener que replicar
 -- posiciones cada frame. Para empujarlos hacia atrás basta con cambiar SpawnTime.
+local Paths = require(script.Parent.Paths)
+
 local EnemyMath = {}
 
 export type Path = {
@@ -60,9 +62,11 @@ function EnemyMath.locate(path: Path, traveled: number): (Vector3, Vector3)
 	return points[1], Vector3.zero
 end
 
+-- La ruta va a la altura de las islas; aquí se le suma la del suelo (el
+-- bosque más bajo, la rampa del puente)
 function EnemyMath.getPosition(path: Path, now: number): Vector3
 	local position = EnemyMath.locate(path, EnemyMath.getTraveled(path, now))
-	return position
+	return position + Vector3.new(0, Paths.groundHeight(position), 0)
 end
 
 function EnemyMath.getDirection(path: Path, now: number): Vector3

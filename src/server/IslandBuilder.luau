@@ -20,18 +20,19 @@ local DEEP = arena.SeaLevel - 25 -- fondo del mar
 
 -- Paredes naturales: rocas grandes y chicas que sobresalen a distintas
 -- alturas (como acantilados de terreno de Roblox) y pasto que cuelga del borde
-local function rockyEdge(terrain: Terrain, from: Vector3, to: Vector3)
+local function rockyEdge(terrain: Terrain, from: Vector3, to: Vector3, drop: number?)
+	local down = drop or 0
 	local offset = to - from
 	local steps = math.max(1, math.floor(offset.Magnitude / 6))
 	for index = 0, steps do
 		local point = from + offset * (index / steps)
 		for _ = 1, 3 do
-			local position = Vector3.new(point.X + random:NextNumber(-4, 4), random:NextNumber(arena.SeaLevel - 4, -10), point.Z + random:NextNumber(-4, 4))
+			local position = Vector3.new(point.X + random:NextNumber(-4, 4), random:NextNumber(arena.SeaLevel - 4, -10 - down), point.Z + random:NextNumber(-4, 4))
 			terrain:FillBall(position, random:NextNumber(4, 9), Enum.Material.Rock)
 		end
 		-- Labio de pasto que sobresale arriba
 		if random:NextNumber() < 0.6 then
-			terrain:FillBall(Vector3.new(point.X + random:NextNumber(-2, 2), random:NextNumber(-3.5, -2), point.Z + random:NextNumber(-2, 2)), random:NextNumber(2.5, 4), Enum.Material.Grass)
+			terrain:FillBall(Vector3.new(point.X + random:NextNumber(-2, 2), random:NextNumber(-3.5, -2) - down, point.Z + random:NextNumber(-2, 2)), random:NextNumber(2.5, 4), Enum.Material.Grass)
 		end
 	end
 end
@@ -87,11 +88,13 @@ function IslandBuilder.buildTerrain(terrain: Terrain)
 	terrain.WaterWaveSpeed = 10
 
 	-- El bosque: pasto hasta el horizonte y un acantilado de roca sobre el canal
+	-- (ForestDrop más abajo que las islas)
+	local drop = arena.ForestDrop or 0
 	local landLength = ravine.ZMin + half
-	terrain:FillBlock(CFrame.new(0, -4, ravine.ZMin - landLength / 2), Vector3.new(width, 8, landLength), Enum.Material.Grass)
-	local rockHeight = -8 - DEEP
+	terrain:FillBlock(CFrame.new(0, -4 - drop, ravine.ZMin - landLength / 2), Vector3.new(width, 8, landLength), Enum.Material.Grass)
+	local rockHeight = -8 - drop - DEEP
 	terrain:FillBlock(CFrame.new(0, DEEP + rockHeight / 2, ravine.ZMin - 20), Vector3.new(width, rockHeight, 40), Enum.Material.Rock)
-	rockyEdge(terrain, Vector3.new(-half, 0, ravine.ZMin), Vector3.new(half, 0, ravine.ZMin))
+	rockyEdge(terrain, Vector3.new(-half, 0, ravine.ZMin), Vector3.new(half, 0, ravine.ZMin), drop)
 
 	-- Las islas
 	for _, island in arena.Islands do

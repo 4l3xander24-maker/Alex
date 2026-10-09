@@ -81,15 +81,17 @@ function MedievalBuilder.paintPaths(terrain: Terrain)
 			local a, b = points[index - 1], points[index]
 			local length = (b - a).Magnitude
 			local middle = (a + b) / 2
-			terrain:FillBlock(CFrame.lookAt(middle, b) * CFrame.new(0, -2, 0), Vector3.new(width, 4.1, length), material)
+			-- Al ras del suelo de cada lado (el bosque está más abajo)
+			local ground = Paths.groundHeight(middle)
+			terrain:FillBlock(CFrame.lookAt(middle, b) * CFrame.new(0, -2 + ground, 0), Vector3.new(width, 4.1, length), material)
 			-- Esquinas redondeadas en cada curva
-			terrain:FillCylinder(CFrame.new(a.X, -2, a.Z), 4.1, width / 2, material)
+			terrain:FillCylinder(CFrame.new(a.X, -2 + Paths.groundHeight(a), a.Z), 4.1, width / 2, material)
 		end
 		-- Charcos de lodo en el camino de tierra
 		if name == "Main" then
 			for distance = 60, 220, 45 do
 				local point = Paths.pointFromBell(name, distance + random:NextNumber(-8, 8))
-				terrain:FillBall(point + Vector3.new(random:NextNumber(-1.5, 1.5), -3.4, random:NextNumber(-1.5, 1.5)), random:NextNumber(2.5, 3.5), Enum.Material.Mud)
+				terrain:FillBall(point + Vector3.new(random:NextNumber(-1.5, 1.5), -3.4 + Paths.groundHeight(point), random:NextNumber(-1.5, 1.5)), random:NextNumber(2.5, 3.5), Enum.Material.Mud)
 			end
 		end
 	end

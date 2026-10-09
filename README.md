@@ -26,6 +26,8 @@ el círculo de runas y el cuchillo), [`docs/capturas/pixel/`](docs/capturas/pixe
 - **Mapa en islas**: al sur todo es **mar** abajo de los acantilados. En la **isla principal** están la campana, el
   castillo y el campamento; al norte, cruzando un canal, el **bosque** de donde salen los zombis, con una
   **cordillera** que tapa el horizonte. Si te caes al agua, te lleva el mar.
+- **El bosque está 10 studs más abajo que la isla del campamento** (`Config.Arena.ForestDrop`): el puente de piedra sube
+  como una rampa. `Paths.groundHeight` da la altura del suelo y los zombis la siguen.
 - **Un solo camino a la campana: el puente de piedra en diagonal** sobre el canal (losas con musgo, muros bajos
   con postes de madera, un pilar en el medio y columnas con antorchas). Los zombis solo pisan el bosque, el puente
   y la isla principal: no te persiguen por el agua y nunca van a la aldea.
@@ -79,8 +81,8 @@ el círculo de runas y el cuchillo), [`docs/capturas/pixel/`](docs/capturas/pixe
 - **Preparación antes de cada partida**: el único momento para comprar. La campana está rota y la partida
   **solo empieza cuando alguien la reconstruye** (mantener E), sin tiempo límite. No hay conteos en pantalla.
   Durante las oleadas las tiendas están cerradas.
-- **Vida de la campana**: 300, con la barra flotando sobre la campana. Se mejora con el **refuerzo** del
-  Intendente (+60 por nivel, hasta 8 niveles, queda guardado; cuenta el más alto del servidor).
+- **Vida de la campana**: 100, con la barra flotando sobre la campana. Se mejora con el **refuerzo** del
+  Intendente (+40 por nivel, hasta 8 niveles, queda guardado; cuenta el más alto del servidor).
 - **Entre oleadas te reabastecen**: cada arma vuelve como mínimo a sus balas iniciales (además de la bala por baja).
 - **Empiezas con cuchillo y pistola**. El cuchillo no gasta balas (gasta energía); las armas de fuego tienen cargador y
   **reserva limitada**, y **cada zombi que eliminas te da balas** para el arma que tienes en la mano.
