@@ -257,16 +257,44 @@ end
 
 -- Postes y techo de tela de un puesto (en coordenadas locales del puesto)
 local function buildCanopy(map: Instance, stall: CFrame, color: Color3)
+	local upright = CFrame.Angles(0, 0, math.pi / 2)
+	-- Postes redondos con pie de piedra
 	for _, corner in { Vector3.new(-4.5, 0, -3.5), Vector3.new(4.5, 0, -3.5), Vector3.new(-4.5, 0, 4.5), Vector3.new(4.5, 0, 4.5) } do
-		makePart({ Name = "StallPost", Size = Vector3.new(0.6, 8.5, 0.6), CFrame = stall * CFrame.new(corner + Vector3.new(0, 4.25, 0)), Material = Enum.Material.Wood, Color = DARK_WOOD, Parent = map })
+		makePart({ Name = "StallPost", Shape = Enum.PartType.Cylinder, Size = Vector3.new(8.5, 0.7, 0.7), CFrame = stall * CFrame.new(corner + Vector3.new(0, 4.25, 0)) * upright, Material = Enum.Material.Wood, Color = DARK_WOOD, Parent = map })
+		makeProp({ Name = "PostFoot", Size = Vector3.new(1.1, 0.6, 1.1), CFrame = stall * CFrame.new(corner + Vector3.new(0, 0.3, 0)), Material = Enum.Material.Slate, Color = Props.Colors.Stone, Parent = map })
 	end
-	makePart({ Name = "Canopy", Size = Vector3.new(10.5, 0.4, 9.6), CFrame = stall * CFrame.new(0, 8.6, 0.5) * CFrame.Angles(math.rad(-10), 0, 0), Material = Enum.Material.Fabric, Color = color, Parent = map })
+	-- Vigas del techo
+	for _, z in { -3.5, 4.5 } do
+		makeProp({ Name = "StallBeam", Size = Vector3.new(9.8, 0.45, 0.45), CFrame = stall * CFrame.new(0, 8.3 - (z + 3.5) * 0.17, z), Material = Enum.Material.Wood, Color = DARK_WOOD, Parent = map })
+	end
+	-- Toldo a rayas: franjas del color de la tienda y crema
+	local tilt = CFrame.Angles(math.rad(-10), 0, 0)
+	local stripes = 7
+	for index = 0, stripes - 1 do
+		local x = -5.25 + (index + 0.5) * 10.5 / stripes
+		makePart({ Name = "Canopy", Size = Vector3.new(10.5 / stripes, 0.3, 9.6), CFrame = stall * CFrame.new(0, 8.6, 0.5) * tilt * CFrame.new(x, 0, 0), Material = Enum.Material.Fabric, Color = if index % 2 == 0 then color else Color3.fromRGB(232, 222, 196), Parent = map })
+	end
+	-- Faldón con picos colgando adelante
+	for index = 0, 9 do
+		local x = -4.75 + index * 1.05
+		makeProp({ Name = "Valance", Size = Vector3.new(0.75, 0.75, 0.12), CFrame = stall * CFrame.new(0, 8.6, 0.5) * tilt * CFrame.new(x, -0.45, -4.85) * CFrame.Angles(0, 0, math.rad(45)), Material = Enum.Material.Fabric, Color = if index % 2 == 0 then color else Color3.fromRGB(232, 222, 196), Parent = map })
+	end
+end
+
+-- Mostrador de tablas con tapa más ancha y marcos de madera oscura
+local function buildCounter(map: Instance, stall: CFrame)
+	makePart({ Name = "Counter", Size = Vector3.new(8, 3, 2), CFrame = stall * CFrame.new(0, 1.5, -1.8), Material = Enum.Material.WoodPlanks, Color = WOOD, Parent = map })
+	makePart({ Name = "CounterTop", Size = Vector3.new(8.6, 0.3, 2.6), CFrame = stall * CFrame.new(0, 3.15, -1.85), Material = Enum.Material.Wood, Color = DARK_WOOD, Parent = map })
+	for _, x in { -3.9, 0, 3.9 } do
+		makeProp({ Name = "CounterFrame", Size = Vector3.new(0.35, 3, 0.2), CFrame = stall * CFrame.new(x, 1.5, -2.85), Material = Enum.Material.Wood, Color = DARK_WOOD, Parent = map })
+	end
+	makeProp({ Name = "CounterKick", Size = Vector3.new(8.1, 0.4, 0.2), CFrame = stall * CFrame.new(0, 0.2, -2.85), Material = Enum.Material.Wood, Color = DARK_WOOD, Parent = map })
 end
 
 local function buildArmory(map: Instance)
 	local stall = facingCamp(camp + Vector3.new(-23, 0, 8))
 	buildCanopy(map, stall, Color3.fromRGB(150, 50, 46))
-	makePart({ Name = "Counter", Size = Vector3.new(8, 3.2, 2), CFrame = stall * CFrame.new(0, 1.6, -1.8), Material = Enum.Material.WoodPlanks, Color = WOOD, Parent = map })
+	buildCounter(map, stall)
 	makePart({ Name = "Rack", Size = Vector3.new(9, 6.5, 0.5), CFrame = stall * CFrame.new(0, 3.6, 4), Material = Enum.Material.WoodPlanks, Color = DARK_WOOD, Parent = map })
 	for row = 0, 2 do
 		local y = 2 + row * 1.8
@@ -394,7 +422,7 @@ end
 local function buildQuartermaster(map: Instance)
 	local stall = facingCamp(camp + Vector3.new(-22, 0, -14))
 	buildCanopy(map, stall, Color3.fromRGB(90, 100, 60))
-	makePart({ Name = "Counter", Size = Vector3.new(8, 3.2, 2), CFrame = stall * CFrame.new(0, 1.6, -1.8), Material = Enum.Material.WoodPlanks, Color = WOOD, Parent = map })
+	buildCounter(map, stall)
 
 	-- Cajas de munición apiladas y minas sobre el mostrador
 	local ammoColor = Color3.fromRGB(80, 90, 55)
