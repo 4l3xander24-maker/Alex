@@ -58,17 +58,45 @@ local function add(piece: Piece, props: { [string]: any }, offset: CFrame, prop:
 	return part
 end
 
--- Montículo de pasto con muros de piedra y escalones a los costados
+-- Montículo redondo de pasto con un muro de piedras alrededor, flores y
+-- escalones a los costados
 local function buildMound(map: Instance): BasePart
+	local random = Random.new(7)
 	local mound = makePart({
 		Name = "BellMound",
-		Size = Vector3.new(MOUND_HALF * 2, MOUND_HEIGHT, MOUND_HALF * 2),
-		Position = Vector3.new(0, MOUND_HEIGHT / 2, 0),
-		Material = Enum.Material.Slate,
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(MOUND_HEIGHT, MOUND_HALF * 2, MOUND_HALF * 2),
+		CFrame = CFrame.new(0, MOUND_HEIGHT / 2, 0) * UPRIGHT,
+		Material = Enum.Material.Cobblestone,
 		Color = STONE,
 		Parent = map,
 	})
-	makePart({ Name = "MoundGrass", Size = Vector3.new(MOUND_HALF * 2 - 0.6, 0.4, MOUND_HALF * 2 - 0.6), Position = Vector3.new(0, MOUND_HEIGHT + 0.2, 0), Material = Enum.Material.Grass, Color = GRASS, Parent = map })
+	makePart({ Name = "MoundGrass", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.4, MOUND_HALF * 2 - 0.8, MOUND_HALF * 2 - 0.8), CFrame = CFrame.new(0, MOUND_HEIGHT + 0.2, 0) * UPRIGHT, Material = Enum.Material.Grass, Color = GRASS, Parent = map })
+	-- Piedras grandes del muro, una al lado de la otra (hueco adelante para la rampa)
+	local stones = 26
+	for index = 0, stones - 1 do
+		local angle = index / stones * math.pi * 2
+		local direction = Vector3.new(math.sin(angle), 0, math.cos(angle))
+		if direction.Z > 0.93 then
+			continue
+		end
+		local height = MOUND_HEIGHT + random:NextNumber(0.2, 0.9)
+		makePart({
+			Name = "MoundStone",
+			Size = Vector3.new(random:NextNumber(1.9, 2.4), height, random:NextNumber(1.1, 1.6)),
+			CFrame = CFrame.lookAt(direction * (MOUND_HALF + 0.2) + Vector3.new(0, height / 2, 0), Vector3.new(0, height / 2, 0)) * CFrame.Angles(random:NextNumber(-0.06, 0.06), 0, random:NextNumber(-0.08, 0.08)),
+			Material = Enum.Material.Slate,
+			Color = Props.vary(STONE, 0.12, random),
+			Parent = map,
+		})
+	end
+	-- Florcitas sobre el pasto, cerca del borde (en el centro van los postes)
+	local petals = { Color3.fromRGB(240, 220, 90), Color3.fromRGB(240, 240, 235), Color3.fromRGB(200, 120, 200), Color3.fromRGB(230, 110, 70) }
+	for _ = 1, 24 do
+		local angle = random:NextNumber(0, math.pi * 2)
+		local radius = random:NextNumber(MOUND_HALF - 3.2, MOUND_HALF - 1.2)
+		makeProp({ Name = "Flower", Shape = Enum.PartType.Ball, Size = Vector3.one * random:NextNumber(0.3, 0.5), Position = Vector3.new(math.sin(angle) * radius, MOUND_HEIGHT + 0.5, math.cos(angle) * radius), Material = Enum.Material.SmoothPlastic, Color = petals[random:NextInteger(1, #petals)], Parent = map })
+	end
 	-- Rampa de pasto hacia el círculo de runas (lado +Z)
 	makePart({
 		Name = "MoundRamp",

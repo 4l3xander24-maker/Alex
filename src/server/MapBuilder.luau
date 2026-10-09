@@ -294,31 +294,68 @@ local function buildWindmill(map: Instance, position: Vector3)
 	local windmill = Instance.new("Model")
 	windmill.Name = "Windmill"
 	local stone = Color3.fromRGB(150, 140, 125)
-	local y = 0
-	for _, segment in { { 10, 6 }, { 9, 6 }, { 8, 6 } } do
-		makePart({ Name = "Wall", Shape = Enum.PartType.Cylinder, Size = Vector3.new(segment[2], segment[1], segment[1]), CFrame = CFrame.new(position + Vector3.new(0, y + segment[2] / 2, 0)) * CFrame.Angles(0, 0, math.pi / 2), Material = Enum.Material.Cobblestone, Color = Props.vary(stone, 0.05, random), Parent = windmill })
-		y += segment[2]
+	local upright = CFrame.Angles(0, 0, math.pi / 2)
+	local function ring(name: string, height: number, diameter: number, y: number, material: Enum.Material, color: Color3, prop: boolean?)
+		local props = { Name = name, Shape = Enum.PartType.Cylinder, Size = Vector3.new(height, diameter, diameter), CFrame = CFrame.new(position + Vector3.new(0, y, 0)) * upright, Material = material, Color = color, Parent = windmill }
+		return if prop then makeProp(props) else makePart(props)
 	end
-	for index, width in { 9, 7, 5, 3, 1.5 } do
-		makePart({ Name = "Roof", Shape = Enum.PartType.Cylinder, Size = Vector3.new(1.4, width, width), CFrame = CFrame.new(position + Vector3.new(0, y + (index - 0.5) * 1.4, 0)) * CFrame.Angles(0, 0, math.pi / 2), Material = Enum.Material.ClayRoofTiles, Color = Color3.fromRGB(130, 56, 42), Parent = windmill })
+	-- Zócalo y torre que se angosta hacia arriba
+	ring("Plinth", 1.4, 12, 0.7, Enum.Material.Cobblestone, Props.vary(stone, 0.06, random))
+	local y = 1.4
+	for index = 0, 7 do
+		local height = 2.3
+		ring("Wall", height, 10.4 - index * 0.38, y + height / 2, Enum.Material.Cobblestone, Props.vary(stone, 0.05, random))
+		y += height
 	end
-	-- Puerta y ventanas mirando al campamento (+X)
-	makeProp({ Name = "Door", Size = Vector3.new(0.4, 4.5, 2.6), Position = position + Vector3.new(4.9, 2.25, 0), Material = Enum.Material.WoodPlanks, Color = Color3.fromRGB(70, 46, 30), Parent = windmill })
-	for _, height in { 8.5, 13.5 } do
-		local window = makeProp({ Name = "Window", Size = Vector3.new(0.4, 1.6, 1.2), Position = position + Vector3.new(4.25 - height * 0.04, height, 0), Material = Enum.Material.Neon, Color = Color3.fromRGB(255, 190, 110), Parent = windmill })
+	local top = y
+	-- Balcón de madera alrededor, con baranda
+	ring("Gallery", 0.4, 11.2, top - 4.4, Enum.Material.WoodPlanks, Color3.fromRGB(110, 76, 46))
+	for index = 0, 15 do
+		local angle = index / 16 * math.pi * 2
+		local offset = Vector3.new(math.cos(angle) * 5.4, top - 3.6, math.sin(angle) * 5.4)
+		makeProp({ Name = "Baluster", Size = Vector3.new(0.18, 1.4, 0.18), Position = position + offset, Material = Enum.Material.Wood, Color = TRUNK, Parent = windmill })
+	end
+	ring("Rail", 0.2, 11, top - 2.9, Enum.Material.Wood, TRUNK, true)
+	-- Techo cónico de tejas, más suave (más capas)
+	ring("Eave", 0.6, 9.6, top + 0.3, Enum.Material.Wood, TRUNK)
+	local roofY = top + 0.6
+	for index = 0, 9 do
+		local width = 9.2 - index * 0.9
+		ring("Roof", 0.8, width, roofY + 0.4 + index * 0.8, Enum.Material.ClayRoofTiles, Color3.fromRGB(130, 56, 42))
+	end
+	makeProp({ Name = "RoofKnob", Shape = Enum.PartType.Ball, Size = Vector3.one * 0.8, Position = position + Vector3.new(0, roofY + 8.6, 0), Material = Enum.Material.Wood, Color = TRUNK, Parent = windmill })
+	-- Puerta con marco y escalón, mirando al campamento (+X)
+	makePart({ Name = "DoorStep", Size = Vector3.new(1.4, 0.6, 3.6), Position = position + Vector3.new(5.6, 0.3, 0), Material = Enum.Material.Slate, Color = stone, Parent = windmill })
+	makeProp({ Name = "Door", Size = Vector3.new(0.4, 4.4, 2.4), Position = position + Vector3.new(5.15, 3.6, 0), Material = Enum.Material.WoodPlanks, Color = Color3.fromRGB(70, 46, 30), Parent = windmill })
+	makeProp({ Name = "DoorFrame", Size = Vector3.new(0.5, 0.5, 3.2), Position = position + Vector3.new(5.2, 6, 0), Material = Enum.Material.Wood, Color = TRUNK, Parent = windmill })
+	for _, z in { -1.4, 1.4 } do
+		makeProp({ Name = "DoorFrame", Size = Vector3.new(0.5, 4.6, 0.4), Position = position + Vector3.new(5.2, 3.7, z), Material = Enum.Material.Wood, Color = TRUNK, Parent = windmill })
+	end
+	-- Ventanas con luz cálida y marco, en dos pisos
+	for _, height in { 9, 14 } do
+		local radius = 5 - height * 0.045
+		local window = makeProp({ Name = "Window", Size = Vector3.new(0.3, 1.6, 1.2), Position = position + Vector3.new(radius, height, 0), Material = Enum.Material.Neon, Color = Color3.fromRGB(255, 190, 110), Parent = windmill })
 		Props.light(window, Color3.fromRGB(255, 180, 100), 10, 0.8)
+		makeProp({ Name = "WindowFrame", Size = Vector3.new(0.35, 0.2, 1.5), Position = position + Vector3.new(radius + 0.05, height + 0.9, 0), Material = Enum.Material.Wood, Color = TRUNK, Parent = windmill })
+		makeProp({ Name = "WindowSill", Size = Vector3.new(0.6, 0.2, 1.6), Position = position + Vector3.new(radius + 0.15, height - 0.9, 0), Material = Enum.Material.Slate, Color = stone, Parent = windmill })
 	end
 	windmill.Parent = map
 
-	-- Aspas: un eje y cuatro brazos con velas de tela
+	-- Aspas: eje, cuatro brazos y velas de tela sobre un enrejado de madera
 	local blades = Instance.new("Model")
 	blades.Name = "WindmillBlades"
-	local hubCFrame = CFrame.new(position + Vector3.new(5.2, y - 1.5, 0)) * CFrame.Angles(0, math.pi / 2, 0)
-	local hub = makeProp({ Name = "Hub", Shape = Enum.PartType.Cylinder, Size = Vector3.new(1.4, 1.4, 1.4), CFrame = hubCFrame * CFrame.Angles(0, math.pi / 2, 0), Material = Enum.Material.Wood, Color = TRUNK, Parent = blades })
+	local hubCFrame = CFrame.new(position + Vector3.new(5.6, top - 1.2, 0)) * CFrame.Angles(0, math.pi / 2, 0)
+	local hub = makeProp({ Name = "Hub", Shape = Enum.PartType.Cylinder, Size = Vector3.new(1.6, 1.6, 1.6), CFrame = hubCFrame * CFrame.Angles(0, math.pi / 2, 0), Material = Enum.Material.Wood, Color = TRUNK, Parent = blades })
+	makeProp({ Name = "HubCap", Shape = Enum.PartType.Ball, Size = Vector3.one * 1.1, CFrame = hubCFrame * CFrame.new(0, 0, -0.9), Material = Enum.Material.Metal, Color = Props.Colors.Iron, Parent = blades })
 	for index = 0, 3 do
 		local arm = hubCFrame * CFrame.Angles(0, 0, index * math.pi / 2)
-		makeProp({ Name = "Arm", Size = Vector3.new(0.5, 11, 0.4), CFrame = arm * CFrame.new(0, 5.8, 0), Material = Enum.Material.Wood, Color = TRUNK, Parent = blades })
-		makeProp({ Name = "Sail", Size = Vector3.new(2.6, 8, 0.15), CFrame = arm * CFrame.new(1.4, 6.8, 0.1), Material = Enum.Material.Fabric, Color = Color3.fromRGB(225, 212, 185), Parent = blades })
+		makeProp({ Name = "Arm", Size = Vector3.new(0.5, 12, 0.4), CFrame = arm * CFrame.new(0, 6.3, 0), Material = Enum.Material.Wood, Color = TRUNK, Parent = blades })
+		makeProp({ Name = "Sail", Size = Vector3.new(2.8, 8.4, 0.12), CFrame = arm * CFrame.new(1.5, 7.4, 0.12), Material = Enum.Material.Fabric, Color = Color3.fromRGB(225, 212, 185), Parent = blades })
+		-- Enrejado: largueros y travesaños sobre la vela
+		makeProp({ Name = "SailEdge", Size = Vector3.new(0.18, 8.6, 0.18), CFrame = arm * CFrame.new(2.9, 7.4, 0.18), Material = Enum.Material.Wood, Color = TRUNK, Parent = blades })
+		for rung = 0, 4 do
+			makeProp({ Name = "SailRung", Size = Vector3.new(2.9, 0.14, 0.16), CFrame = arm * CFrame.new(1.5, 3.4 + rung * 2, 0.2), Material = Enum.Material.Wood, Color = TRUNK, Parent = blades })
+		end
 	end
 	blades.PrimaryPart = hub
 	blades.Parent = map
@@ -450,7 +487,7 @@ local function buildScenery(map: Instance)
 	-- El molino está en la aldea (VillageService cura a quien está cerca entre oleadas)
 	local windmillPosition = Config.Arena.Windmill.Position
 	buildWindmill(map, windmillPosition)
-	local note = makeProp({ Name = "WindmillNote", Size = Vector3.one * 0.2, Position = windmillPosition + Vector3.new(0, 28, 0), Transparency = 1, Parent = map })
+	local note = makeProp({ Name = "WindmillNote", Size = Vector3.one * 0.2, Position = windmillPosition + Vector3.new(0, 32, 0), Transparency = 1, Parent = map })
 	local billboard = Instance.new("BillboardGui")
 	billboard.Size = UDim2.fromOffset(220, 46)
 	billboard.MaxDistance = 90
