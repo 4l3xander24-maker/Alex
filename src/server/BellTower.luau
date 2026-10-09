@@ -20,6 +20,11 @@ local EMBLEM = Color3.fromRGB(200, 220, 120)
 local GRASS = Color3.fromRGB(70, 112, 58)
 local STONE = Color3.fromRGB(120, 124, 122)
 
+local BRONZE = Color3.fromRGB(150, 104, 52)
+local GOLD = Color3.fromRGB(214, 170, 80)
+-- Los cilindros de Roblox van a lo largo de X: esto los para
+local UPRIGHT = CFrame.Angles(0, 0, math.pi / 2)
+
 local MOUND_HEIGHT = 2.4
 local MOUND_HALF = 8
 
@@ -92,8 +97,14 @@ local function buildStructure(map: Instance)
 	for index, side in { -1, 1 } do
 		local fallen = CFrame.new(side * 1.5, top + 1.2 + index * 0.9, side * 1.2) * CFrame.Angles(0, side * 0.55, math.pi / 2 - side * 0.22)
 		local piece = newPiece(1, CFrame.new(side * postX, top + postHeight / 2, 0), fallen)
-		add(piece, { Name = "BellPost", Size = Vector3.new(1.3, postHeight, 1.3), Material = Enum.Material.Wood, Color = POST }, CFrame.identity)
-		add(piece, { Name = "PostCap", Size = Vector3.new(1.6, 0.6, 1.6), Material = Enum.Material.Wood, Color = DARK_WOOD }, CFrame.new(0, postHeight / 2 + 0.3, 0), true)
+		-- Poste redondo con aros de hierro y remate tallado
+		add(piece, { Name = "BellPost", Shape = Enum.PartType.Cylinder, Size = Vector3.new(postHeight, 1.5, 1.5), Material = Enum.Material.Wood, Color = POST }, UPRIGHT)
+		add(piece, { Name = "PostFoot", Shape = Enum.PartType.Cylinder, Size = Vector3.new(1, 2.1, 2.1), Material = Enum.Material.Wood, Color = DARK_WOOD }, CFrame.new(0, -postHeight / 2 + 0.5, 0) * UPRIGHT, true)
+		for _, bandY in { -postHeight / 2 + 2, -2, postHeight / 2 - 4.2 } do
+			add(piece, { Name = "IronBand", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.35, 1.65, 1.65), Material = Enum.Material.Metal, Color = IRON }, CFrame.new(0, bandY, 0) * UPRIGHT, true)
+		end
+		add(piece, { Name = "PostCap", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.6, 1.9, 1.9), Material = Enum.Material.Wood, Color = DARK_WOOD }, CFrame.new(0, postHeight / 2 + 0.3, 0) * UPRIGHT, true)
+		add(piece, { Name = "PostKnob", Shape = Enum.PartType.Ball, Size = Vector3.one * 1.3, Material = Enum.Material.Wood, Color = DARK_WOOD }, CFrame.new(0, postHeight / 2 + 1.1, 0), true)
 	end
 
 	-- Viga de arriba con la cruz de madera encima
@@ -133,14 +144,22 @@ local function buildStructure(map: Instance)
 	local bellTop = beamY - 0.5
 	local bell = newPiece(5, CFrame.new(0, bellTop, 0), CFrame.new(1.8, top + 1.8, -1.5) * CFrame.Angles(math.rad(100), 0.6, 0))
 	add(bell, { Name = "Rope", Size = Vector3.new(0.25, 1.2, 0.25), Material = Enum.Material.Fabric, Color = Color3.fromRGB(150, 120, 80) }, CFrame.new(0, -0.1, 0), true)
-	add(bell, { Name = "Yoke", Size = Vector3.new(2.6, 0.6, 1), Material = Enum.Material.Wood, Color = DARK_WOOD }, CFrame.new(0, -0.9, 0))
-	local y = -1.2
-	for _, layer in { { 1.4, 0.7 }, { 2.4, 1.4 }, { 3.2, 1.3 }, { 3.8, 0.5 } } do
+	add(bell, { Name = "Yoke", Size = Vector3.new(2.8, 0.7, 1.1), Material = Enum.Material.Wood, Color = DARK_WOOD }, CFrame.new(0, -0.9, 0))
+	for _, x in { -0.9, 0.9 } do
+		add(bell, { Name = "YokeStrap", Size = Vector3.new(0.25, 0.8, 1.2), Material = Enum.Material.Metal, Color = IRON }, CFrame.new(x, -0.9, 0), true)
+	end
+	-- Campana de bronce acampanada: cúpula, cuerpo que se abre y borde dorado
+	add(bell, { Name = "BellCrown", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.5, 0.9, 0.9), Material = Enum.Material.Metal, Color = BRONZE }, CFrame.new(0, -1.45, 0) * UPRIGHT)
+	add(bell, { Name = "BellDome", Shape = Enum.PartType.Ball, Size = Vector3.one * 2.3, Material = Enum.Material.Metal, Color = BRONZE }, CFrame.new(0, -2.3, 0))
+	local y = -2.3
+	for _, layer in { { 2.35, 0.8 }, { 2.6, 0.8 }, { 2.95, 0.7 }, { 3.4, 0.55 }, { 3.9, 0.35 } } do
 		y -= layer[2] / 2
-		add(bell, { Name = "BellBody", Size = Vector3.new(layer[1], layer[2], layer[1]), Material = Enum.Material.Metal, Color = COPPER }, CFrame.new(0, y, 0))
+		add(bell, { Name = "BellBody", Shape = Enum.PartType.Cylinder, Size = Vector3.new(layer[2], layer[1], layer[1]), Material = Enum.Material.Metal, Color = BRONZE }, CFrame.new(0, y, 0) * UPRIGHT)
 		y -= layer[2] / 2
 	end
-	add(bell, { Name = "Clapper", Size = Vector3.new(0.6, 0.8, 0.6), Material = Enum.Material.Metal, Color = COPPER:Lerp(Color3.new(0, 0, 0), 0.45) }, CFrame.new(0, y - 0.3, 0), true)
+	add(bell, { Name = "BellRim", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.22, 4.05, 4.05), Material = Enum.Material.Metal, Color = GOLD }, CFrame.new(0, y + 0.1, 0) * UPRIGHT, true)
+	add(bell, { Name = "BellBand", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.18, 2.66, 2.66), Material = Enum.Material.Metal, Color = GOLD }, CFrame.new(0, -3.1, 0) * UPRIGHT, true)
+	add(bell, { Name = "Clapper", Shape = Enum.PartType.Ball, Size = Vector3.one * 0.85, Material = Enum.Material.Metal, Color = COPPER:Lerp(Color3.new(0, 0, 0), 0.5) }, CFrame.new(0, y - 0.25, 0), true)
 	for _, part in bell.Parts do
 		part.Parent = bellModel
 	end

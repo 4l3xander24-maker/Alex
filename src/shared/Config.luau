@@ -366,7 +366,7 @@ Config.Bell = {
 		HealthPerLevel = 60, -- +60 de vida por nivel (300 -> 780 al máximo)
 		Prices = { 120, 200, 320, 450, 600, 800, 1050, 1350 },
 	},
-	BarHeight = 20, -- altura de la barra de vida sobre la campana (studs)
+	BarHeight = 28, -- altura de la barra de vida sobre la campana (studs)
 }
 
 -- Cómo se comportan los zombis con los jugadores
