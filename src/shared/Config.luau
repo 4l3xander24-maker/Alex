@@ -225,6 +225,9 @@ Config.Themes = {
 --             las imágenes con tools/upload_assets.py; mientras tanto se ven en 3D)
 --   "3D"    → muñecos 3D de bloques con animación de caminar
 Config.ZombieStyle = "3D"
+-- true: el zombi de malla realista de la tienda; false: zombis de bloques
+-- estilo Roblox (cuerpo R6, ojos rojos, ropa rota)
+Config.ZombieMesh = false
 
 -- Optimización en el cliente
 Config.Graphics = {
@@ -359,7 +362,7 @@ Config.PathStyle = {
 -- La partida empieza solo cuando alguien reconstruye la campana (sin tiempo límite)
 
 Config.Bell = {
-	MaxHealth = 100,
+	MaxHealth = 40,
 	-- Cuánto del DamagePerSecond de los zombis le llega a la campana. Con 1, 22
 	-- zombis la destruían en ~7 segundos en la oleada 1.
 	DamageTaken = 0.35,
@@ -369,7 +372,7 @@ Config.Bell = {
 	-- partida cuenta el nivel más alto entre los jugadores del servidor.
 	Armor = {
 		MaxLevel = 8,
-		HealthPerLevel = 40, -- +40 de vida por nivel (100 -> 420 al máximo)
+		HealthPerLevel = 15, -- +15 de vida por nivel (40 -> 160 al máximo)
 		Prices = { 120, 200, 320, 450, 600, 800, 1050, 1350 },
 	},
 	BarHeight = 28, -- altura de la barra de vida sobre la campana (studs)
@@ -385,9 +388,13 @@ Config.Hunt = {
 }
 
 Config.Player = {
-	MaxHealth = 100,
+	MaxHealth = 20,
+	-- El daño de los zombis (PlayerDamage) se pensó para 100 de vida: se escala
+	-- para que con 20 aguantes lo mismo
+	DamageScale = 0.2,
 	WalkSpeed = 16,
-	RespawnTime = 5,
+	RespawnTime = 5, -- solo fuera de la partida: en la partida, si mueres, se acaba
+	FallDamage = 4, -- caer al agua te devuelve al círculo de runas con menos vida
 }
 
 -- Sprite: pega aquí el id de la imagen subida a Roblox ("rbxassetid://123...").
@@ -409,10 +416,11 @@ Config.Enemies = {
 		HitRadius = 1.8,
 		Sprite = "",
 		Model = "Zombie",
-		Skin = Color3.fromRGB(104, 186, 64),
-		Shirt = Color3.fromRGB(232, 232, 222),
-		Pants = Color3.fromRGB(46, 92, 168),
-		Eyes = Color3.fromRGB(255, 255, 255),
+		Skin = Color3.fromRGB(110, 190, 80),
+		Shirt = Color3.fromRGB(110, 116, 128),
+		Pants = Color3.fromRGB(34, 34, 40),
+		Eyes = Color3.fromRGB(255, 40, 30),
+		Claws = true,
 	},
 	Runner = {
 		DisplayName = "Corredor",
@@ -426,10 +434,11 @@ Config.Enemies = {
 		Sprite = "",
 		Model = "Zombie",
 		Hunch = 0.35, -- va más encorvado
-		Skin = Color3.fromRGB(70, 160, 70),
-		Shirt = Color3.fromRGB(58, 140, 60), -- sin camisa
-		Pants = Color3.fromRGB(70, 74, 120),
-		Eyes = Color3.fromRGB(255, 255, 255),
+		Skin = Color3.fromRGB(96, 176, 140),
+		Shirt = Color3.fromRGB(70, 80, 96),
+		Pants = Color3.fromRGB(86, 62, 44),
+		Eyes = Color3.fromRGB(255, 40, 30),
+		Hair = Color3.fromRGB(34, 30, 30),
 	},
 	Cone = {
 		DisplayName = "Zombi con cono",
@@ -445,9 +454,9 @@ Config.Enemies = {
 		Model = "Zombie",
 		Hat = "Cone",
 		Skin = Color3.fromRGB(120, 196, 72),
-		Shirt = Color3.fromRGB(236, 236, 228),
-		Pants = Color3.fromRGB(40, 100, 180),
-		Eyes = Color3.fromRGB(255, 255, 255),
+		Shirt = Color3.fromRGB(150, 130, 100),
+		Pants = Color3.fromRGB(40, 60, 110),
+		Eyes = Color3.fromRGB(255, 40, 30),
 	},
 	Knight = {
 		DisplayName = "Caballero zombi",
@@ -465,7 +474,7 @@ Config.Enemies = {
 		Skin = Color3.fromRGB(96, 150, 70),
 		Shirt = Color3.fromRGB(120, 36, 40), -- túnica
 		Pants = Color3.fromRGB(60, 56, 64),
-		Eyes = Color3.fromRGB(255, 70, 50),
+		Eyes = Color3.fromRGB(255, 40, 30),
 	},
 	Brute = {
 		DisplayName = "Bruto",
@@ -477,13 +486,33 @@ Config.Enemies = {
 		Size = Vector2.new(6.5, 7),
 		HitRadius = 3,
 		Sprite = "",
-		Model = "Fat",
-		Skin = Color3.fromRGB(130, 176, 70),
-		Shirt = Color3.fromRGB(214, 206, 180),
-		Pants = Color3.fromRGB(86, 66, 52),
-		Eyes = Color3.fromRGB(255, 255, 255),
+		Model = "Zombie",
+		Skin = Color3.fromRGB(110, 196, 70),
+		Shirt = Color3.fromRGB(110, 116, 124),
+		Pants = Color3.fromRGB(30, 30, 34),
+		Eyes = Color3.fromRGB(255, 40, 30),
+		Buff = true,
 	},
 	-- Jefes (6 veces más grandes que un zombi común)
+	-- Mutante: tentáculos de enredadera en la espalda y ojos verdes que brillan
+	Mutant = {
+		DisplayName = "Mutante",
+		MaxHealth = 9,
+		Speed = 6,
+		DamagePerSecond = 3,
+		PlayerDamage = 16,
+		Coins = 3,
+		Size = Vector2.new(3.8, 5.2),
+		HitRadius = 1.9,
+		Sprite = "",
+		Model = "Zombie",
+		Tentacles = true,
+		Claws = true,
+		Skin = Color3.fromRGB(60, 150, 60),
+		Shirt = Color3.fromRGB(70, 90, 50),
+		Pants = Color3.fromRGB(50, 60, 40),
+		Eyes = Color3.fromRGB(120, 255, 90),
+	},
 	Fatso = {
 		DisplayName = "Zombi Gordo",
 		Icon = "🤢",
@@ -502,7 +531,7 @@ Config.Enemies = {
 		Skin = Color3.fromRGB(150, 186, 80),
 		Shirt = Color3.fromRGB(210, 200, 170),
 		Pants = Color3.fromRGB(80, 60, 90),
-		Eyes = Color3.fromRGB(255, 255, 255),
+		Eyes = Color3.fromRGB(255, 40, 30),
 	},
 	King = {
 		DisplayName = "Rey Zombi",
@@ -566,13 +595,21 @@ Config.Waves = {
 	BossSpacing = 6, -- segundos entre un jefe y el siguiente
 	GameOverDelay = 12,
 	-- Desde qué oleada aparece cada tipo y qué tan seguido
-	Mix = {
-		{ Type = "Walker", FromWave = 1, Weight = 1 },
-		{ Type = "Runner", FromWave = 2, Weight = 0.35 },
-		{ Type = "Cone", FromWave = 2, Weight = 0.25 },
-		{ Type = "Brute", FromWave = 3, Weight = 0.12 },
-		{ Type = "Knight", FromWave = 4, Weight = 0.15 },
+	-- Qué zombis trae cada oleada: a veces un solo tipo, a veces una mezcla.
+	-- Después de la última, cada oleada elige al azar 2 o 3 tipos de Random.
+	Lineups = {
+		{ "Walker" },
+		{ "Runner" },
+		{ "Walker", "Cone" },
+		{ "Brute" },
+		{ "Walker", "Runner" }, -- + el Gordo
+		{ "Mutant" },
+		{ "Cone", "Knight" },
+		{ "Runner", "Brute" },
+		{ "Mutant", "Knight" },
+		{ "Walker", "Runner", "Cone" }, -- + el Rey
 	},
+	Random = { "Walker", "Runner", "Cone", "Knight", "Brute", "Mutant" },
 }
 
 -- Armas que vende el Armero. Zoom solo se usa con el talento Puntería.
@@ -852,7 +889,7 @@ Config.Progression = {
 -- Un punto por nivel. PerPoint es lo que suma cada punto.
 Config.Stats = {
 	{ Id = "Damage", Name = "Daño", Icon = "💥", PerPoint = 0.05, Max = 20, Text = "+%d%% de daño", Percent = true },
-	{ Id = "Health", Name = "Vida", Icon = "❤️", PerPoint = 10, Max = 20, Text = "+%d de vida máxima" },
+	{ Id = "Health", Name = "Vida", Icon = "❤️", PerPoint = 2, Max = 20, Text = "+%d de vida máxima" },
 	{ Id = "Speed", Name = "Velocidad", Icon = "👟", PerPoint = 0.03, Max = 10, Text = "+%d%% de velocidad al caminar", Percent = true },
 	{ Id = "Reload", Name = "Recarga", Icon = "🔄", PerPoint = 0.05, Max = 10, Text = "%d%% menos tiempo de recarga", Percent = true },
 	{ Id = "FireRate", Name = "Cadencia", Icon = "⚡", PerPoint = 0.03, Max = 10, Text = "+%d%% de disparos por segundo", Percent = true },

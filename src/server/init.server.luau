@@ -51,7 +51,9 @@ if startPrompt then
 	WaveService.setStartPrompt(startPrompt)
 end
 
-EnemyService.setPlayerDamageHandler(PlayerService.damagePlayer)
+EnemyService.setPlayerDamageHandler(function(player, amount)
+	PlayerService.damagePlayer(player, amount * Config.Player.DamageScale)
+end)
 EnemyService.setKillHandler(function(player, enemy)
 	local data = player.Parent and DataService.get(player)
 	if not data then

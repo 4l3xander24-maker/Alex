@@ -94,26 +94,30 @@ function WaveService.getCurrentWave(): number
 	return currentWave
 end
 
--- Elige un tipo de zombi según la oleada. Los tipos especiales se vuelven
--- más comunes mientras más oleadas pasan desde que aparecieron.
+-- Los tipos de zombi de cada oleada (Config.Waves.Lineups; después, una
+-- mezcla al azar que se elige una vez por oleada)
+local lineups: { [number]: { string } } = {}
+
+function WaveService.getLineup(wave: number): { string }
+	if lineups[wave] then
+		return lineups[wave]
+	end
+	local lineup = waves.Lineups[wave]
+	if not lineup then
+		local pool = table.clone(waves.Random)
+		lineup = {}
+		for _ = 1, random:NextInteger(2, 3) do
+			table.insert(lineup, table.remove(pool, random:NextInteger(1, #pool)))
+		end
+	end
+	lineups[wave] = lineup
+	return lineup
+end
+
+-- Elige un tipo de zombi de la mezcla de esa oleada
 function WaveService.pickType(wave: number): string
-	local total = 0
-	local weights = {}
-	for _, entry in waves.Mix do
-		if wave >= entry.FromWave then
-			local weight = entry.Weight * (1 + 0.1 * (wave - entry.FromWave))
-			table.insert(weights, { Type = entry.Type, Weight = weight })
-			total += weight
-		end
-	end
-	local roll = random:NextNumber(0, total)
-	for _, entry in weights do
-		roll -= entry.Weight
-		if roll <= 0 then
-			return entry.Type
-		end
-	end
-	return weights[#weights].Type
+	local lineup = WaveService.getLineup(wave)
+	return lineup[random:NextInteger(1, #lineup)]
 end
 
 -- Preparación: el único momento para comprar. La campana está destruida y la
@@ -141,11 +145,20 @@ local function runLobby(): boolean
 	return true
 end
 
--- Descanso antes de cada oleada (sin conteo en pantalla)
-local function runIntermission(seconds: number)
+-- Descanso antes de cada oleada (sin conteo en pantalla). Devuelve false si
+-- cayeron todos los jugadores.
+local function runIntermission(seconds: number): boolean
 	GameState.set("State", "Intermission")
 	CombatService.restockAll()
-	task.wait(seconds)
+	local finish = os.clock() + seconds
+	while os.clock() < finish do
+		if PlayerService.allDown() then
+			GameState.set("EndReason", "Dead")
+			return false
+		end
+		task.wait(0.25)
+	end
+	return true
 end
 
 -- Devuelve true si la campana sobrevivió la oleada
@@ -154,6 +167,12 @@ local function runWave(wave: number): boolean
 	GameState.set("Wave", wave)
 	GameState.set("State", "Wave")
 	PlayerService.onWaveStart()
+	-- Avisa qué zombis vienen en esta oleada
+	local names = {}
+	for _, typeName in WaveService.getLineup(wave) do
+		table.insert(names, Config.Enemies[typeName].DisplayName)
+	end
+	Remotes.Notify:FireAllClients(`🧟 Oleada {wave}: {table.concat(names, " + ")}`)
 
 	local healthMultiplier = WaveService.getHealthMultiplier(wave)
 	-- Los jefes salen de a uno, separados unos segundos
@@ -166,6 +185,11 @@ local function runWave(wave: number): boolean
 
 	while toSpawn > 0 or #bosses > 0 or EnemyService.getAliveCount() > 0 do
 		if GameState.isBellDestroyed() or #Players:GetPlayers() == 0 then
+			GameState.set("EndReason", "Bell")
+			return false
+		end
+		if PlayerService.allDown() then
+			GameState.set("EndReason", "Dead")
 			return false
 		end
 
@@ -206,11 +230,14 @@ function WaveService.start()
 			GameState.resetBell(WaveService.getBellMaxHealth())
 			-- Todos empiezan la partida con la munición inicial
 			CombatService.resetAll()
+			table.clear(lineups)
+			GameState.set("EndReason", "")
+			PlayerService.setInMatch(true)
 			local wave = 0
 			repeat
 				wave += 1
-				runIntermission(if wave == 1 then waves.FirstIntermission else waves.Intermission)
-			until not runWave(wave)
+			until not runIntermission(if wave == 1 then waves.FirstIntermission else waves.Intermission) or not runWave(wave)
+			PlayerService.setInMatch(false)
 
 			GameState.set("State", "GameOver")
 			-- La campana se derrumba; en la próxima preparación hay que reconstruirla

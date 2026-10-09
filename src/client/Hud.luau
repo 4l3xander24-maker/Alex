@@ -501,7 +501,7 @@ function Hud.init(actions: Actions)
 		elseif state == "Wave" then
 			statusLabel.Text = `Zombis restantes: {gameState:GetAttribute("EnemiesLeft")}`
 		elseif state == "GameOver" then
-			statusLabel.Text = "¡DESTRUYERON LA CAMPANA! Reiniciando..."
+			statusLabel.Text = if gameState:GetAttribute("EndReason") == "Dead" then "¡CAÍSTE! Fin de la partida..." else "¡DESTRUYERON LA CAMPANA! Reiniciando..."
 		else
 			statusLabel.Text = "Esperando jugadores..."
 		end
@@ -511,7 +511,7 @@ function Hud.init(actions: Actions)
 		local ratio = math.clamp(health / maxHealth, 0, 1)
 		bellFill.Size = UDim2.fromScale(ratio, 1)
 		bellFill.BackgroundColor3 = HEALTH_EMPTY:Lerp(HEALTH_FULL, ratio)
-		bellText.Text = `🔔 {health} / {maxHealth}`
+		bellText.Text = "" -- solo la barra, sin números
 		bellBillboard.Enabled = state == "Intermission" or state == "Wave"
 
 		-- Trampas compradas para esta partida
@@ -635,7 +635,7 @@ function Hud.init(actions: Actions)
 		local ratio = math.clamp(health / maxHealth, 0, 1)
 		healthFill.Size = UDim2.fromScale(ratio, 1)
 		healthFill.BackgroundColor3 = HEALTH_EMPTY:Lerp(HEALTH_FULL, ratio)
-		healthText.Text = `❤️ {math.ceil(health)} / {math.floor(maxHealth)}`
+		healthText.Text = "" -- solo la barra, sin números
 		lowHealth.BackgroundTransparency = if ratio < 0.3 and health > 0 then 0.8 + math.sin(os.clock() * 6) * 0.08 else 1
 
 		local scoped = actions.isScoped()

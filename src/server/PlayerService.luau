@@ -139,10 +139,79 @@ function PlayerService.onPlayerReady(player: Player)
 	end
 end
 
+-- En la partida no se reaparece: quien muere queda afuera hasta la próxima
+-- preparación, y si caen todos se acaba la partida (WaveService)
+local inMatch = false
+local fallen: { [Player]: boolean } = {}
+
+local function loadCharacter(player: Player)
+	if player.Parent then
+		pcall(player.LoadCharacter, player)
+	end
+end
+
+local function watchDeath(player: Player, character: Model)
+	local humanoid = character:WaitForChild("Humanoid") :: Humanoid
+	humanoid.Died:Connect(function()
+		if inMatch then
+			fallen[player] = true
+			Remotes.Notify:FireClient(player, "💀 Caíste. Si caen todos, se acaba la partida")
+		else
+			task.delay(Config.Player.RespawnTime, loadCharacter, player)
+		end
+	end)
+end
+
+function PlayerService.setInMatch(value: boolean)
+	inMatch = value
+	if not value then
+		-- Vuelven todos los que cayeron
+		for player in fallen do
+			loadCharacter(player)
+		end
+		table.clear(fallen)
+		for _, player in Players:GetPlayers() do
+			local humanoid = getHumanoid(player)
+			if not humanoid or humanoid.Health <= 0 then
+				loadCharacter(player)
+			end
+		end
+	end
+end
+
+-- true si no queda ningún jugador vivo
+function PlayerService.allDown(): boolean
+	for _, player in Players:GetPlayers() do
+		local humanoid = getHumanoid(player)
+		if humanoid and humanoid.Health > 0 then
+			return false
+		end
+	end
+	return true
+end
+
 function PlayerService.init()
 	Players.RespawnTime = Config.Player.RespawnTime
+	Players.CharacterAutoLoads = false
+	Players.PlayerAdded:Connect(function(player)
+		player.CharacterAdded:Connect(function(character)
+			watchDeath(player, character)
+		end)
+		loadCharacter(player)
+	end)
+	for _, player in Players:GetPlayers() do
+		player.CharacterAdded:Connect(function(character)
+			watchDeath(player, character)
+		end)
+		if player.Character then
+			task.spawn(watchDeath, player, player.Character)
+		else
+			loadCharacter(player)
+		end
+	end
 	Players.PlayerRemoving:Connect(function(player)
 		states[player] = nil
+		fallen[player] = nil
 	end)
 
 	DataService.onChanged(function(player, reason)
@@ -160,12 +229,17 @@ function PlayerService.init()
 				if state and now - state.LastDamaged >= talents.RegenDelay and hasTalent(player, "Regen") then
 					PlayerService.heal(player, talents.RegenPerSecond * REGEN_TICK)
 				end
-				-- Quien cae por un acantilado se lo lleva el mar
+				-- Quien cae al agua vuelve al círculo de runas con un poco menos de vida
 				local humanoid = getHumanoid(player)
 				local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
 				if humanoid and humanoid.Health > 0 and root and (root :: BasePart).Position.Y < Config.Arena.FallKillY then
-					humanoid.Health = 0
-					Remotes.Notify:FireClient(player, "🌊 ¡Caíste al agua!")
+					local spawn = Config.Arena.SpawnCircle
+					local character = player.Character :: Model
+					local rootPart = root :: BasePart
+					character:PivotTo(CFrame.new(spawn + Vector3.new(0, 4, 0)))
+					rootPart.AssemblyLinearVelocity = Vector3.zero
+					humanoid:TakeDamage(Config.Player.FallDamage)
+					Remotes.Notify:FireClient(player, "🌊 ¡Caíste al agua! Te sacaron, pero perdiste vida")
 				end
 			end
 		end

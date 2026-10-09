@@ -39,6 +39,11 @@ ZombieModels.Palette = {
 	Ruby = Color3.fromRGB(220, 30, 50),
 	Cape = Color3.fromRGB(150, 22, 34),
 	Plume = Color3.fromRGB(190, 30, 40),
+	Blood = Color3.fromRGB(110, 20, 24),
+	Socket = Color3.fromRGB(28, 22, 22),
+	Claw = Color3.fromRGB(70, 66, 60),
+	Hair = Color3.fromRGB(30, 28, 30),
+	Tentacle = Color3.fromRGB(46, 86, 46),
 }
 
 local PLASTIC = Enum.Material.SmoothPlastic
@@ -68,94 +73,153 @@ local function part(name: string, size: Vector3, pivot: Vector3, hang: Vector3, 
 	return spec
 end
 
--- Cara de dibujo animado sobre una cabeza con este pivote e inclinación.
--- front: z de la cara delantera de la cabeza. size: escala de ojos y boca.
+-- Cara de zombi de Roblox: cuencas oscuras con ojos que brillan, cejas
+-- fruncidas, boca abierta con dientes chuecos y una costura en la mejilla.
+-- front: z de la cara delantera de la cabeza. size: escala de la cara.
 local function face(list: { PartSpec }, pivot: Vector3, tilt: number, centerY: number, front: number, size: number)
 	local function add(name, partSize, hang, color, extra)
 		table.insert(list, part(name, partSize * size, pivot, hang, tilt, color, "Head", extra))
 	end
-	add("LeftEye", v(0.55, 0.6, 0.1), v(-0.36 * size, centerY + 0.18 * size, front - 0.03), "White")
-	add("RightEye", v(0.42, 0.45, 0.1), v(0.38 * size, centerY + 0.12 * size, front - 0.03), "White")
-	add("LeftPupil", v(0.2, 0.22, 0.06), v(-0.3 * size, centerY + 0.14 * size, front - 0.09), "Pupil")
-	add("RightPupil", v(0.16, 0.18, 0.06), v(0.33 * size, centerY + 0.1 * size, front - 0.09), "Pupil")
-	add("Mouth", v(0.75, 0.42, 0.08), v(0.05 * size, centerY - 0.4 * size, front - 0.03), "Mouth")
-	add("ToothLeft", v(0.16, 0.15, 0.06), v(-0.12 * size, centerY - 0.27 * size, front - 0.08), "White")
-	add("ToothRight", v(0.16, 0.15, 0.06), v(0.2 * size, centerY - 0.27 * size, front - 0.08), "White")
+	local neon = { Material = Enum.Material.Neon }
+	for _, side in { -1, 1 } do
+		local name = if side < 0 then "Left" else "Right"
+		local x = side * 0.27 * size
+		add(name .. "Socket", v(0.38, 0.3, 0.05), v(x, centerY + 0.14 * size, front - 0.02), "Socket")
+		add(name .. "Eye", v(0.2, 0.16, 0.06), v(x, centerY + 0.13 * size, front - 0.05), "Eyes", neon)
+		-- Ceja fruncida: más baja del lado de adentro
+		add(name .. "Brow", v(0.24, 0.08, 0.07), v(side * 0.34 * size, centerY + 0.34 * size, front - 0.04), "Socket")
+		add(name .. "BrowIn", v(0.16, 0.08, 0.07), v(side * 0.14 * size, centerY + 0.29 * size, front - 0.04), "Socket")
+	end
+	add("Mouth", v(0.62, 0.26, 0.05), v(0.02 * size, centerY - 0.27 * size, front - 0.02), "Mouth")
+	for index, x in { -0.2, -0.06, 0.08, 0.22 } do
+		local tall = if index % 2 == 0 then 0.1 else 0.07
+		add("Tooth" .. index, v(0.09, tall, 0.06), v(x * size, centerY - (0.16 + tall / 2) * size, front - 0.05), "White")
+	end
+	add("LowerTooth", v(0.09, 0.07, 0.06), v(0.12 * size, centerY - 0.36 * size, front - 0.05), "White")
+	-- Costura en la mejilla
+	add("Stitch", v(0.04, 0.24, 0.06), v(0.4 * size, centerY - 0.12 * size, front - 0.04), "Socket")
+	for _, y in { -0.04, -0.12, -0.2 } do
+		add("StitchCross", v(0.14, 0.03, 0.06), v(0.4 * size, centerY + y * size, front - 0.05), "Socket")
+	end
 end
 
--- Zombi normal (también el Rey): piernas, camisa rota, cabezón y brazos al frente
+-- Zombi de Roblox (cuerpo R6) para uno de 5 studs de alto: piernas y brazos de
+-- 1x2x1, torso de 2x2x1 y cabeza cuadrada. Brazos estirados hacia adelante,
+-- camisa rota con manchas de sangre y, según el tipo: pelo, garras, cuerpo de
+-- bruto (Buff), tentáculos (Tentacles), sombrero, armadura o capa.
 local function zombie(info): { PartSpec }
 	local list: { PartSpec } = {}
 	local hunch = info.Hunch or 0
-	local hip = v(0, -0.6, 0)
+	local buff = info.Buff == true
+	local hip = v(0, -0.5, 0)
 	-- Al encorvarse, todo lo de arriba gira hacia adelante desde la cadera
 	local bend = CFrame.new(hip) * CFrame.Angles(-hunch, 0, 0)
 	local function upper(point: Vector3): Vector3
 		return bend:PointToWorldSpace(point - hip)
 	end
+	local torsoTilt = 0.12 + hunch
+	local torsoSize = if buff then v(2.7, 2.1, 1.4) else v(2, 2, 1)
+	local armSize = if buff then v(1.35, 2.3, 1.35) else v(1, 2, 1)
 
 	for _, side in { -1, 1 } do
 		local name = if side < 0 then "Left" else "Right"
 		local role = if side < 0 then "LegL" else "LegR"
-		local legPivot = v(side * 0.45, -0.6, 0)
-		table.insert(list, part(name .. "Leg", v(0.75, 1.9, 0.8), legPivot, v(0, -0.95, 0), 0, "Pants", "Leg", { Material = FABRIC, Role = role }))
-		table.insert(list, part(name .. "Foot", v(0.8, 0.3, 1.1), legPivot, v(0, -1.75, -0.2), 0, "Skin", "Leg", { Role = role }))
+		local legPivot = v(side * 0.5, -0.5, 0)
+		table.insert(list, part(name .. "Leg", v(0.98, 2, 1), legPivot, v(0, -1, 0), 0, "Pants", "Leg", { Material = FABRIC, Role = role }))
+		-- Pantalón roto: se ve la pierna verde abajo
+		table.insert(list, part(name .. "Shin", v(0.7, 0.45, 0.06), legPivot, v(side * 0.08, -1.6, -0.52), 0, "Skin", "Leg", { Role = role }))
+		table.insert(list, part(name .. "Shoe", v(1, 0.3, 1.15), legPivot, v(0, -1.86, -0.08), 0, "Socket", "Leg", { Role = role }))
 	end
 
-	local torsoTilt = 0.2 + hunch
-	table.insert(list, part("Torso", v(1.9, 1.9, 1), hip, v(0, 0.95, 0), torsoTilt, "Shirt", "Torso", { Material = FABRIC }))
-	-- Camisa rota: se ve la panza verde
-	table.insert(list, part("Belly", v(0.8, 0.55, 0.06), hip, v(0.35, 0.45, -0.52), torsoTilt, "Skin", "Torso"))
-	table.insert(list, part("Tear", v(0.35, 0.3, 0.06), hip, v(-0.55, 1.3, -0.52), torsoTilt, "Skin", "Torso"))
+	-- Torso con la camisa rota: panza verde, desgarros y sangre
+	local front = -torsoSize.Z / 2 - 0.03
+	table.insert(list, part("Torso", torsoSize, hip, v(0, torsoSize.Y / 2, 0), torsoTilt, "Shirt", "Torso", { Material = FABRIC }))
+	table.insert(list, part("Belly", v(0.75, 0.6, 0.06), hip, v(0.3, 0.55, front), torsoTilt, "Skin", "Torso"))
+	table.insert(list, part("Tear", v(0.4, 0.35, 0.06), hip, v(-0.55, 1.45, front), torsoTilt, "Skin", "Torso"))
+	table.insert(list, part("Tear2", v(0.3, 0.5, 0.06), hip, v(-0.45, 0.35, front), torsoTilt, "Skin", "Torso"))
+	table.insert(list, part("Blood", v(0.5, 0.3, 0.07), hip, v(0.45, 1.2, front - 0.01), torsoTilt, "Blood", "Torso"))
+	table.insert(list, part("Blood2", v(0.25, 0.45, 0.07), hip, v(-0.15, 0.9, front - 0.01), torsoTilt, "Blood", "Torso"))
+	table.insert(list, part("Collar", v(torsoSize.X * 0.45, 0.2, torsoSize.Z + 0.06), hip, v(0, torsoSize.Y - 0.08, 0), torsoTilt, "Socket", "Torso", { Material = FABRIC }))
 
-	local headPivot = upper(v(0, 1.3, -0.3))
-	local headTilt = 0.3 + hunch * 0.5
-	table.insert(list, part("Head", v(1.5, 1.4, 1.3), headPivot, v(0, 0.7, 0), headTilt, "Skin", "Head"))
-	face(list, headPivot, headTilt, 0.7, -0.65, 1)
+	-- Cabeza cuadrada (más chica en el bruto)
+	local headSize = if buff then 1.05 else 1.2
+	local neck = upper(v(0, torsoSize.Y - 0.5, 0))
+	local headPivot = neck
+	local headTilt = 0.18 + hunch * 0.5
+	table.insert(list, part("Head", v(headSize * 1.05, headSize, headSize), headPivot, v(0, headSize / 2, 0), headTilt, "Skin", "Head"))
+	face(list, headPivot, headTilt, headSize / 2, -headSize / 2 - 0.01, headSize / 1.2)
+	if info.Hair then
+		table.insert(list, part("Hair", v(headSize * 1.12, 0.32, headSize * 1.08), headPivot, v(0, headSize + 0.1, 0.03), headTilt, "Hair", "Head"))
+		for index, x in { -0.42, -0.1, 0.25, 0.48 } do
+			table.insert(list, part("HairTuft" .. index, v(0.32, 0.38, 0.3), headPivot, v(x * headSize, headSize - 0.02, -headSize / 2 + 0.1), headTilt + 0.3, "Hair", "Head"))
+		end
+		table.insert(list, part("HairBack", v(headSize * 1.1, 0.7, 0.25), headPivot, v(0, headSize * 0.72, headSize / 2 + 0.06), headTilt, "Hair", "Head"))
+	end
 
+	-- Brazos hacia adelante, con manga rota y garras
 	for _, side in { -1, 1 } do
 		local name = if side < 0 then "Left" else "Right"
 		local role = if side < 0 then "ArmL" else "ArmR"
-		local shoulder = upper(v(side * 1.15, 1.05, -0.15))
-		table.insert(list, part(name .. "Arm", v(0.45, 0.45, 1.8), shoulder, v(0, 0, -0.9), 0, "Skin", "Arm", { Role = role }))
-		table.insert(list, part(name .. "Sleeve", v(0.58, 0.58, 0.55), shoulder, v(0, 0, -0.2), 0, "Shirt", "Arm", { Material = FABRIC, Role = role }))
-		table.insert(list, part(name .. "Hand", v(0.55, 0.5, 0.4), shoulder, v(0, -0.05, -1.85), 0, "Skin", "Arm", { Role = role }))
+		local shoulder = upper(v(side * (torsoSize.X / 2 + armSize.X / 2), torsoSize.Y - 0.5, 0))
+		local tilt = -1.35
+		table.insert(list, part(name .. "Arm", armSize, shoulder, v(0, -armSize.Y / 2 + 0.5, 0), tilt, "Skin", "Arm", { Role = role }))
+		table.insert(list, part(name .. "Sleeve", v(armSize.X + 0.04, armSize.Y * 0.35, armSize.Z + 0.04), shoulder, v(0, 0.15, 0), tilt, if buff then "Skin" else "Shirt", "Arm", { Material = FABRIC, Role = role }))
+		if info.Claws or buff then
+			for index, x in { -0.3, 0, 0.3 } do
+				table.insert(list, part(name .. "Claw" .. index, v(0.12, 0.42, 0.14), shoulder, v(x * armSize.X, -armSize.Y + 0.35, -0.38 * armSize.Z), tilt, "Claw", "Arm", { Material = METAL, Role = role }))
+			end
+		end
 		if info.Armor then
-			table.insert(list, part(name .. "Pauldron", v(0.75, 0.4, 0.75), shoulder, v(0, 0.3, -0.15), 0, "Iron", "Arm", { Material = METAL, Role = role }))
+			table.insert(list, part(name .. "Pauldron", v(armSize.X + 0.3, 0.45, armSize.Z + 0.3), shoulder, v(0, 0.55, 0), 0, "Iron", "Arm", { Material = METAL, Role = role }))
 		end
 	end
 
 	if info.Armor then
-		table.insert(list, part("ChestPlate", v(2.02, 1.25, 1.1), hip, v(0, 1.2, 0), torsoTilt, "Iron", "Torso", { Material = METAL }))
+		table.insert(list, part("ChestPlate", v(torsoSize.X + 0.06, torsoSize.Y * 0.65, torsoSize.Z + 0.1), hip, v(0, torsoSize.Y * 0.62, 0), torsoTilt, "Iron", "Torso", { Material = METAL }))
 	end
 	if info.Cape then
-		local capePivot = upper(v(0, 1.25, 0.5))
-		table.insert(list, part("Cape", v(2.1, 2.6, 0.15), capePivot, v(0, -1.25, 0.12), -0.12, "Cape", "Torso", { Material = FABRIC, Role = "Cape" }))
+		local capePivot = upper(v(0, torsoSize.Y - 0.2, torsoSize.Z / 2 + 0.05))
+		table.insert(list, part("Cape", v(torsoSize.X + 0.2, 3, 0.15), capePivot, v(0, -1.45, 0.1), -0.12, "Cape", "Torso", { Material = FABRIC, Role = "Cape" }))
+	end
+	-- Mutante: tentáculos de enredadera que salen de la espalda y se mecen
+	if info.Tentacles then
+		for index, root in { v(-0.55, 1.7, 0.55), v(0.55, 1.7, 0.55), v(-0.3, 1.1, 0.55), v(0.35, 1.2, 0.55) } do
+			local pivot = upper(root)
+			local out = if root.X < 0 then -1 else 1
+			local reach = if index <= 2 then 1 else 0.75
+			for segment = 1, 4 do
+				local t = segment / 4
+				local radius = (0.36 - t * 0.2) * reach
+				local hang = v(out * (0.35 + t * 1.1) * reach, (0.6 + t * 2.4 - t * t * 0.9) * reach, (0.2 + t * 0.9) * reach)
+				table.insert(list, part("Tentacle" .. index .. "_" .. segment, v(radius * 2, radius * 2, radius * 2), pivot, hang, 0, "Tentacle", "Torso", { Role = "Cape", Shape = Enum.PartType.Ball }))
+			end
+		end
 	end
 
 	-- Sombreros
 	local hat = info.Hat
+	local top = headSize
 	local function hatPart(name, size, y, color, extra)
 		table.insert(list, part(name, size, headPivot, v(0, y, 0), headTilt + 0.12, color, "Head", extra))
 	end
 	if hat == "Cone" then
 		-- Cono de tránsito naranja con franja blanca, un poco chueco
-		hatPart("ConeBase", v(1.5, 0.2, 1.5), 1.48, "Orange")
-		hatPart("ConeMid", v(1.05, 0.45, 1.05), 1.8, "Orange")
-		hatPart("ConeStripe", v(0.86, 0.26, 0.86), 2.15, "White")
-		hatPart("ConeTop", v(0.62, 0.45, 0.62), 2.5, "Orange")
-		hatPart("ConeTip", v(0.3, 0.3, 0.3), 2.85, "Orange")
+		hatPart("ConeBase", v(1.4, 0.2, 1.4), top + 0.08, "Orange")
+		hatPart("ConeMid", v(1, 0.45, 1), top + 0.38, "Orange")
+		hatPart("ConeStripe", v(0.82, 0.26, 0.82), top + 0.72, "White")
+		hatPart("ConeTop", v(0.6, 0.45, 0.6), top + 1.06, "Orange")
+		hatPart("ConeTip", v(0.3, 0.3, 0.3), top + 1.4, "Orange")
 	elseif hat == "Helmet" then
 		-- Yelmo de caballero con protector de nariz y penacho
-		hatPart("Helmet", v(1.66, 0.8, 1.46), 1.22, "Iron", { Material = METAL })
-		table.insert(list, part("NoseGuard", v(0.2, 0.55, 0.1), headPivot, v(0, 0.72, -0.72), headTilt, "Iron", "Head", { Material = METAL }))
-		hatPart("Plume", v(0.22, 0.6, 1.1), 1.9, "Plume", { Material = FABRIC })
+		hatPart("Helmet", v(headSize * 1.18, 0.75, headSize * 1.15), top - 0.12, "Iron", { Material = METAL })
+		table.insert(list, part("NoseGuard", v(0.18, 0.5, 0.1), headPivot, v(0, top * 0.62, -headSize / 2 - 0.06), headTilt, "Iron", "Head", { Material = METAL }))
+		hatPart("Plume", v(0.22, 0.6, 1.1), top + 0.55, "Plume", { Material = FABRIC })
 	elseif hat == "Crown" then
-		hatPart("CrownBand", v(1.6, 0.35, 1.42), 1.55, "Gold", { Material = METAL })
-		for _, corner in { v(-0.6, 0, -0.52), v(0.6, 0, -0.52), v(-0.6, 0, 0.52), v(0.6, 0, 0.52), v(0, 0, -0.62) } do
-			table.insert(list, part("CrownSpike", v(0.26, 0.5, 0.26), headPivot, corner + v(0, 1.95, 0), headTilt + 0.12, "Gold", "Head", { Material = METAL }))
+		hatPart("CrownBand", v(headSize * 1.12, 0.35, headSize * 1.12), top + 0.1, "Gold", { Material = METAL })
+		for _, corner in { v(-0.5, 0, -0.5), v(0.5, 0, -0.5), v(-0.5, 0, 0.5), v(0.5, 0, 0.5), v(0, 0, -0.6) } do
+			table.insert(list, part("CrownSpike", v(0.24, 0.5, 0.24), headPivot, corner * headSize + v(0, top + 0.5, 0), headTilt + 0.12, "Gold", "Head", { Material = METAL }))
 		end
-		table.insert(list, part("Jewel", v(0.26, 0.26, 0.06), headPivot, v(0, 1.55, -0.74), headTilt + 0.12, "Ruby", "Head", { Material = Enum.Material.Neon }))
+		table.insert(list, part("Jewel", v(0.24, 0.24, 0.06), headPivot, v(0, top + 0.1, -headSize * 0.57), headTilt + 0.12, "Ruby", "Head", { Material = Enum.Material.Neon }))
 	end
 	return list
 end
@@ -297,7 +361,7 @@ local HAT_PREFIXES = { "Cone", "Helmet", "NoseGuard", "Plume", "Crown", "Jewel" 
 local meshHip: Vector3? = nil
 
 local function meshSource(): Model?
-	if Config.ZombieStyle ~= "3D" or not Config.UseStoreModels or Config.Style.Blocky then
+	if not Config.ZombieMesh or Config.ZombieStyle ~= "3D" or not Config.UseStoreModels or Config.Style.Blocky then
 		return nil
 	end
 	local folder = game:GetService("ReplicatedStorage"):FindFirstChild("ZombieMeshes")
@@ -405,7 +469,7 @@ local cache: { [string]: { PartSpec } } = {}
 -- Cadera (pivote del torso) para un zombi de 5 studs: el torso, la cabeza y
 -- los brazos giran juntos alrededor de este punto
 local HIPS = {
-	Zombie = Vector3.new(0, -0.6, 0),
+	Zombie = Vector3.new(0, -0.5, 0),
 	Fat = Vector3.new(0, -1, 0),
 	Dragon = Vector3.zero,
 }

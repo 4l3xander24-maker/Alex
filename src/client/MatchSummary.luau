@@ -48,7 +48,9 @@ local function show(summary)
 		end
 	end
 
-	makeLabel(panel, "¡LA CAMPANA CAYÓ!", 32, Color3.fromRGB(255, 90, 80))
+	local gameState = game:GetService("ReplicatedStorage"):FindFirstChild("GameState")
+	local dead = gameState ~= nil and gameState:GetAttribute("EndReason") == "Dead"
+	makeLabel(panel, if dead then "¡CAÍSTE!" else "¡LA CAMPANA CAYÓ!", 32, Color3.fromRGB(255, 90, 80))
 	makeLabel(panel, `Llegaste a la oleada {summary.Wave}`, 20)
 	makeLabel(panel, `🌊 Oleadas superadas: {summary.Waves}     🧟 Bajas: {summary.Kills}     💀 Jefes: {summary.BossKills}`, 17, nil, 26)
 	if summary.NewRecord then
