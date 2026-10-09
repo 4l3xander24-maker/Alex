@@ -4,6 +4,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage.Shared
+local Config = require(Shared.Config)
 local Progression = require(Shared.Progression)
 local Remotes = require(Shared.Remotes)
 local CombatService = require(script.Parent.CombatService)
@@ -11,7 +12,7 @@ local DataService = require(script.Parent.DataService)
 local EnemyService = require(script.Parent.EnemyService)
 
 local COOLDOWN_TOLERANCE = 0.25
-local BELL_CENTER = Vector3.zero
+local BELL_CENTER = Config.Arena.Bell
 
 local PowerService = {}
 

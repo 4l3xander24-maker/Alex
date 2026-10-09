@@ -4,7 +4,7 @@ local Config = require(script.Parent.Config)
 
 local Paths = {}
 
-local BELL = Vector3.zero
+local BELL = Config.Arena.Bell
 
 -- Puntos del camino de lejos a cerca, terminando en la campana
 function Paths.getPoints(name: string): { Vector3 }

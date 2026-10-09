@@ -244,6 +244,9 @@ Config.Arena = {
 	GroundSize = 1400,
 	TowerSize = 14,
 	TowerHeight = 6,
+	-- Dónde está la campana (su montículo). Antes en el centro (0, 0, 0); más
+	-- adelante = más cerca del puente
+	Bell = Vector3.new(0, 0, -9),
 	StopRadius = 9, -- distancia a la campana donde se paran a golpear
 	StopJitter = 3,
 	CampCenter = Vector3.new(0, 0, 38),
@@ -257,7 +260,7 @@ Config.Arena = {
 	Ravine = { ZMin = -122, ZMax = -82 },
 	-- Puente de piedra sobre el canal, en diagonal: de From (orilla del bosque)
 	-- a To (isla principal)
-	Bridge = { From = Vector3.new(-29, 0, -127), To = Vector3.new(0, 0, -77), Width = 12 },
+	Bridge = { From = Vector3.new(-29, 0, -127), To = Vector3.new(0, 0, -77), Width = 18 },
 	-- Islas de tierra firme al sur (x, z): rectángulos y círculos. La principal
 	-- termina atrás en el acantilado (CliffZ)
 	Islands = {
@@ -353,7 +356,7 @@ Config.PathStyle = {
 -- La partida empieza solo cuando alguien reconstruye la campana (sin tiempo límite)
 
 Config.Bell = {
-	MaxHealth = 300,
+	MaxHealth = 100,
 	-- Cuánto del DamagePerSecond de los zombis le llega a la campana. Con 1, 22
 	-- zombis la destruían en ~7 segundos en la oleada 1.
 	DamageTaken = 0.35,
@@ -363,7 +366,7 @@ Config.Bell = {
 	-- partida cuenta el nivel más alto entre los jugadores del servidor.
 	Armor = {
 		MaxLevel = 8,
-		HealthPerLevel = 60, -- +60 de vida por nivel (300 -> 780 al máximo)
+		HealthPerLevel = 40, -- +40 de vida por nivel (100 -> 420 al máximo)
 		Prices = { 120, 200, 320, 450, 600, 800, 1050, 1350 },
 	},
 	BarHeight = 28, -- altura de la barra de vida sobre la campana (studs)
@@ -596,7 +599,7 @@ Config.Weapons = {
 		Damage = 1,
 		FireRate = 5,
 		Magazine = 12,
-		StartReserve = 60,
+		StartReserve = 0, -- empiezas solo con el cargador: 12 balas
 		MaxReserve = 96,
 		AmmoPerKill = 1,
 		ReloadTime = 1.4,
@@ -716,8 +719,9 @@ Config.Traps = {
 		TriggerRadius = 3,
 		-- Lugares donde se entierran: camino y distancia a la campana por el camino
 		Spots = {
-			{ "Main", 32 }, { "Main", 50 }, { "Main", 66 }, { "Main", 92 },
-			{ "Main", 104 }, { "Main", 116 }, { "Main", 142 }, { "Main", 155 },
+			-- (distancia a la campana por el camino: la campana está en Arena.Bell)
+			{ "Main", 23 }, { "Main", 41 }, { "Main", 57 }, { "Main", 83 },
+			{ "Main", 95 }, { "Main", 107 }, { "Main", 133 }, { "Main", 146 },
 		},
 	},
 	Gate = {
@@ -728,8 +732,8 @@ Config.Traps = {
 		-- Rejas de metal en los dos extremos del puente; solo aparecen si las
 		-- compras. At: distancia a la campana por el camino
 		Slots = {
-			Start = { Name = "Reja de la entrada del puente", Short = "Entrada del puente", Path = "Main", At = 131.3, Width = 14 },
-			End = { Name = "Reja de la salida del puente", Short = "Salida del puente", Path = "Main", At = 80.5, Width = 14 },
+			Start = { Name = "Reja de la entrada del puente", Short = "Entrada del puente", Path = "Main", At = 122.3, Width = 20 },
+			End = { Name = "Reja de la salida del puente", Short = "Salida del puente", Path = "Main", At = 71.5, Width = 20 },
 		},
 		SlotOrder = { "Start", "End" },
 	},

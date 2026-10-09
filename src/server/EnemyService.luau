@@ -233,10 +233,11 @@ local function create(typeName: string, healthMultiplier: number, start: Vector3
 
 	-- Se para frente a la campana, del lado por donde llega su camino
 	local points = Config.Paths[route].Points
-	local approach = Vector3.new(points[#points].X, 0, points[#points].Z).Unit
+	local bell = arena.Bell
+	local approach = Vector3.new(points[#points].X - bell.X, 0, points[#points].Z - bell.Z).Unit
 	local angle = math.atan2(approach.X, -approach.Z) + random:NextNumber(-0.5, 0.5)
 	local stopDistance = arena.StopRadius + info.HitRadius + random:NextNumber(0, arena.StopJitter)
-	local target = Vector3.new(math.sin(angle), 0, -math.cos(angle)) * stopDistance + Vector3.new(0, halfHeight, 0)
+	local target = Vector3.new(math.sin(angle), 0, -math.cos(angle)) * stopDistance + Vector3.new(bell.X, halfHeight, bell.Z)
 
 	local origin = start
 	if not origin then

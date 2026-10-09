@@ -15,6 +15,7 @@ return {
 		Minigun = { Id = 9116344855, Volume = 0.3, PitchRange = { 1.0, 1.1 } },
 	},
 	Reload = { Id = 9113104176, Volume = 0.5 },
+	Equip = { Id = 9113104176, Volume = 0.3, Pitch = 1.5 }, -- al cambiar de arma
 	HitMarker = { Id = 9113632114, Volume = 0.35, PitchRange = { 1.1, 1.3 } },
 	PlayerHurt = { Id = 9118167124, Volume = 0.6, PitchRange = { 0.9, 1.1 } },
 

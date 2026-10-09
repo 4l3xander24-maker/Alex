@@ -41,11 +41,20 @@ local function alongAtZ(from: Vector3, to: Vector3, z: number): number
 end
 
 -- Columna de piedra en una esquina del puente, con antorcha arriba
-local function cornerPillar(model: Model, frame: CFrame)
-	makePart({ Name = "BridgePillar", Size = Vector3.new(2.6, 4.6, 2.6), CFrame = frame * CFrame.new(0, 2.3, 0), Material = Enum.Material.Slate, Color = Props.vary(STONE, 0.05, random), Parent = model })
-	makePart({ Name = "PillarCap", Size = Vector3.new(3.2, 0.8, 3.2), CFrame = frame * CFrame.new(0, 5, 0), Material = Enum.Material.Slate, Color = DARK_STONE, Parent = model })
+-- Torrecita de guardia en cada esquina: base ancha, cuerpo alto, almenas,
+-- antorcha arriba y estandarte colgando hacia el camino
+local function cornerPillar(model: Model, frame: CFrame, side: number)
+	local height = 10
+	makePart({ Name = "PillarBase", Size = Vector3.new(4.6, 1.6, 4.6), CFrame = frame * CFrame.new(0, 0.8, 0), Material = Enum.Material.Cobblestone, Color = Props.vary(DARK_STONE, 0.06, random), Parent = model })
+	makePart({ Name = "BridgePillar", Size = Vector3.new(3.8, height, 3.8), CFrame = frame * CFrame.new(0, height / 2, 0), Material = Enum.Material.Slate, Color = Props.vary(STONE, 0.05, random), Parent = model })
+	makePart({ Name = "PillarCap", Size = Vector3.new(4.6, 0.8, 4.6), CFrame = frame * CFrame.new(0, height + 0.4, 0), Material = Enum.Material.Slate, Color = DARK_STONE, Parent = model })
+	for _, corner in { Vector3.new(-1.7, 0, -1.7), Vector3.new(1.7, 0, -1.7), Vector3.new(-1.7, 0, 1.7), Vector3.new(1.7, 0, 1.7) } do
+		makeProp({ Name = "PillarMerlon", Size = Vector3.new(1.1, 1.3, 1.1), CFrame = frame * CFrame.new(corner + Vector3.new(0, height + 1.45, 0)), Material = Enum.Material.Slate, Color = STONE, Parent = model })
+	end
+	local banner = makeProp({ Name = "PillarBanner", Size = Vector3.new(0.15, 4.2, 2.2), CFrame = frame * CFrame.new(-side * 1.98, height - 3, 0), Material = Enum.Material.Fabric, Color = Color3.fromRGB(40, 110, 60), Parent = model })
+	Props.sway(banner, (frame * CFrame.new(-side * 1.98, height - 0.9, 0)).Position, 0.02)
 	if theme.Medieval then
-		Props.torch(model, (frame * CFrame.new(0, 5.4, 0)).Position, 1.6)
+		Props.torch(model, (frame * CFrame.new(0, height + 0.8, 0)).Position, 1.6)
 	end
 end
 
@@ -115,13 +124,17 @@ function BridgeBuilder.build(map: Instance)
 	end
 
 	-- Muros bajos a los lados con postes de madera oscura
-	local wallHeight, wallThickness = 2.2, 1.2
+	local wallHeight, wallThickness = 3, 1.4
 	for _, side in { -1, 1 } do
 		local x = side * (width / 2 - wallThickness / 2)
 		for a = -half, half - 0.01, 4 do
 			local segment = math.min(4, half - a)
 			makePart({ Name = "Parapet", Size = Vector3.new(wallThickness, wallHeight, segment - 0.06), CFrame = at(x, wallHeight / 2, a + segment / 2), Material = Enum.Material.Slate, Color = Props.vary(STONE, 0.08, random), Parent = model })
 			makePart({ Name = "ParapetPost", Size = Vector3.new(0.7, wallHeight + 1.6, 0.7), CFrame = at(x + side * 0.1, (wallHeight + 1.6) / 2, a), Material = Enum.Material.Wood, Color = POST, Parent = model })
+			-- Almena sobre el muro, a la mitad de cada tramo
+			if segment > 2 then
+				makeProp({ Name = "ParapetMerlon", Size = Vector3.new(wallThickness, 1, 1.6), CFrame = at(x, wallHeight + 0.5, a + segment / 2), Material = Enum.Material.Slate, Color = Props.vary(STONE, 0.08, random), Parent = model })
+			end
 		end
 		-- Hiedra colgando del borde de afuera
 		for _ = 1, 5 do
@@ -133,7 +146,7 @@ function BridgeBuilder.build(map: Instance)
 	-- Columnas con antorcha en las cuatro esquinas
 	for _, a in { -half - 1.4, half + 1.4 } do
 		for _, side in { -1, 1 } do
-			cornerPillar(model, at(side * (width / 2 + 0.2), 0, a))
+			cornerPillar(model, at(side * (width / 2 + 1.2), 0, a), side)
 		end
 	end
 

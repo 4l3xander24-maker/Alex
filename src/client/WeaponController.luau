@@ -150,6 +150,7 @@ function WeaponController.equip(weaponId: string)
 	-- Pequeña pausa al cambiar de arma (y respeta la cadencia del arma nueva)
 	lastShot = math.max(lastShot, os.clock() + SWITCH_DELAY - 1 / stats().FireRate)
 	showWeapon()
+	Sfx.play("Equip")
 	Remotes.EquipWeapon:FireServer(weaponId)
 end
 

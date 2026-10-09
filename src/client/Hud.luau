@@ -9,6 +9,7 @@ local Config = require(Shared.Config)
 local DayCycle = require(Shared.DayCycle)
 local Progression = require(Shared.Progression)
 local Profile = require(script.Parent.Profile)
+local WeaponIcon = require(script.Parent.WeaponIcon)
 
 local player = Players.LocalPlayer
 
@@ -388,20 +389,30 @@ function Hud.init(actions: Actions)
 	local dashSlot = makeSlot(powerRow, 10, "💨", "C")
 	dashSlot.Frame.Activated:Connect(actions.dash)
 
-	-- Abajo a la derecha: armas y munición
-	local weaponRow = makeRow(gui, Vector2.new(1, 1), UDim2.new(1, -16, 1, -82), Vector2.new(420, 34))
+	-- Abajo a la derecha: armas y munición. Cada casilla muestra el modelo 3D
+	-- del arma (ReplicatedStorage.WeaponModels); sin modelo, su emoji.
+	local weaponRow = makeRow(gui, Vector2.new(1, 1), UDim2.new(1, -16, 1, -82), Vector2.new(470, 44))
 	local weaponSlots: { [string]: TextLabel } = {}
+	local weaponModels = ReplicatedStorage:FindFirstChild("WeaponModels")
 	for slotIndex, id in Config.WeaponOrder do
+		local source = weaponModels and weaponModels:FindFirstChild(id)
+		local showModel = source ~= nil and source:IsA("Model") and Config.UseStoreModels and not Config.Style.Blocky
 		local slot = makeLabel({
 			LayoutOrder = slotIndex,
-			Size = UDim2.fromOffset(60, 34),
+			Size = UDim2.fromOffset(72, 44),
 			BackgroundTransparency = 0.3,
 			BackgroundColor3 = PANEL_COLOR,
-			Text = if touch then Config.Weapons[id].Icon else `{slotIndex} {Config.Weapons[id].Icon}`,
+			Text = if showModel then "" elseif touch then Config.Weapons[id].Icon else `{slotIndex} {Config.Weapons[id].Icon}`,
 			TextSize = 16,
 			Visible = false,
 			Parent = weaponRow,
 		})
+		if showModel then
+			WeaponIcon.build(slot, source :: Model, id)
+			if not touch then
+				makeLabel({ Position = UDim2.fromOffset(4, 2), Size = UDim2.fromOffset(14, 14), Text = tostring(slotIndex), TextSize = 12, Font = Enum.Font.GothamBlack, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 3, Parent = slot })
+			end
+		end
 		round(slot, UDim.new(0, 8))
 		local stroke = Instance.new("UIStroke")
 		stroke.Color = GOLD

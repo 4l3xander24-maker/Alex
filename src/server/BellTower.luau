@@ -8,6 +8,7 @@
 -- se derrumba otra vez. Cada pieza guarda dónde va armada y dónde cae.
 local TweenService = game:GetService("TweenService")
 
+local Config = require(game:GetService("ReplicatedStorage").Shared.Config)
 local Props = require(script.Parent.Props)
 
 local makePart, makeProp = Props.makePart, Props.makeProp
@@ -43,7 +44,12 @@ local pieces: { Piece } = {}
 local built = false
 local animationToken = 0
 
+-- Todo se arma relativo al centro y después se corre a Config.Arena.Bell
+local ORIGIN = CFrame.new(Config.Arena.Bell)
+
 local function newPiece(order: number, built: CFrame, ruined: CFrame): Piece
+	built = ORIGIN * built
+	ruined = ORIGIN * ruined
 	local piece = { Parts = {}, Offsets = {}, Built = built, Ruined = ruined, Order = order }
 	table.insert(pieces, piece)
 	return piece
@@ -253,7 +259,17 @@ end
 -- Construye el montículo y la campana destruida. Devuelve el montículo (los
 -- avisos de reconstruir y reparar van ahí).
 function BellTower.build(map: Instance): BasePart
+	-- El montículo se arma en el centro y se corre a su lugar
+	local before = {}
+	for _, child in map:GetChildren() do
+		before[child] = true
+	end
 	local mound = buildMound(map)
+	for _, child in map:GetChildren() do
+		if not before[child] and child:IsA("BasePart") then
+			child.CFrame = ORIGIN * child.CFrame
+		end
+	end
 	buildStructure(map)
 	moveTo(false, false)
 	return mound

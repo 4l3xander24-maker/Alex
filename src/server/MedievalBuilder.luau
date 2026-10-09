@@ -402,7 +402,7 @@ function MedievalBuilder.build(map: Instance)
 
 	-- Velas al pie del montículo de la campana
 	for _, corner in { Vector3.new(-12, 0, 6), Vector3.new(12, 0, 6), Vector3.new(-12, 0, -6), Vector3.new(12, 0, -6) } do
-		Props.candles(map, corner, 5, true)
+		Props.candles(map, Config.Arena.Bell + corner, 5, true)
 	end
 end
 

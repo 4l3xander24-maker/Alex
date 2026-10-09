@@ -31,6 +31,7 @@ local HANDLE = Color3.fromRGB(62, 42, 30)
 local POMMEL = Color3.fromRGB(150, 152, 158)
 
 local SWING_TIME = 0.28
+local EQUIP_TIME = 0.38 -- el arma nueva sube desde abajo de la pantalla
 
 local HIP_OFFSET = CFrame.new(1.05, -1.05, -2.1)
 local AIM_OFFSET = CFrame.new(0, -0.55, -1.7)
@@ -250,6 +251,7 @@ local currentWeapon = ""
 local currentLevel = -1
 local isMelee = false
 local swingStart = -1
+local equipStart = -1
 local recoil = 0
 local reloadAlpha = 0
 local aimAlpha = 0
@@ -289,6 +291,9 @@ end
 function Viewmodel.setWeapon(weaponId: string, zoomFactor: number, level: number, tier)
 	if weaponId == currentWeapon and level == currentLevel then
 		return
+	end
+	if weaponId ~= currentWeapon and currentWeapon ~= "" then
+		equipStart = os.clock()
 	end
 	currentWeapon = weaponId
 	currentLevel = level
@@ -415,8 +420,16 @@ local function update(dt: number)
 		-- El puño avanza y gira: la hoja barre de la derecha hacia adelante a la izquierda
 		swing = CFrame.new(-0.55 * sweep * arc - 0.2 * arc, 0.15 * arc, -0.6 * arc) * CFrame.Angles(-0.2 * arc, 1.1 * arc, 0.25 * sweep * arc)
 	end
+	-- Cambio de arma: sube desde abajo girando y frena al llegar
+	local equip = CFrame.identity
+	local equipAlpha = (os.clock() - equipStart) / EQUIP_TIME
+	if equipAlpha >= 0 and equipAlpha < 1 then
+		local down = (1 - equipAlpha) ^ 3
+		equip = CFrame.new(0.25 * down, -1.6 * down, 0.4 * down) * CFrame.Angles(-1.1 * down, 0.35 * down, 0.6 * down)
+	end
 	local root = camera.CFrame
 		* base
+		* equip
 		* swing
 		* CFrame.new(bobX, bobY - 0.5 * reloadAlpha, recoil * 0.22)
 		* CFrame.Angles(recoil * 0.15 * sway - 0.7 * reloadAlpha, 0, 0.5 * reloadAlpha)
