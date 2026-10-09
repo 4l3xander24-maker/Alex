@@ -4,6 +4,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local ModelLibrary = require(script.Parent.ModelLibrary)
 local Props = require(script.Parent.Props)
 
 local makePart, makeProp = Props.makePart, Props.makeProp
@@ -194,28 +195,112 @@ local function buildNpc(parent: Instance, info, cframe: CFrame)
 	end
 	info.Extras(piece)
 
+	-- Estilo realista: personaje de malla de la tienda (src/models/Npc<Tienda>)
+	-- en lugar del muñeco de bloques, que queda invisible (lo usan el aviso de
+	-- E y el cartel). Se para en `cframe` mirando hacia adelante, de 5.6 de alto.
+	local mesh = ModelLibrary.clone(`Npc{info.Shop}`)
+	local meshParts: { [string]: BasePart } = {}
+	if mesh then
+		local low, torsoPart = math.huge, nil
+		local high = -math.huge
+		for _, descendant in mesh:GetDescendants() do
+			if descendant:IsA("BasePart") then
+				descendant.CanCollide = false
+				if descendant.Transparency < 1 then
+					low = math.min(low, descendant.Position.Y - descendant.Size.Y / 2)
+					high = math.max(high, descendant.Position.Y + descendant.Size.Y / 2)
+				end
+				if descendant.Parent == mesh or not descendant.Parent:IsA("Accessory") then
+					meshParts[descendant.Name] = descendant
+				end
+			end
+		end
+		torsoPart = meshParts.UpperTorso or meshParts.Torso
+		if torsoPart and high > low then
+			local look = torsoPart.CFrame.LookVector
+			local flat = Vector3.new(look.X, 0, look.Z).Unit
+			local base = Vector3.new(torsoPart.Position.X, low, torsoPart.Position.Z)
+			mesh.WorldPivot = CFrame.lookAt(base, base + flat)
+			mesh:ScaleTo(5.6 / (high - low))
+			mesh:PivotTo(cframe)
+			mesh.Name = "Body"
+			-- La ropa clásica (Shirt/Pants) solo se dibuja con un Humanoid: uno
+			-- quieto, sin física ni nombre encima
+			local clothing = mesh:FindFirstChildWhichIsA("Shirt", true) or mesh:FindFirstChildWhichIsA("Pants", true)
+			if clothing and clothing.Parent and not clothing.Parent:FindFirstChildOfClass("Humanoid") then
+				local humanoid = Instance.new("Humanoid")
+				humanoid.RigType = Enum.HumanoidRigType.R15
+				humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+				humanoid.HealthDisplayType = Enum.HumanoidHealthDisplayType.AlwaysOff
+				humanoid.EvaluateStateMachine = false
+				humanoid.RequiresNeck = false
+				humanoid.BreakJointsOnDeath = false
+				humanoid.Parent = clothing.Parent
+			end
+			mesh.Parent = model
+			for _, part in model:GetChildren() do
+				if part:IsA("BasePart") then
+					part.Transparency = 1
+				end
+			end
+		else
+			mesh:Destroy()
+			mesh = nil
+		end
+	end
+
 	-- Trabajo: la herramienta va en la mano derecha y cada cliente mueve los
 	-- brazos (NpcWork). Todo gira sobre la línea de los hombros.
 	local work = info.Work
 	if work then
-		local moving = { "RightArm", "RightHand" }
-		if work.Kind == "lift" then
-			table.insert(moving, "LeftArm")
-			table.insert(moving, "LeftHand")
-		end
 		local tagged = {}
-		for _, name in moving do
-			table.insert(tagged, model:FindFirstChild(name))
+		local pivot = (cframe * CFrame.new(0, 4, 0)).Position
+		local tools = work.Tool(piece)
+		if mesh then
+			local names = { "RightUpperArm", "RightLowerArm", "RightHand" }
+			if work.Kind == "lift" then
+				table.move({ "LeftUpperArm", "LeftLowerArm", "LeftHand" }, 1, 3, #names + 1, names)
+			end
+			for _, name in names do
+				table.insert(tagged, meshParts[name])
+			end
+			-- Hombros de la malla, y la herramienta movida a su mano
+			local shoulder = meshParts.RightUpperArm
+			if shoulder then
+				local top = shoulder.Position + Vector3.new(0, shoulder.Size.Y / 2, 0)
+				pivot = Vector3.new(cframe.Position.X, top.Y, cframe.Position.Z)
+			end
+			local hand = meshParts.RightHand
+			local blockHand = (cframe * CFrame.new(1.5, 2.25, 0)).Position
+			local delta = if hand then hand.Position - blockHand else Vector3.zero
+			if work.Kind == "lift" and meshParts.LeftHand and hand then
+				delta = (hand.Position + meshParts.LeftHand.Position) / 2 - (cframe * CFrame.new(0, 2.25, 0)).Position
+			end
+			for _, part in tools do
+				part.CFrame += delta
+				part.Transparency = 0
+			end
+		else
+			local moving = { "RightArm", "RightHand" }
+			if work.Kind == "lift" then
+				table.insert(moving, "LeftArm")
+				table.insert(moving, "LeftHand")
+			end
+			for _, name in moving do
+				table.insert(tagged, model:FindFirstChild(name))
+			end
 		end
-		for _, part in work.Tool(piece) do
+		for _, part in tools do
 			table.insert(tagged, part)
 		end
 		local seed = random:NextNumber(0, 10) -- igual para todo el NPC: brazo y herramienta juntos
 		for _, part in tagged do
-			part:SetAttribute("Work", work.Kind)
-			part:SetAttribute("WorkPivot", (cframe * CFrame.new(0, 4, 0)).Position)
-			part:SetAttribute("WorkAxis", cframe.RightVector)
-			part:SetAttribute("WorkSeed", seed)
+			if part then
+				part:SetAttribute("Work", work.Kind)
+				part:SetAttribute("WorkPivot", pivot)
+				part:SetAttribute("WorkAxis", cframe.RightVector)
+				part:SetAttribute("WorkSeed", seed)
+			end
 		end
 	end
 	model.PrimaryPart = torso

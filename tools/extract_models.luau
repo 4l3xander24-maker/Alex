@@ -17,7 +17,8 @@ assert(folder, "No hay ServerStorage.ImportedModels en el lugar")
 for _, model in folder:GetChildren() do
 	-- Seguridad: ningún script de modelos de terceros entra al juego
 	for _, descendant in model:GetDescendants() do
-		if descendant:IsA("LuaSourceContainer") then
+		-- (y lo que solo sirve en personajes jugables: toques, humanoides)
+		if descendant:IsA("LuaSourceContainer") or descendant:IsA("TouchTransmitter") or descendant:IsA("Humanoid") then
 			descendant:Destroy()
 		end
 	end

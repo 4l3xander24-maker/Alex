@@ -13,7 +13,7 @@ local folder = ServerStorage:FindFirstChild("Models")
 local enabled = Config.UseStoreModels and not Config.Style.Blocky
 
 -- Lo que no hace falta en un adorno quieto (las uniones sobran si todo está anclado)
-local REMOVE = { "LuaSourceContainer", "JointInstance", "WeldConstraint", "Camera", "Seat", "VehicleSeat" }
+local REMOVE = { "LuaSourceContainer", "JointInstance", "WeldConstraint", "Camera", "Seat", "VehicleSeat", "Dialog", "TouchTransmitter" }
 
 -- Medidas de cada modelo una sola vez (caja y punto de apoyo en el suelo)
 local templates: { [string]: { Model: Model, Size: Vector3 } } = {}
@@ -99,6 +99,16 @@ function ModelLibrary.placeStretched(name: string, cframe: CFrame, size: Vector3
 	part.CanQuery = false
 	part.Parent = parent
 	return part
+end
+
+-- Copia preparada (sin scripts ni uniones, todo anclado) para que quien llama
+-- la acomode a mano. nil si no se usan modelos de la tienda o no existe.
+function ModelLibrary.clone(name: string): Model?
+	if not enabled then
+		return nil
+	end
+	local template = prepare(name)
+	return if template then template.Model:Clone() else nil
 end
 
 return ModelLibrary
