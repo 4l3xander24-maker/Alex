@@ -95,6 +95,10 @@ function MatchService.award(player: Player, wave: number)
 end
 
 function MatchService.endMatch(wave: number)
+	-- Todos reciben el resumen (y la votación), aunque no hayan matado nada
+	for _, player in Players:GetPlayers() do
+		ensure(player)
+	end
 	for player in stats do
 		MatchService.award(player, wave)
 	end

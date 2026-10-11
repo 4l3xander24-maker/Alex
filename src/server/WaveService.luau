@@ -226,6 +226,65 @@ local function runWave(wave: number): boolean
 	return true
 end
 
+-- Al perder: cada jugador vota Reintentar o Volver al lobby. Termina cuando
+-- votan todos o se acaba el tiempo. Gana Reintentar con la mitad o más de los
+-- votos; si nadie vota, en una sala se vuelve al lobby y si no, se reintenta.
+local votes: { [Player]: string } = {}
+local voting = false
+
+function WaveService.runVote(): string
+	local canLobby = LobbyReturn.isRoomMatch()
+	table.clear(votes)
+	voting = true
+	local endsAt = workspace:GetServerTimeNow() + Config.Rooms.VoteTime
+	GameState.set("VoteCanLobby", canLobby)
+	GameState.set("VoteEnds", endsAt)
+	GameState.set("VoteRetry", 0)
+	GameState.set("VoteLobby", 0)
+	GameState.set("Vote", true)
+	while workspace:GetServerTimeNow() < endsAt do
+		local retry, lobby, total = 0, 0, 0
+		for _, player in Players:GetPlayers() do
+			total += 1
+			if votes[player] == "Retry" then
+				retry += 1
+			elseif votes[player] == "Lobby" then
+				lobby += 1
+			end
+		end
+		GameState.set("VoteRetry", retry)
+		GameState.set("VoteLobby", lobby)
+		if total == 0 or retry + lobby >= total then
+			break
+		end
+		task.wait(0.25)
+	end
+	voting = false
+	GameState.set("Vote", false)
+	local retry, lobby = 0, 0
+	for _, choice in votes do
+		if choice == "Retry" then
+			retry += 1
+		else
+			lobby += 1
+		end
+	end
+	if not canLobby then
+		return "Retry"
+	end
+	if retry > 0 and retry >= lobby then
+		Remotes.Notify:FireAllClients("🔄 ¡Otra vez! Prepárense")
+		return "Retry"
+	end
+	return "Lobby"
+end
+
+Remotes.Vote.OnServerEvent:Connect(function(player, choice)
+	if voting and (choice == "Retry" or choice == "Lobby") then
+		votes[player] = choice
+	end
+end)
+
 function WaveService.start()
 	task.spawn(function()
 		while true do
@@ -251,20 +310,22 @@ function WaveService.start()
 			PlayerService.setInMatch(false)
 
 			GameState.set("State", "GameOver")
-			-- La campana se derrumba; en la próxima preparación hay que reconstruirla
+			-- Cinemática: todos ven a la campana derrumbarse
+			Remotes.GameOverCinematic:FireAllClients(GameState.get("EndReason"), Config.Arena.Bell, Config.Rooms.CinematicTime)
+			task.wait(1.4)
 			BellTower.collapse()
+			task.wait(Config.Rooms.CinematicTime - 1.4)
 			EnemyService.clear()
 			GameState.set("EnemiesLeft", 0)
 			MatchService.endMatch(wave)
-			-- Si vinieron de una sala del Lobby, vuelven allá después del resumen
-			if LobbyReturn.isRoomMatch() then
-				Remotes.Notify:FireAllClients(`Volviendo al lobby en {Config.Rooms.ReturnDelay} segundos...`)
-				task.wait(Config.Rooms.ReturnDelay)
-				LobbyReturn.sendEveryone()
-			end
-			task.wait(waves.GameOverDelay)
 			currentWave = 0
 			GameState.set("Wave", 0)
+			-- Votación: reintentar aquí mismo o volver al lobby (solo si vinieron de una sala)
+			if WaveService.runVote() == "Lobby" then
+				Remotes.Notify:FireAllClients("🏰 Volviendo al lobby...")
+				LobbyReturn.sendEveryone()
+				task.wait(10)
+			end
 		end
 	end)
 end

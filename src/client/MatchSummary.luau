@@ -83,28 +83,72 @@ local function show(summary)
 		makeLabel(panel, `Tienes {summary.StatPoints} punto(s) de mejora y {summary.TalentPoints} de talento. Gástalos con Don Ramiro, el Veterano.`, 16, nil, 44)
 	end
 
-	local button = Instance.new("TextButton")
-	button.Size = UDim2.fromOffset(200, 42)
-	button.BackgroundColor3 = GOLD
-	button.Font = Enum.Font.GothamBlack
-	button.TextSize = 18
-	button.TextColor3 = Color3.fromRGB(30, 24, 10)
-	button.Text = "Continuar"
-	-- Modal libera el mouse en primera persona
-	button.Modal = true
-	button.LayoutOrder = nextOrder()
-	button.Parent = panel
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0, 10)
-	corner.Parent = button
-	button.Activated:Connect(hide)
+	-- Votación: Reintentar o Volver al lobby (el lobby solo si vinieron de una sala)
+	local state = ReplicatedStorage:FindFirstChild("GameState")
+	local canLobby = state ~= nil and state:GetAttribute("VoteCanLobby") == true
+	local row = Instance.new("Frame")
+	row.Size = UDim2.fromOffset(440, 46)
+	row.BackgroundTransparency = 1
+	row.LayoutOrder = nextOrder()
+	row.Parent = panel
+	local rowLayout = Instance.new("UIListLayout")
+	rowLayout.FillDirection = Enum.FillDirection.Horizontal
+	rowLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	rowLayout.Padding = UDim.new(0, 12)
+	rowLayout.Parent = row
+	local voteLabel = makeLabel(panel, "", 15, Color3.fromRGB(200, 200, 200), 22)
+	local myVote: string? = nil
+	local buttons: { [string]: TextButton } = {}
+	local function makeButton(choice: string, text: string, color: Color3)
+		local button = Instance.new("TextButton")
+		button.Size = UDim2.fromOffset(200, 44)
+		button.BackgroundColor3 = color
+		button.Font = Enum.Font.GothamBlack
+		button.TextSize = 18
+		button.TextColor3 = Color3.fromRGB(30, 24, 10)
+		button.Text = text
+		-- Modal libera el mouse en primera persona
+		button.Modal = true
+		button.Parent = row
+		local corner = Instance.new("UICorner")
+		corner.CornerRadius = UDim.new(0, 10)
+		corner.Parent = button
+		button.Activated:Connect(function()
+			myVote = choice
+			Remotes.Vote:FireServer(choice)
+			for name, other in buttons do
+				other.BackgroundTransparency = if name == choice then 0 else 0.55
+			end
+		end)
+		buttons[choice] = button
+	end
+	makeButton("Retry", "🔄 Reintentar", GOLD)
+	if canLobby then
+		makeButton("Lobby", "🏰 Volver al lobby", Color3.fromRGB(150, 200, 255))
+	end
 
 	gui.Enabled = true
 	showCount += 1
 	local thisShow = showCount
-	task.delay(AUTO_CLOSE, function()
-		if showCount == thisShow then
-			hide()
+	-- La cuenta y los votos se leen de GameState; al terminar la votación se cierra
+	task.spawn(function()
+		local seenVote = false
+		local started = os.clock()
+		while showCount == thisShow and gui.Enabled do
+			local voting = state ~= nil and state:GetAttribute("Vote") == true
+			if voting then
+				seenVote = true
+				local left = math.max(0, math.ceil((state:GetAttribute("VoteEnds") or 0) - workspace:GetServerTimeNow()))
+				local counts = `🔄 {state:GetAttribute("VoteRetry") or 0}`
+				if canLobby then
+					counts ..= `   🏰 {state:GetAttribute("VoteLobby") or 0}`
+				end
+				voteLabel.Text = `{if myVote then "Votaste. " else "Elige: "}{counts}   ·   ⏳ {left} s`
+			elseif seenVote or os.clock() - started > AUTO_CLOSE then
+				hide()
+				break
+			end
+			task.wait(0.2)
 		end
 	end)
 end

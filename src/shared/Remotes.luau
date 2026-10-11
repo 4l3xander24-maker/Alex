@@ -16,11 +16,13 @@ local EVENTS = {
 	"AmmoSync",
 	"AmmoGranted",
 	"PetAttack",
+	"GameOverCinematic",
 	-- cliente -> servidor
 	"Shoot",
 	"Reload",
 	"UsePower",
 	"EquipWeapon",
+	"Vote",
 }
 local FUNCTIONS = { "GetSnapshot", "ShopAction" }
 

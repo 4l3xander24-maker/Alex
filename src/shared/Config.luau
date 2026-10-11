@@ -634,6 +634,8 @@ Config.Rooms = {
 	Countdown = 15, -- segundos desde que entra el primero
 	FullCountdown = 5, -- si se llena, sale antes
 	ReturnDelay = 10, -- segundos del resumen antes de volver al lobby
+	VoteTime = 20, -- segundos para votar Reintentar o Volver al lobby
+	CinematicTime = 6, -- duración de la cinemática de derrota
 }
 
 -- Armas que vende el Armero. Zoom solo se usa con el talento Puntería.
