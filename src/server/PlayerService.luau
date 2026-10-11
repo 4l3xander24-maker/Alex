@@ -143,6 +143,9 @@ end
 -- preparación, y si caen todos se acaba la partida (WaveService)
 local inMatch = false
 local fallen: { [Player]: boolean } = {}
+-- Quien cae puede comprar Revivir unos segundos: mientras tanto la partida sigue
+local reviveUntil: { [Player]: number } = {}
+local reviveEnabled = Config.Monetization.Products.Revive.Id ~= 0
 
 local function loadCharacter(player: Player)
 	if player.Parent then
@@ -155,6 +158,10 @@ local function watchDeath(player: Player, character: Model)
 	humanoid.Died:Connect(function()
 		if inMatch then
 			fallen[player] = true
+			if reviveEnabled then
+				reviveUntil[player] = os.clock() + Config.Monetization.ReviveWindow
+				Remotes.ReviveOffer:FireClient(player, Config.Monetization.ReviveWindow)
+			end
 			Remotes.Notify:FireClient(player, "💀 Caíste. Si caen todos, se acaba la partida")
 		else
 			task.delay(Config.Player.RespawnTime, loadCharacter, player)
@@ -170,6 +177,7 @@ function PlayerService.setInMatch(value: boolean)
 			loadCharacter(player)
 		end
 		table.clear(fallen)
+		table.clear(reviveUntil)
 		for _, player in Players:GetPlayers() do
 			local humanoid = getHumanoid(player)
 			if not humanoid or humanoid.Health <= 0 then
@@ -179,11 +187,27 @@ function PlayerService.setInMatch(value: boolean)
 	end
 end
 
--- true si no queda ningún jugador vivo
+-- Revivir comprado con Robux: vuelve en el campamento con la vida llena.
+-- false si ya no se puede (no está en partida o no estaba caído).
+function PlayerService.revive(player: Player): boolean
+	if not inMatch or not fallen[player] then
+		return false
+	end
+	fallen[player] = nil
+	reviveUntil[player] = nil
+	loadCharacter(player)
+	return true
+end
+
+-- true si no queda ningún jugador vivo (ni esperando para revivir)
 function PlayerService.allDown(): boolean
+	local now = os.clock()
 	for _, player in Players:GetPlayers() do
 		local humanoid = getHumanoid(player)
 		if humanoid and humanoid.Health > 0 then
+			return false
+		end
+		if (reviveUntil[player] or 0) > now then
 			return false
 		end
 	end
@@ -212,6 +236,7 @@ function PlayerService.init()
 	Players.PlayerRemoving:Connect(function(player)
 		states[player] = nil
 		fallen[player] = nil
+		reviveUntil[player] = nil
 	end)
 
 	DataService.onChanged(function(player, reason)

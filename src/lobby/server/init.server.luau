@@ -14,6 +14,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Props = require(script.Props)
 local ModelLibrary = require(script.ModelLibrary)
 local Leaderboard = require(script.Leaderboard)
+local StoreService = require(script.StoreService)
 
 local makePart, makeProp = Props.makePart, Props.makeProp
 local rooms = Config.Rooms
@@ -547,7 +548,7 @@ local function buildShop(map: Instance)
 	Props.barrel(model, (frame * CFrame.new(-5.6, 0, -1.2)).Position)
 	model.Parent = map
 	addPrompt(map, "ShopPrompt", (frame * CFrame.new(0, 3, -3)).Position, "Ver tienda", "Skins")
-	floatingTag(map, map:FindFirstChild("ShopPromptAnchor") :: BasePart, "🛒 Tienda de skins", "¡Muy pronto!", Color3.fromRGB(200, 150, 255))
+	floatingTag(map, map:FindFirstChild("ShopPromptAnchor") :: BasePart, "🛒 Tienda de skins", "Capas, armaduras y pases", Color3.fromRGB(200, 150, 255))
 end
 
 local function buildSpawn(map: Instance)
@@ -713,6 +714,8 @@ local function launch(room: Room)
 	room.Launching = false
 	refresh(room)
 end
+
+StoreService.init()
 
 local map = Instance.new("Folder")
 map.Name = "Map"

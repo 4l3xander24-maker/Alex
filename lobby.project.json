@@ -18,6 +18,9 @@
         },
         "Leaderboard": {
           "$path": "src/server/Leaderboard.luau"
+        },
+        "StoreService": {
+          "$path": "src/server/StoreService.luau"
         }
       }
     },

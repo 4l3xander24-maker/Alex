@@ -8,6 +8,7 @@ local Config = require(Shared.Config)
 local Remotes = require(Shared.Remotes)
 local DataService = require(script.Parent.DataService)
 local Leaderboard = require(script.Parent.Leaderboard)
+local StoreService = require(script.Parent.StoreService)
 
 type MatchStats = {
 	Kills: number,
@@ -66,6 +67,10 @@ function MatchService.award(player: Player, wave: number)
 		return
 	end
 	local xp = MatchService.getXp(entry)
+	-- VIP: más XP
+	if StoreService.hasPass(player, "Vip") then
+		xp = math.floor(xp * (1 + Config.Monetization.VipXpBonus))
+	end
 	local levels = if xp > 0 then DataService.addXp(player, xp) else 0
 	local data = DataService.get(player)
 	local previousBest = if data then data.BestWave else 0

@@ -628,6 +628,38 @@ Config.Places = {
 	Lobby = 0,
 	Match = 107080967531379,
 }
+-- Monetización. Los ids salen de create.roblox.com → tu experiencia →
+-- Monetization (Passes y Developer Products). 0 = no configurado: no aparece
+-- en la tienda. El precio en Robux se pone allá y la tienda lo lee solo.
+local function rgb(r: number, g: number, b: number): Color3
+	return Color3.fromRGB(r, g, b)
+end
+Config.Monetization = {
+	-- Pases: se compran una vez y quedan para siempre
+	Passes = {
+		DoubleCoins = { Id = 0, Name = "Monedas x2", Icon = "💰", Description = "Ganas el doble de monedas por cada zombi, para siempre." },
+		Vip = { Id = 0, Name = "VIP", Icon = "👑", Description = "+25% de XP en cada partida y la skin Dorada." },
+	},
+	-- Productos: se compran las veces que quieras (solo dentro de la partida)
+	Products = {
+		Revive = { Id = 0, Name = "Revivir", Icon = "💖", Description = "Vuelves a la partida con la vida llena." },
+		CoinsSmall = { Id = 0, Name = "Bolsa de monedas", Icon = "🪙", Description = "+500 monedas.", Coins = 500 },
+		CoinsBig = { Id = 0, Name = "Cofre de monedas", Icon = "💎", Description = "+2000 monedas.", Coins = 2000 },
+	},
+	ReviveWindow = 10, -- segundos para comprar Revivir después de caer
+	ReviveRefund = 300, -- monedas si compraste Revivir pero ya no se podía usar
+	VipXpBonus = 0.25,
+	-- Skins: capa (y armadura) que ven todos. Pass = pase que la desbloquea
+	-- (PassId propio o el nombre de un pase de arriba, como la Dorada con VIP)
+	Skins = {
+		{ Id = "Crimson", Name = "Capa Carmesí", PassId = 0, Cape = rgb(150, 30, 36), Trim = rgb(230, 190, 80) },
+		{ Id = "Royal", Name = "Capa Real", PassId = 0, Cape = rgb(40, 70, 170), Trim = rgb(240, 210, 90) },
+		{ Id = "Emerald", Name = "Caballero Esmeralda", PassId = 0, Cape = rgb(30, 120, 70), Trim = rgb(200, 204, 214), Armor = true },
+		{ Id = "Shadow", Name = "Cazador de Sombras", PassId = 0, Cape = rgb(30, 26, 40), Trim = rgb(150, 60, 220), Armor = true, Glow = true },
+		{ Id = "Golden", Name = "Dorada (VIP)", Pass = "Vip", Cape = rgb(220, 170, 50), Trim = rgb(255, 240, 160), Armor = true, Glow = true },
+	},
+}
+
 Config.Rooms = {
 	Count = 4, -- salas en el lobby
 	MaxPlayers = 5,

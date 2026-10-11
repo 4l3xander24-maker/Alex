@@ -147,6 +147,11 @@ function DataService.addXp(player: Player, amount: number): number
 	return levels
 end
 
+-- Guarda ya (por ejemplo después de una compra con Robux)
+function DataService.saveNow(player: Player)
+	save(player)
+end
+
 -- Se llama desde init al salir el jugador, después de darle la XP de la partida
 function DataService.release(player: Player)
 	save(player)

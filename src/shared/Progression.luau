@@ -21,6 +21,7 @@ export type Profile = {
 	Tutorial: boolean, -- ya terminó (o saltó) el tutorial
 	BestWave: number, -- récord: más oleadas superadas en una partida
 	TotalKills: number, -- zombis matados en todas las partidas (ranking del lobby)
+	Receipts: { string }, -- últimas compras con Robux ya entregadas (no dar dos veces)
 	BellArmor: number, -- nivel del refuerzo de la campana
 }
 
@@ -55,6 +56,7 @@ function Progression.defaultProfile(): Profile
 		Tutorial = false,
 		BestWave = 0,
 		TotalKills = 0,
+		Receipts = {},
 		BellArmor = 0,
 	}
 end

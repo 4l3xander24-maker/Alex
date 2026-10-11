@@ -10,6 +10,7 @@ local TweenService = game:GetService("TweenService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
 local Sounds = require(Shared:WaitForChild("Sounds"))
+local RobuxShop = require(Shared:WaitForChild("RobuxShop"))
 
 local GOLD = Color3.fromRGB(255, 215, 100)
 local DARK = Color3.fromRGB(20, 24, 26)
@@ -221,7 +222,7 @@ function LobbyUi.init()
 		if prompt.Name == "GuidePrompt" then
 			openGuide()
 		elseif prompt.Name == "ShopPrompt" then
-			showToast("🛒 La tienda de skins abre muy pronto. ¡Atento!")
+			RobuxShop.open(false)
 		end
 	end)
 

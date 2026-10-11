@@ -17,6 +17,7 @@ local EVENTS = {
 	"AmmoGranted",
 	"PetAttack",
 	"GameOverCinematic",
+	"ReviveOffer",
 	-- cliente -> servidor
 	"Shoot",
 	"Reload",
