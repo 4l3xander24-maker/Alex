@@ -629,17 +629,19 @@ Config.Places = {
 	Match = 107080967531379,
 }
 -- Monetización. Los ids salen de create.roblox.com → tu experiencia →
--- Monetization (Passes y Developer Products). 0 = no configurado: no aparece
--- en la tienda. El precio en Robux se pone allá y la tienda lo lee solo.
+-- Monetization (Passes y Developer Products). 0 = no configurado: sale como
+-- "Pronto" en la tienda. El precio en Robux se pone allá y la tienda lo lee solo.
 local function rgb(r: number, g: number, b: number): Color3
 	return Color3.fromRGB(r, g, b)
 end
 Config.Monetization = {
 	-- Pases: se compran una vez y quedan para siempre
 	Passes = {
+		StarterPack = { Id = 0, Name = "Pack Inicial", Icon = "🎁", Description = "1000 monedas, pistola de Plata y la skin Pionero. ¡Solo una vez!", Coins = 1000, PistolLevel = 2 },
 		DoubleCoins = { Id = 0, Name = "Monedas x2", Icon = "💰", Description = "Ganas el doble de monedas por cada zombi, para siempre." },
 		Vip = { Id = 0, Name = "VIP", Icon = "👑", Description = "+25% de XP en cada partida y la skin Dorada." },
 	},
+	PassOrder = { "StarterPack", "DoubleCoins", "Vip" },
 	-- Productos: se compran las veces que quieras (solo dentro de la partida)
 	Products = {
 		Revive = { Id = 0, Name = "Revivir", Icon = "💖", Description = "Vuelves a la partida con la vida llena." },
@@ -649,14 +651,22 @@ Config.Monetization = {
 	ReviveWindow = 10, -- segundos para comprar Revivir después de caer
 	ReviveRefund = 300, -- monedas si compraste Revivir pero ya no se podía usar
 	VipXpBonus = 0.25,
-	-- Skins: capa (y armadura) que ven todos. Pass = pase que la desbloquea
-	-- (PassId propio o el nombre de un pase de arriba, como la Dorada con VIP)
+	-- Skins: capa (y armadura o sombrero) que ven todos. Cómo se consiguen:
+	--   PassId: pase propio (Robux). CoinPrice: con monedas (en la partida).
+	--   Con los dos: se elige cómo pagar. Pass: viene con un pase de arriba.
+	-- Hat: "Hood" (capucha), "Crown", "Horns", "Helmet" o "Brim" (sombrero).
+	-- Exclusive: sale marcada como EXCLUSIVA en la tienda.
 	Skins = {
+		{ Id = "Traveler", Name = "Capa de Viajero", CoinPrice = 1500, Cape = rgb(110, 76, 46), Trim = rgb(200, 170, 120), Hat = "Hood" },
+		{ Id = "Hunter", Name = "Cazador de Zombis", CoinPrice = 4000, Cape = rgb(70, 80, 40), Trim = rgb(220, 210, 180), Armor = true, Hat = "Brim" },
 		{ Id = "Crimson", Name = "Capa Carmesí", PassId = 0, Cape = rgb(150, 30, 36), Trim = rgb(230, 190, 80) },
-		{ Id = "Royal", Name = "Capa Real", PassId = 0, Cape = rgb(40, 70, 170), Trim = rgb(240, 210, 90) },
-		{ Id = "Emerald", Name = "Caballero Esmeralda", PassId = 0, Cape = rgb(30, 120, 70), Trim = rgb(200, 204, 214), Armor = true },
-		{ Id = "Shadow", Name = "Cazador de Sombras", PassId = 0, Cape = rgb(30, 26, 40), Trim = rgb(150, 60, 220), Armor = true, Glow = true },
-		{ Id = "Golden", Name = "Dorada (VIP)", Pass = "Vip", Cape = rgb(220, 170, 50), Trim = rgb(255, 240, 160), Armor = true, Glow = true },
+		{ Id = "Royal", Name = "Capa Real", PassId = 0, Cape = rgb(40, 70, 170), Trim = rgb(240, 210, 90), Hat = "Crown" },
+		{ Id = "Emerald", Name = "Caballero Esmeralda", PassId = 0, Cape = rgb(30, 120, 70), Trim = rgb(200, 204, 214), Armor = true, Hat = "Helmet" },
+		{ Id = "Shadow", Name = "Cazador de Sombras", PassId = 0, Cape = rgb(30, 26, 40), Trim = rgb(150, 60, 220), Armor = true, Glow = true, Hat = "Hood" },
+		{ Id = "BoneKing", Name = "Rey de los Huesos", PassId = 0, CoinPrice = 12000, Exclusive = true, Cape = rgb(226, 220, 200), Trim = rgb(40, 36, 36), Armor = true, Glow = true, Hat = "Crown" },
+		{ Id = "Inferno", Name = "Infernal", PassId = 0, CoinPrice = 20000, Exclusive = true, Cape = rgb(110, 16, 10), Trim = rgb(255, 120, 30), Armor = true, Glow = true, Hat = "Horns" },
+		{ Id = "Pioneer", Name = "Pionero", Pass = "StarterPack", Exclusive = true, Cape = rgb(30, 110, 120), Trim = rgb(210, 214, 222), Armor = true, Hat = "Helmet" },
+		{ Id = "Golden", Name = "Dorada", Pass = "Vip", Exclusive = true, Cape = rgb(220, 170, 50), Trim = rgb(255, 240, 160), Armor = true, Glow = true, Hat = "Crown" },
 	},
 }
 

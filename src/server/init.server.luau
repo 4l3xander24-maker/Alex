@@ -44,6 +44,7 @@ PetService.init()
 DataService.init(function(player)
 	PlayerService.onPlayerReady(player)
 	PetService.onPlayerReady(player)
+	PurchaseService.onPlayerReady(player)
 end)
 
 local repairPrompt = map:FindFirstChild("RepairPrompt", true)

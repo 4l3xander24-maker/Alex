@@ -1,7 +1,9 @@
 -- Compras con Robux dentro de la partida:
 --   * Entrega los productos (bolsas de monedas y Revivir) con ProcessReceipt.
 --     Cada compra se anota en el perfil para no entregarla dos veces.
---   * Bonos de los pases: Monedas x2 y VIP (+XP).
+--   * Bonos de los pases: Monedas x2, VIP (+XP) y lo del Pack Inicial
+--     (se entrega una sola vez, aunque lo hayan comprado en el Lobby).
+--   * Conecta las monedas del perfil a la tienda de skins.
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -74,15 +76,47 @@ local function processReceipt(info): Enum.ProductPurchaseDecision
 	return Enum.ProductPurchaseDecision.PurchaseGranted
 end
 
+-- Pack Inicial: monedas y pistola mejorada, una sola vez por cuenta
+local function grantStarterPack(player: Player)
+	local data = DataService.get(player)
+	if not data or data.StarterPack or not StoreService.hasPass(player, "StarterPack") then
+		return
+	end
+	local pack = monetization.Passes.StarterPack
+	data.StarterPack = true
+	data.Coins += pack.Coins
+	data.Weapons.Pistol = math.max(data.Weapons.Pistol or 0, pack.PistolLevel)
+	DataService.changed(player, "Shop")
+	DataService.saveNow(player)
+	Remotes.Notify:FireClient(player, `{pack.Icon} ¡Pack Inicial! +{pack.Coins} monedas, pistola de Plata y la skin Pionero`)
+end
+
+-- Se llama cuando el perfil del jugador terminó de cargar
+function PurchaseService.onPlayerReady(player: Player)
+	task.spawn(grantStarterPack, player)
+end
+
 function PurchaseService.init()
 	MarketplaceService.ProcessReceipt = processReceipt
-	-- Al comprar VIP o Monedas x2 se avisa (el bono corre desde ya)
+	-- Skins con monedas: cobra del perfil y, si no se pudo guardar, devuelve
+	StoreService.setCoinWallet(function(player, amount)
+		if DataService.spendCoins(player, amount) then
+			DataService.changed(player, "Shop")
+			return true
+		end
+		return false
+	end, function(player, amount)
+		DataService.addCoins(player, amount)
+		DataService.changed(player, "Shop")
+	end)
+	-- Al comprar un pase se avisa (el bono corre desde ya)
 	StoreService.onPassBought(function(player, passId)
 		for _, pass in monetization.Passes do
 			if pass.Id == passId then
 				Remotes.Notify:FireClient(player, `{pass.Icon} ¡{pass.Name} activado! {pass.Description}`)
 			end
 		end
+		grantStarterPack(player)
 	end)
 end
 

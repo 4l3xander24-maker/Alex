@@ -21,6 +21,15 @@ local gui: ScreenGui? = nil
 local list: ScrollingFrame
 local showCoins = false
 local prices: { [string]: number } = {}
+local status: TextLabel
+local HAT_NAMES = { Hood = "capucha", Crown = "corona", Horns = "cuernos", Helmet = "yelmo", Brim = "sombrero" }
+
+local function setStatus(text: string, good: boolean)
+	if status then
+		status.Text = text
+		status.TextColor3 = if good then Color3.fromRGB(120, 230, 140) else Color3.fromRGB(255, 140, 120)
+	end
+end
 
 local function corner(parent: Instance, radius: number)
 	local round = Instance.new("UICorner")
@@ -56,14 +65,22 @@ local function header(text: string, order: number)
 	label({ Size = UDim2.new(1, 0, 0, 30), Text = text, TextSize = 20, Font = Enum.Font.GothamBlack, TextColor3 = GOLD, LayoutOrder = order, Parent = list })
 end
 
--- Tarjeta: muestra (color o ícono), nombre, descripción y botón
-local function card(order: number, swatch: Color3?, icon: string?, title: string, description: string, buttonText: string, buttonColor: Color3, onClick: (() -> ())?)
+type Button = { Text: string, Color: Color3, OnClick: (() -> ())? }
+
+-- Tarjeta: muestra (color o ícono), nombre, descripción y uno o dos botones
+local function card(order: number, swatch: Color3?, icon: string?, title: string, description: string, buttons: { Button }, exclusive: boolean?)
 	local frame = Instance.new("Frame")
 	frame.Size = UDim2.new(1, 0, 0, 74)
 	frame.BackgroundColor3 = CARD
 	frame.LayoutOrder = order
 	frame.Parent = list
 	corner(frame, 10)
+	if exclusive then
+		local line = Instance.new("UIStroke")
+		line.Color = Color3.fromRGB(200, 120, 255)
+		line.Thickness = 2
+		line.Parent = frame
+	end
 	local preview = Instance.new("TextLabel")
 	preview.Position = UDim2.fromOffset(10, 10)
 	preview.Size = UDim2.fromOffset(54, 54)
@@ -73,22 +90,32 @@ local function card(order: number, swatch: Color3?, icon: string?, title: string
 	preview.Font = Enum.Font.GothamBlack
 	preview.Parent = frame
 	corner(preview, 8)
-	label({ Position = UDim2.fromOffset(74, 10), Size = UDim2.new(1, -210, 0, 24), Text = title, TextSize = 18, Font = Enum.Font.GothamBlack, Parent = frame })
-	label({ Position = UDim2.fromOffset(74, 34), Size = UDim2.new(1, -210, 0, 32), Text = description, TextSize = 13, TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top, Font = Enum.Font.Gotham, TextColor3 = Color3.fromRGB(200, 200, 210), Parent = frame })
-	local button = Instance.new("TextButton")
-	button.AnchorPoint = Vector2.new(1, 0.5)
-	button.Position = UDim2.new(1, -10, 0.5, 0)
-	button.Size = UDim2.fromOffset(120, 40)
-	button.BackgroundColor3 = buttonColor
-	button.Font = Enum.Font.GothamBlack
-	button.TextSize = 16
-	button.TextColor3 = Color3.new(1, 1, 1)
-	button.Text = buttonText
-	button.AutoButtonColor = onClick ~= nil
-	button.Parent = frame
-	corner(button, 8)
-	if onClick then
-		button.Activated:Connect(onClick)
+	local buttonsWidth = #buttons * 110 + 10
+	local name = label({ Position = UDim2.fromOffset(74, 10), Size = UDim2.new(1, -84 - buttonsWidth, 0, 24), Text = title, TextSize = 18, TextScaled = true, Font = Enum.Font.GothamBlack, Parent = frame })
+	local nameLimit = Instance.new("UITextSizeConstraint")
+	nameLimit.MaxTextSize = 18
+	nameLimit.Parent = name
+	if exclusive then
+		name.Text = `{title}  <font color="#C878FF">★ EXCLUSIVA</font>`
+		name.RichText = true
+	end
+	label({ Position = UDim2.fromOffset(74, 34), Size = UDim2.new(1, -84 - buttonsWidth, 0, 32), Text = description, TextSize = 13, TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top, Font = Enum.Font.Gotham, TextColor3 = Color3.fromRGB(200, 200, 210), Parent = frame })
+	for index, info in buttons do
+		local button = Instance.new("TextButton")
+		button.AnchorPoint = Vector2.new(1, 0.5)
+		button.Position = UDim2.new(1, -10 - (#buttons - index) * 110, 0.5, 0)
+		button.Size = UDim2.fromOffset(102, 40)
+		button.BackgroundColor3 = info.Color
+		button.Font = Enum.Font.GothamBlack
+		button.TextSize = 15
+		button.TextColor3 = Color3.new(1, 1, 1)
+		button.Text = info.Text
+		button.AutoButtonColor = info.OnClick ~= nil
+		button.Parent = frame
+		corner(button, 8)
+		if info.OnClick then
+			button.Activated:Connect(info.OnClick)
+		end
 	end
 end
 
@@ -124,41 +151,67 @@ local function refresh()
 	for index, skin in monetization.Skins do
 		local entry = state.Skins[index]
 		local info = skin :: any
-		local description = if info.Armor then "Capa con borde, hombreras de metal" else "Capa con borde y cuello"
-		if info.Glow then
-			description ..= " y brillo mágico"
+		local parts = { "Capa" }
+		if info.Armor then
+			table.insert(parts, "hombreras")
 		end
+		if info.Hat then
+			table.insert(parts, HAT_NAMES[info.Hat] or "sombrero")
+		end
+		if info.Glow then
+			table.insert(parts, "brillo mágico")
+		end
+		local description = table.concat(parts, ", ")
+		local buttons: { Button } = {}
 		if entry.Owned then
 			local isOn = equippedId == skin.Id
-			card(nextOrder(), skin.Cape, nil, skin.Name, description, if isOn then "Quitar" else "Equipar", if isOn then GREY else GREEN, function()
+			table.insert(buttons, { Text = if isOn then "Quitar" else "Equipar", Color = if isOn then GREY else GREEN, OnClick = function()
 				remote:InvokeServer("Equip", if isOn then "" else skin.Id)
 				refresh()
-			end)
-		elseif entry.PassId == 0 then
-			card(nextOrder(), skin.Cape, nil, skin.Name, description, "Pronto", GREY, nil)
+			end })
 		elseif info.Pass then
-			card(nextOrder(), skin.Cape, nil, skin.Name, description .. ". Viene con el pase VIP", "Ver VIP", GOLD, function()
+			local pass = (monetization.Passes :: any)[info.Pass]
+			description ..= `. Viene con: {pass.Name}`
+			table.insert(buttons, { Text = if entry.PassId == 0 then "Pronto" else `Ver {pass.Name}`, Color = if entry.PassId == 0 then GREY else GOLD, OnClick = if entry.PassId == 0 then nil else function()
 				MarketplaceService:PromptGamePassPurchase(player, entry.PassId)
-			end)
+			end })
 		else
-			card(nextOrder(), skin.Cape, nil, skin.Name, description, robuxText(priceOf(entry.PassId, Enum.InfoType.GamePass)), GOLD, function()
-				MarketplaceService:PromptGamePassPurchase(player, entry.PassId)
-			end)
+			if info.CoinPrice then
+				table.insert(buttons, { Text = `🪙 {info.CoinPrice}`, Color = Color3.fromRGB(190, 140, 30), OnClick = function()
+					local ok, bought, message = pcall(function()
+						return remote:InvokeServer("BuyCoins", skin.Id)
+					end)
+					setStatus(if ok then message or "" else "La tienda no responde", ok and bought == true)
+					if ok and bought then
+						refresh()
+					end
+				end })
+			end
+			if info.PassId then
+				local robux = entry.PassId ~= 0
+				table.insert(buttons, { Text = if robux then robuxText(priceOf(entry.PassId, Enum.InfoType.GamePass)) else "Pronto", Color = if robux then GOLD else GREY, OnClick = if robux then function()
+					MarketplaceService:PromptGamePassPurchase(player, entry.PassId)
+				end else nil })
+			end
 		end
+		card(nextOrder(), skin.Cape, nil, skin.Name, description, buttons, info.Exclusive)
 	end
 
 	header("⭐ Pases (para siempre)", nextOrder())
-	for key, pass in monetization.Passes do
+	for _, key in monetization.PassOrder do
+		local pass = (monetization.Passes :: any)[key]
 		local entry = state.Passes[key]
+		local button: Button
 		if entry.Owned then
-			card(nextOrder(), nil, pass.Icon, pass.Name, pass.Description, "✔ Tuyo", GREY, nil)
+			button = { Text = "✔ Tuyo", Color = GREY }
 		elseif pass.Id == 0 then
-			card(nextOrder(), nil, pass.Icon, pass.Name, pass.Description, "Pronto", GREY, nil)
+			button = { Text = "Pronto", Color = GREY }
 		else
-			card(nextOrder(), nil, pass.Icon, pass.Name, pass.Description, robuxText(priceOf(pass.Id, Enum.InfoType.GamePass)), GOLD, function()
+			button = { Text = robuxText(priceOf(pass.Id, Enum.InfoType.GamePass)), Color = GOLD, OnClick = function()
 				MarketplaceService:PromptGamePassPurchase(player, pass.Id)
-			end)
+			end }
 		end
+		card(nextOrder(), nil, pass.Icon, pass.Name, pass.Description, { button }, key == "StarterPack")
 	end
 
 	if showCoins then
@@ -166,11 +219,11 @@ local function refresh()
 		for _, key in { "CoinsSmall", "CoinsBig" } do
 			local product = (monetization.Products :: any)[key]
 			if product.Id == 0 then
-				card(nextOrder(), nil, product.Icon, product.Name, product.Description, "Pronto", GREY, nil)
+				card(nextOrder(), nil, product.Icon, product.Name, product.Description, { { Text = "Pronto", Color = GREY } })
 			else
-				card(nextOrder(), nil, product.Icon, product.Name, product.Description, robuxText(priceOf(product.Id, Enum.InfoType.Product)), GOLD, function()
+				card(nextOrder(), nil, product.Icon, product.Name, product.Description, { { Text = robuxText(priceOf(product.Id, Enum.InfoType.Product)), Color = GOLD, OnClick = function()
 					MarketplaceService:PromptProductPurchase(player, product.Id)
-				end)
+				end } })
 			end
 		end
 	end
@@ -196,7 +249,8 @@ local function build()
 	border.Color = GOLD
 	border.Thickness = 2
 	border.Parent = window
-	label({ Position = UDim2.fromOffset(18, 10), Size = UDim2.new(1, -80, 0, 36), Text = "TIENDA", TextSize = 28, Font = Enum.Font.Arcade, TextColor3 = GOLD, Parent = window })
+	label({ Position = UDim2.fromOffset(18, 10), Size = UDim2.fromOffset(140, 36), Text = "TIENDA", TextSize = 28, Font = Enum.Font.Arcade, TextColor3 = GOLD, Parent = window })
+	status = label({ Position = UDim2.fromOffset(160, 10), Size = UDim2.new(1, -220, 0, 36), Text = "", TextSize = 14, TextWrapped = true, Parent = window })
 	local close = Instance.new("TextButton")
 	close.AnchorPoint = Vector2.new(1, 0)
 	close.Position = UDim2.new(1, -10, 0, 10)
@@ -249,6 +303,7 @@ function RobuxShop.open(withCoins: boolean)
 	end
 	local screen = gui :: ScreenGui
 	screen.Enabled = true
+	setStatus("", true)
 	task.spawn(refresh)
 end
 
