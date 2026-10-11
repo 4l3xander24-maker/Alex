@@ -10,6 +10,7 @@ local CombatService = require(script.Parent.CombatService)
 local DataService = require(script.Parent.DataService)
 local EnemyService = require(script.Parent.EnemyService)
 local GameState = require(script.Parent.GameState)
+local LobbyReturn = require(script.Parent.LobbyReturn)
 local MatchService = require(script.Parent.MatchService)
 local PlayerService = require(script.Parent.PlayerService)
 local TrapService = require(script.Parent.TrapService)
@@ -40,8 +41,14 @@ function WaveService.setStartPrompt(prompt: ProximityPrompt)
 	end)
 end
 
+-- Jugadores extra en la partida (0 si juegas solo)
+local function extraPlayers(): number
+	return math.max(#Players:GetPlayers() - 1, 0)
+end
+
 function WaveService.getEnemyCount(wave: number): number
-	return math.floor(waves.FirstWaveCount * waves.CountGrowth ^ (wave - 1))
+	local base = waves.FirstWaveCount * waves.CountGrowth ^ (wave - 1)
+	return math.floor(base * (1 + waves.PerExtraPlayer.Count * extraPlayers()))
 end
 
 -- Vida de la campana: la base más el refuerzo más alto entre los jugadores
@@ -59,7 +66,8 @@ end
 
 -- Zombis por segundo. De noche llegan más (Config.DayCycle.NightSpawnMultiplier).
 function WaveService.getSpawnRate(wave: number, night: boolean?): number
-	local rate = math.min(waves.MaxSpawnRate, waves.FirstSpawnRate + waves.SpawnRateGrowth * (wave - 1))
+	local rate = (waves.FirstSpawnRate + waves.SpawnRateGrowth * (wave - 1)) * (1 + waves.PerExtraPlayer.SpawnRate * extraPlayers())
+	rate = math.min(waves.MaxSpawnRate, rate)
 	if night then
 		rate = math.min(waves.MaxSpawnRate, rate * Config.DayCycle.NightSpawnMultiplier)
 	end
@@ -67,7 +75,7 @@ function WaveService.getSpawnRate(wave: number, night: boolean?): number
 end
 
 function WaveService.getHealthMultiplier(wave: number): number
-	return 1 + waves.HealthGrowth * (wave - 1)
+	return (1 + waves.HealthGrowth * (wave - 1)) * (1 + waves.PerExtraPlayer.Health * extraPlayers())
 end
 
 -- Jefes de la oleada: uno más cada BossEvery oleadas, rotando la lista
@@ -198,7 +206,10 @@ local function runWave(wave: number): boolean
 		nextBossIn -= dt
 		if #bosses > 0 and nextBossIn <= 0 then
 			local boss = table.remove(bosses, 1) :: string
-			EnemyService.spawn(boss, healthMultiplier)
+			-- Los jefes suben más con cada jugador extra (BossHealth en vez de Health)
+			local extra = extraPlayers()
+			local scale = waves.PerExtraPlayer
+			EnemyService.spawn(boss, healthMultiplier * (1 + scale.BossHealth * extra) / (1 + scale.Health * extra))
 			announceBoss(boss)
 			nextBossIn = waves.BossSpacing
 		end
@@ -245,6 +256,12 @@ function WaveService.start()
 			EnemyService.clear()
 			GameState.set("EnemiesLeft", 0)
 			MatchService.endMatch(wave)
+			-- Si vinieron de una sala del Lobby, vuelven allá después del resumen
+			if LobbyReturn.isRoomMatch() then
+				Remotes.Notify:FireAllClients(`Volviendo al lobby en {Config.Rooms.ReturnDelay} segundos...`)
+				task.wait(Config.Rooms.ReturnDelay)
+				LobbyReturn.sendEveryone()
+			end
 			task.wait(waves.GameOverDelay)
 			currentWave = 0
 			GameState.set("Wave", 0)

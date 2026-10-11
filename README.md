@@ -162,6 +162,18 @@ Los gráficos ya vienen configurados en `default.project.json`: iluminación **F
   - El molino, las partículas y el parpadeo de velas y antorchas corren solo en cada cliente.
   - En **calidad gráfica baja o celular** se apagan el desenfoque, los rayos de sol, las partículas y el parpadeo.
 
+## Lobby y salas (multijugador)
+
+El juego tiene **dos lugares** en la misma experiencia:
+- **Lobby** (`lobby.project.json`, código en `src/lobby/`): la plaza donde entra todo el mundo, con 4 salas
+  (círculos de runas). Te paras en una para unirte (hasta 5 jugadores); corre una cuenta de 15 s (5 s si se llena)
+  y el grupo va a una **partida privada** en el lugar Match.
+- **Match** (`default.project.json`): la partida. La dificultad sube con cada jugador extra
+  (`Config.Waves.PerExtraPlayer`: +60% zombis, salen 40% más seguido, +15% vida, jefes +50%). Al terminar vuelven al Lobby.
+
+Los ids van en `Config.Places` (Lobby y Match). Para probar: `rojo build lobby.project.json -o build/Lobby.rbxl`,
+abrirlo en Studio y publicarlo como lugar del juego. Los teletransportes **solo funcionan publicados**, no en Studio.
+
 ## Modelos 3D de la tienda (árboles y casas)
 
 En el estilo `"Realista"` los árboles de otoño y las casas de la aldea son modelos gratis de la Creator Store

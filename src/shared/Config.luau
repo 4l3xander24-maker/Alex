@@ -610,6 +610,30 @@ Config.Waves = {
 		{ "Walker", "Runner", "Cone" }, -- + el Rey
 	},
 	Random = { "Walker", "Runner", "Cone", "Knight", "Brute", "Mutant" },
+	-- Dificultad según cuántos jugadores hay en la partida: por cada jugador
+	-- extra, estos porcentajes de más
+	PerExtraPlayer = {
+		Count = 0.6, -- +60% de zombis
+		SpawnRate = 0.4, -- salen 40% más seguido
+		Health = 0.15, -- +15% de vida de los zombis
+		BossHealth = 0.5, -- +50% de vida de los jefes
+	},
+}
+
+-- Lobby y salas: el juego tiene dos lugares. En el Lobby hay salas de hasta
+-- MaxPlayers; al llenarse o acabarse la cuenta, el grupo va a una partida
+-- privada en el lugar Match. Al terminar la partida vuelven al Lobby.
+-- Los ids salen de create.roblox.com (Places). 0 = no configurado.
+Config.Places = {
+	Lobby = 0,
+	Match = 107080967531379,
+}
+Config.Rooms = {
+	Count = 4, -- salas en el lobby
+	MaxPlayers = 5,
+	Countdown = 15, -- segundos desde que entra el primero
+	FullCountdown = 5, -- si se llena, sale antes
+	ReturnDelay = 10, -- segundos del resumen antes de volver al lobby
 }
 
 -- Armas que vende el Armero. Zoom solo se usa con el talento Puntería.

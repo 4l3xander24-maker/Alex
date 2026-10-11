@@ -1,0 +1,33 @@
+{
+  "name": "CampanaMalditaLobby",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "Shared": {
+        "$path": "src/shared"
+      }
+    },
+    "ServerScriptService": {
+      "Lobby": {
+        "$path": "src/lobby/server",
+        "Props": {
+          "$path": "src/server/Props.luau"
+        }
+      }
+    },
+    "StarterPlayer": {
+      "StarterPlayerScripts": {
+        "LobbyClient": {
+          "$path": "src/lobby/client"
+        }
+      }
+    },
+    "Lighting": {
+      "$properties": {
+        "Technology": "Future",
+        "ClockTime": 16.5,
+        "Brightness": 2.5
+      }
+    }
+  }
+}
