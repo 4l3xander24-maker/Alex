@@ -20,6 +20,7 @@ export type Profile = {
 	Pet: string, -- mascota que lo acompaña ("" = ninguna)
 	Tutorial: boolean, -- ya terminó (o saltó) el tutorial
 	BestWave: number, -- récord: más oleadas superadas en una partida
+	TotalKills: number, -- zombis matados en todas las partidas (ranking del lobby)
 	BellArmor: number, -- nivel del refuerzo de la campana
 }
 
@@ -53,6 +54,7 @@ function Progression.defaultProfile(): Profile
 		Pet = "",
 		Tutorial = false,
 		BestWave = 0,
+		TotalKills = 0,
 		BellArmor = 0,
 	}
 end

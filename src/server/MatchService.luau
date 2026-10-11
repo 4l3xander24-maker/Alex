@@ -7,6 +7,7 @@ local Shared = ReplicatedStorage.Shared
 local Config = require(Shared.Config)
 local Remotes = require(Shared.Remotes)
 local DataService = require(script.Parent.DataService)
+local Leaderboard = require(script.Parent.Leaderboard)
 
 type MatchStats = {
 	Kills: number,
@@ -72,6 +73,12 @@ function MatchService.award(player: Player, wave: number)
 	if data and newRecord then
 		data.BestWave = entry.Waves
 		DataService.changed(player, "Record")
+	end
+	-- Ranking global que se ve en el lobby
+	if data then
+		data.TotalKills += entry.Kills
+		Leaderboard.submit(player.UserId, "BestWave", data.BestWave)
+		Leaderboard.submit(player.UserId, "Kills", data.TotalKills)
 	end
 	if player.Parent and data then
 		player:SetAttribute("MatchXp", 0)

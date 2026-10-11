@@ -12,7 +12,18 @@
         "$path": "src/lobby/server",
         "Props": {
           "$path": "src/server/Props.luau"
+        },
+        "ModelLibrary": {
+          "$path": "src/server/ModelLibrary.luau"
+        },
+        "Leaderboard": {
+          "$path": "src/server/Leaderboard.luau"
         }
+      }
+    },
+    "ServerStorage": {
+      "Models": {
+        "$path": "src/models"
       }
     },
     "StarterPlayer": {
@@ -25,9 +36,19 @@
     "Lighting": {
       "$properties": {
         "Technology": "Future",
-        "ClockTime": 16.5,
-        "Brightness": 2.5
+        "ClockTime": 17.9,
+        "ShadowSoftness": 0.35
       }
+    },
+    "Workspace": {
+      "Terrain": {
+        "$properties": {
+          "Decoration": true
+        }
+      }
+    },
+    "MaterialService": {
+      "$path": "src/materials"
     }
   }
 }
