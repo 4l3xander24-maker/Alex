@@ -197,12 +197,48 @@ local function pickFoliage(): Color3
 	return Props.vary(palette[random:NextInteger(1, #palette)], 0.08, random)
 end
 
+-- Hojas que caen de la copa de un árbol: emisor en una caja invisible del
+-- tamaño de la copa (WorldFx los apaga en calidad baja)
+local function addLeafFall(map: Instance, center: Vector3, size: number)
+	local box = makeProp({ Name = "LeafFall", Size = Vector3.new(size, size * 0.4, size), Position = center, Transparency = 1, CastShadow = false, Parent = map })
+	local emitter = Instance.new("ParticleEmitter")
+	emitter.Name = "LeafEmitter"
+	emitter.Shape = Enum.ParticleEmitterShape.Box
+	emitter.ShapeStyle = Enum.ParticleEmitterShapeStyle.Volume
+	emitter.Rate = random:NextNumber(0.6, 1.4)
+	emitter.Lifetime = NumberRange.new(5, 8)
+	emitter.Speed = NumberRange.new(0.2, 0.8)
+	emitter.SpreadAngle = Vector2.new(180, 180)
+	emitter.Acceleration = Config.Wind.Direction.Unit * 0.9 + Vector3.new(0, -1.6, 0)
+	emitter.Drag = 0.4
+	emitter.Rotation = NumberRange.new(0, 360)
+	emitter.RotSpeed = NumberRange.new(-120, 120)
+	emitter.Size = NumberSequence.new(0.32)
+	emitter.LightInfluence = 1
+	emitter.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0), NumberSequenceKeypoint.new(0.85, 0), NumberSequenceKeypoint.new(1, 1) })
+	local palette = theme.Foliage
+	emitter.Color = ColorSequence.new(palette[random:NextInteger(1, #palette)], palette[random:NextInteger(1, #palette)])
+	emitter.Parent = box
+end
+
 -- Árbol de otoño: tronco, dos ramas y una copa redonda de varias bolas de hojas
 local function buildAutumnTree(map: Instance, position: Vector3, scale: number)
 	-- Modelo 3D de la tienda: casi siempre el árbol B (4 piezas, más liviano)
 	local name = if random:NextNumber() < 0.75 then "TreeB" else "TreeA"
 	local rotation = CFrame.Angles(0, random:NextNumber(0, math.pi * 2), 0)
-	if ModelLibrary.place(name, CFrame.new(position) * rotation, { Height = 14 * scale * random:NextNumber(0.9, 1.1) }, false, map) then
+	local height = 14 * scale * random:NextNumber(0.9, 1.1)
+	local model = ModelLibrary.place(name, CFrame.new(position) * rotation, { Height = height }, false, map)
+	if model then
+		-- Todo el árbol se mece con el viento desde la base del tronco
+		for _, part in model:GetDescendants() do
+			if part:IsA("BasePart") then
+				Props.sway(part, position, 0.02)
+			end
+		end
+		-- Uno de cada tres suelta hojas que caen girando
+		if theme.Foliage and random:NextNumber() < 0.35 then
+			addLeafFall(map, position + Vector3.new(0, height * 0.65, 0), height * 0.6)
+		end
 		return
 	end
 	local tree = Instance.new("Model")
@@ -379,6 +415,96 @@ local function buildPathFence(map: Instance)
 	end
 end
 
+local function groundPoint(minRadius: number, maxRadius: number, margin: number): Vector3?
+	for _ = 1, 6 do
+		local angle = random:NextNumber(0, math.pi * 2)
+		local radius = random:NextNumber(minRadius, maxRadius)
+		local position = Vector3.new(math.cos(angle) * radius, 0, math.sin(angle) * radius)
+		if onLand(position, margin) and MedievalBuilder.isClear(position, margin) and (position - Config.Arena.CampCenter).Magnitude > 36 then
+			return position -- lowerForest baja lo que quede en el bosque
+		end
+	end
+	return nil
+end
+
+local BARK = Color3.fromRGB(92, 66, 44)
+local function buildGroundDetails(map: Instance)
+	local upright = CFrame.Angles(0, 0, math.pi / 2)
+	-- Troncos caídos con musgo
+	for _ = 1, 26 do
+		local position = groundPoint(40, 300, 4)
+		if position then
+			local length = random:NextNumber(5, 9)
+			local radius = random:NextNumber(0.6, 1)
+			local frame = CFrame.new(position + Vector3.new(0, radius * 0.8, 0)) * CFrame.Angles(0, random:NextNumber(0, math.pi), 0)
+			makePart({ Name = "FallenLog", Shape = Enum.PartType.Cylinder, Size = Vector3.new(length, radius * 2, radius * 2), CFrame = frame, Material = Enum.Material.Wood, Color = Props.vary(BARK, 0.1, random), Parent = map })
+			makeProp({ Name = "LogMoss", Size = Vector3.new(length * 0.6, 0.15, radius * 1.2), CFrame = frame * CFrame.new(random:NextNumber(-1, 1), radius * 0.95, 0), Material = Enum.Material.Grass, Color = Color3.fromRGB(80, 120, 50), Parent = map })
+			for _, side in { -1, 1 } do
+				makeProp({ Name = "LogEnd", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.1, radius * 1.7, radius * 1.7), CFrame = frame * CFrame.new(side * length / 2, 0, 0), Material = Enum.Material.WoodPlanks, Color = Color3.fromRGB(176, 140, 96), Parent = map })
+			end
+		end
+	end
+	-- Tocones
+	for _ = 1, 24 do
+		local position = groundPoint(40, 300, 3)
+		if position then
+			local radius = random:NextNumber(0.7, 1.2)
+			local height = random:NextNumber(0.8, 1.6)
+			makePart({ Name = "Stump", Shape = Enum.PartType.Cylinder, Size = Vector3.new(height, radius * 2, radius * 2), CFrame = CFrame.new(position + Vector3.new(0, height / 2, 0)) * upright, Material = Enum.Material.Wood, Color = Props.vary(BARK, 0.1, random), Parent = map })
+			makeProp({ Name = "StumpTop", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.08, radius * 1.8, radius * 1.8), CFrame = CFrame.new(position + Vector3.new(0, height + 0.02, 0)) * upright, Material = Enum.Material.WoodPlanks, Color = Color3.fromRGB(176, 140, 96), Parent = map })
+		end
+	end
+	-- Hongos rojos con puntos blancos, en grupitos
+	for _ = 1, 30 do
+		local center = groundPoint(30, 280, 2)
+		if center then
+			for _ = 1, random:NextInteger(2, 4) do
+				local position = center + Vector3.new(random:NextNumber(-1.2, 1.2), 0, random:NextNumber(-1.2, 1.2))
+				local size = random:NextNumber(0.35, 0.7)
+				makeProp({ Name = "MushroomStem", Shape = Enum.PartType.Cylinder, Size = Vector3.new(size * 1.1, size * 0.45, size * 0.45), CFrame = CFrame.new(position + Vector3.new(0, size * 0.55, 0)) * upright, Material = Enum.Material.SmoothPlastic, Color = Color3.fromRGB(236, 228, 210), Parent = map })
+				local cap = makeProp({ Name = "MushroomCap", Shape = Enum.PartType.Ball, Size = Vector3.new(size * 1.5, size * 0.75, size * 1.5), Position = position + Vector3.new(0, size * 1.15, 0), Material = Enum.Material.SmoothPlastic, Color = Color3.fromRGB(196, 40, 36), Parent = map })
+				makeProp({ Name = "MushroomDot", Shape = Enum.PartType.Ball, Size = Vector3.one * size * 0.22, Position = cap.Position + Vector3.new(size * 0.25, size * 0.3, 0), Material = Enum.Material.SmoothPlastic, Color = Color3.new(1, 1, 1), Parent = map })
+			end
+		end
+	end
+	-- Manchas de flores que se mecen con el viento
+	local petals = { Color3.fromRGB(240, 220, 90), Color3.fromRGB(245, 245, 240), Color3.fromRGB(190, 120, 210), Color3.fromRGB(240, 120, 70) }
+	for _ = 1, 45 do
+		local center = groundPoint(25, 260, 2)
+		if center then
+			local color = petals[random:NextInteger(1, #petals)]
+			for _ = 1, random:NextInteger(5, 9) do
+				local position = center + Vector3.new(random:NextNumber(-2.5, 2.5), 0, random:NextNumber(-2.5, 2.5))
+				local stemHeight = random:NextNumber(0.7, 1.3)
+				local stem = makeProp({ Name = "FlowerStem", Size = Vector3.new(0.08, stemHeight, 0.08), Position = position + Vector3.new(0, stemHeight / 2, 0), Material = Enum.Material.Grass, Color = Color3.fromRGB(70, 120, 50), CastShadow = false, Parent = map })
+				local bloom = makeProp({ Name = "Flower", Shape = Enum.PartType.Ball, Size = Vector3.one * random:NextNumber(0.3, 0.45), Position = position + Vector3.new(0, stemHeight, 0), Material = Enum.Material.SmoothPlastic, Color = Props.vary(color, 0.08, random), CastShadow = false, Parent = map })
+				Props.sway(stem, position, 0.08)
+				Props.sway(bloom, position, 0.08)
+			end
+		end
+	end
+	-- Helechos: hojas largas que salen del centro y se mecen
+	for _ = 1, 40 do
+		local position = groundPoint(30, 300, 2)
+		if position then
+			for index = 1, 6 do
+				local angle = index / 6 * math.pi * 2 + random:NextNumber(-0.2, 0.2)
+				local length = random:NextNumber(1.6, 2.4)
+				local frond = makeProp({
+					Name = "Fern",
+					Size = Vector3.new(0.5, 0.06, length),
+					CFrame = CFrame.new(position) * CFrame.Angles(0, angle, 0) * CFrame.Angles(math.rad(35), 0, 0) * CFrame.new(0, 0, -length / 2),
+					Material = Enum.Material.LeafyGrass,
+					Color = Props.vary(Color3.fromRGB(70, 120, 46), 0.12, random),
+					CastShadow = false,
+					Parent = map,
+				})
+				Props.sway(frond, position, 0.1)
+			end
+		end
+	end
+end
+
 local function randomRingPoint(minRadius: number, maxRadius: number): Vector3
 	local angle = random:NextNumber(0, math.pi * 2)
 	local radius = random:NextNumber(minRadius, maxRadius)
@@ -448,6 +574,25 @@ local function buildScenery(map: Instance)
 		if (position.Z > 0 or math.abs(position.X) > 120) and onLand(position, 8) and MedievalBuilder.isClear(position, 6) then
 			buildTree(map, position, random:NextNumber(0.9, 1.5))
 		end
+	end
+
+	-- Más árboles: bosquecitos en el campo y en la isla del campamento
+	for _ = 1, 14 do
+		local center = randomRingPoint(70, 220)
+		if not onLand(center, 12) or (center - Config.Arena.CampCenter).Magnitude < 55 then
+			continue
+		end
+		for _ = 1, random:NextInteger(3, 6) do
+			local position = center + Vector3.new(random:NextNumber(-14, 14), 0, random:NextNumber(-14, 14))
+			if onLand(position, 6) and MedievalBuilder.isClear(position, 5) then
+				buildTree(map, position, random:NextNumber(0.9, 1.6))
+			end
+		end
+	end
+
+	-- Detalles del suelo: troncos caídos, tocones, hongos, flores y helechos
+	if not voxel then
+		buildGroundDetails(map)
 	end
 
 	-- Arbustos por el campo y junto al campamento

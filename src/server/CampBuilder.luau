@@ -85,19 +85,39 @@ local function buildTent(map: Instance, position: Vector3, color: Color3)
 	local toCamp = Vector3.new(camp.X - position.X, 0, camp.Z - position.Z).Unit
 	-- El +X local de la tienda (donde está la puerta) mira a la fogata
 	local base = CFrame.new(position) * CFrame.Angles(0, math.atan2(-toCamp.Z, toCamp.X), 0)
-	local length, height, halfWidth = 8, 5.5, 4
+	local length, height, halfWidth = 9, 6, 4.4
+	local trim = color:Lerp(Color3.new(0, 0, 0), 0.35)
+	local pole = Color3.fromRGB(96, 66, 40)
+	-- Lona en dos aguas, con una franja oscura abajo
 	for _, side in { -1, 1 } do
-		makePart({
-			Name = "Tent",
-			Size = Vector3.new(length, height, halfWidth),
-			CFrame = base * CFrame.new(0, height / 2, side * halfWidth / 2) * CFrame.Angles(0, if side > 0 then math.pi else 0, 0),
-			Material = Enum.Material.Fabric,
-			Color = color,
-			Parent = map,
-		}, "WedgePart")
+		local turn = CFrame.Angles(0, if side > 0 then math.pi else 0, 0)
+		makePart({ Name = "Tent", Size = Vector3.new(length, height, halfWidth), CFrame = base * CFrame.new(0, height / 2, side * halfWidth / 2) * turn, Material = Enum.Material.Fabric, Color = color, Parent = map }, "WedgePart")
+		makeProp({ Name = "TentTrim", Size = Vector3.new(length + 0.1, 0.5, 0.15), CFrame = base * CFrame.new(0, 0.6, side * (halfWidth - 0.35)) * CFrame.Angles(side * math.atan2(halfWidth, height), 0, 0), Material = Enum.Material.Fabric, Color = trim, Parent = map })
 	end
+	-- Postes y cumbrera de madera
+	for _, x in { -length / 2 - 0.2, length / 2 + 0.2 } do
+		makePart({ Name = "TentPole", Size = Vector3.new(0.35, height + 0.8, 0.35), CFrame = base * CFrame.new(x, (height + 0.8) / 2, 0), Material = Enum.Material.Wood, Color = pole, Parent = map })
+	end
+	makeProp({ Name = "TentRidge", Size = Vector3.new(length + 0.8, 0.3, 0.3), CFrame = base * CFrame.new(0, height + 0.05, 0), Material = Enum.Material.Wood, Color = pole, Parent = map })
+	-- Banderín arriba que se mece
+	local flag = makeProp({ Name = "TentFlag", Size = Vector3.new(1.2, 0.7, 0.08), CFrame = base * CFrame.new(length / 2 + 0.85, height + 0.45, 0), Material = Enum.Material.Fabric, Color = trim, Parent = map })
+	Props.sway(flag, (base * CFrame.new(length / 2 + 0.2, height + 0.45, 0)).Position, 0.12)
+	-- Vientos: cuerdas a estacas en el suelo
+	for _, corner in { Vector3.new(-length / 2, 0, -1), Vector3.new(length / 2, 0, -1), Vector3.new(-length / 2, 0, 1), Vector3.new(length / 2, 0, 1) } do
+		local top = (base * CFrame.new(corner.X, height * 0.55, corner.Z * halfWidth * 0.55)).Position
+		local stake = (base * CFrame.new(corner.X * 1.15, 0.2, corner.Z * (halfWidth + 2.2))).Position
+		local rope = (stake - top)
+		makeProp({ Name = "GuyRope", Size = Vector3.new(0.06, 0.06, rope.Magnitude), CFrame = CFrame.lookAt(top + rope / 2, stake), Material = Enum.Material.Fabric, Color = Color3.fromRGB(190, 170, 130), CastShadow = false, Parent = map })
+		makeProp({ Name = "Stake", Size = Vector3.new(0.2, 0.6, 0.2), Position = stake, Material = Enum.Material.Wood, Color = pole, Parent = map })
+	end
+	-- Puerta abierta, alfombra, petate adentro y un farol colgando
 	makeProp({ Name = "TentDoor", Size = Vector3.new(0.1, height * 0.6, halfWidth * 0.7), CFrame = base * CFrame.new(length / 2 + 0.05, height * 0.3, 0), Color = Color3.fromRGB(30, 26, 22), Parent = map })
+	makeProp({ Name = "TentFlapOpen", Size = Vector3.new(0.12, height * 0.55, 1.4), CFrame = base * CFrame.new(length / 2 + 0.4, height * 0.3, halfWidth * 0.45) * CFrame.Angles(0, -0.7, 0), Material = Enum.Material.Fabric, Color = color, Parent = map })
+	makeProp({ Name = "Rug", Size = Vector3.new(2.6, 0.08, 3), CFrame = base * CFrame.new(length / 2 + 1.6, 0.04, 0), Material = Enum.Material.Fabric, Color = Color3.fromRGB(150, 50, 46), Parent = map })
+	makeProp({ Name = "Bedroll", Shape = Enum.PartType.Cylinder, Size = Vector3.new(2.6, 0.7, 0.7), CFrame = base * CFrame.new(-1.5, 0.35, 0) * CFrame.Angles(0, math.pi / 2, 0), Material = Enum.Material.Fabric, Color = Color3.fromRGB(120, 96, 70), Parent = map })
+	Props.hangingLantern(map, (base * CFrame.new(length / 2 + 0.3, 0, -halfWidth * 0.5)).Position, base.LookVector)
 	Props.crate(map, base * CFrame.new(length / 2 + 1.5, 0, halfWidth + 1), 2)
+	Props.barrel(map, (base * CFrame.new(-length / 2 + 1, 0, halfWidth + 1.2)).Position)
 end
 
 -- Cerca baja al borde del acantilado (con hueco para el mirador)
@@ -603,6 +623,48 @@ local function buildShelter(map: Instance)
 	Props.hangingLantern(map, (frame * CFrame.new(-width / 2 - 1.2, 0, -depth / 2)).Position, (frame.LookVector))
 end
 
+-- Vida del campamento: dos casitas a los costados, carreta, fardos de paja,
+-- pila de leña y un pozo
+local function buildCampLife(map: Instance)
+	local hay = Color3.fromRGB(214, 180, 96)
+	for index, offset in { Vector3.new(-46, 0, 6), Vector3.new(46, 0, 6) } do
+		local position = camp + offset
+		local frame = CFrame.lookAt(position, Vector3.new(camp.X, 0, camp.Z))
+		ModelLibrary.place(if index == 1 then "HouseB" else "HouseC", frame, { Footprint = 16 }, true, map)
+	end
+	-- Carreta con ruedas y heno
+	local cart = CFrame.new(camp + Vector3.new(-14, 0, 30)) * CFrame.Angles(0, 0.5, 0)
+	makePart({ Name = "CartBed", Size = Vector3.new(4.4, 0.4, 2.6), CFrame = cart * CFrame.new(0, 1.5, 0), Material = Enum.Material.WoodPlanks, Color = WOOD, Parent = map })
+	for _, side in { -1, 1 } do
+		makeProp({ Name = "CartSide", Size = Vector3.new(4.4, 0.8, 0.2), CFrame = cart * CFrame.new(0, 2.1, side * 1.25), Material = Enum.Material.WoodPlanks, Color = DARK_WOOD, Parent = map })
+		makePart({ Name = "CartWheel", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.3, 2.4, 2.4), CFrame = cart * CFrame.new(0.6, 1.2, side * 1.5) * CFrame.Angles(0, math.pi / 2, 0), Material = Enum.Material.Wood, Color = DARK_WOOD, Parent = map })
+	end
+	makeProp({ Name = "CartHandle", Size = Vector3.new(3, 0.2, 0.2), CFrame = cart * CFrame.new(3.4, 1.2, 0) * CFrame.Angles(0, 0, -0.35), Material = Enum.Material.Wood, Color = DARK_WOOD, Parent = map })
+	makeProp({ Name = "CartHay", Size = Vector3.new(3.8, 1, 2.2), CFrame = cart * CFrame.new(0, 2.2, 0), Material = Enum.Material.Fabric, Color = hay, Parent = map })
+	-- Fardos de paja
+	for _, spot in { Vector3.new(-10, 0, 34), Vector3.new(-8.6, 0, 35.5), Vector3.new(26, 0, -24), Vector3.new(27.2, 1.2, -24.2) } do
+		makePart({ Name = "HayBale", Size = Vector3.new(2.2, 1.2, 1.4), CFrame = CFrame.new(camp + spot + Vector3.new(0, 0.6, 0)) * CFrame.Angles(0, random:NextNumber(-0.4, 0.4), 0), Material = Enum.Material.Fabric, Color = Props.vary(hay, 0.06, random), Parent = map })
+	end
+	-- Pila de leña
+	local pile = CFrame.new(camp + Vector3.new(8, 0, -24)) * CFrame.Angles(0, 0.3, 0)
+	for row = 0, 2 do
+		for column = 0, 3 - row do
+			makeProp({ Name = "Firewood", Shape = Enum.PartType.Cylinder, Size = Vector3.new(2.6, 0.6, 0.6), CFrame = pile * CFrame.new(0, 0.3 + row * 0.52, (column - (3 - row) / 2) * 0.62) , Material = Enum.Material.Wood, Color = Props.vary(DARK_WOOD, 0.15, random), Parent = map })
+		end
+	end
+	makeProp({ Name = "Axe", Size = Vector3.new(0.15, 2, 0.15), CFrame = pile * CFrame.new(1.6, 1, 1.2) * CFrame.Angles(0, 0, 0.3), Material = Enum.Material.Wood, Color = WOOD, Parent = map })
+	makeProp({ Name = "AxeHead", Size = Vector3.new(0.6, 0.4, 0.1), CFrame = pile * CFrame.new(1.9, 1.9, 1.2) * CFrame.Angles(0, 0, 0.3), Material = Enum.Material.Metal, Color = Props.Colors.Iron, Parent = map })
+	-- Pozo de piedra con techito
+	local well = camp + Vector3.new(14, 0, 30)
+	makePart({ Name = "WellRing", Shape = Enum.PartType.Cylinder, Size = Vector3.new(2.4, 5, 5), CFrame = CFrame.new(well + Vector3.new(0, 1.2, 0)) * CFrame.Angles(0, 0, math.pi / 2), Material = Enum.Material.Cobblestone, Color = Props.Colors.Stone, Parent = map })
+	makeProp({ Name = "WellWater", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.2, 3.8, 3.8), CFrame = CFrame.new(well + Vector3.new(0, 2.2, 0)) * CFrame.Angles(0, 0, math.pi / 2), Material = Enum.Material.Glass, Color = Color3.fromRGB(16, 30, 40), Parent = map })
+	for _, side in { -1, 1 } do
+		makePart({ Name = "WellPost", Size = Vector3.new(0.4, 4.6, 0.4), Position = well + Vector3.new(side * 2.2, 2.3, 0), Material = Enum.Material.Wood, Color = DARK_WOOD, Parent = map })
+		makePart({ Name = "WellRoof", Size = Vector3.new(5.6, 0.25, 2), CFrame = CFrame.new(well + Vector3.new(0, 5, side * 0.8)) * CFrame.Angles(side * -0.5, 0, 0), Material = Enum.Material.ClayRoofTiles, Color = Color3.fromRGB(128, 54, 40), Parent = map })
+	end
+	makeProp({ Name = "WellBucket", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.8, 0.8, 0.8), CFrame = CFrame.new(well + Vector3.new(0, 3.5, 0)) * CFrame.Angles(0, 0, math.pi / 2), Material = Enum.Material.WoodPlanks, Color = WOOD, Parent = map })
+end
+
 function CampBuilder.build(map: Instance)
 	buildCampfire(map)
 	buildShelter(map)
@@ -624,6 +686,7 @@ function CampBuilder.build(map: Instance)
 	end
 	Props.barrel(map, camp + Vector3.new(-30, 0, 8))
 	Props.barrel(map, camp + Vector3.new(30, 0, 12))
+	buildCampLife(map)
 
 	-- Noche medieval: velas junto a los puestos y la fogata
 	if (Config.Themes[Config.Theme] or {}).Medieval then

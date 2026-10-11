@@ -39,6 +39,8 @@ local ambientEmitter: ParticleEmitter? = nil
 
 type Swayer = { Part: BasePart, Base: CFrame, Pivot: Vector3, Amount: number, Seed: number }
 local swayers: { Swayer } = {}
+-- Hojas que caen de los árboles (se apagan en calidad baja)
+local leafEmitters: { ParticleEmitter } = {}
 local baseWind = Config.Wind.Direction.Unit * Config.Wind.Speed
 local gustLevel = 1
 
@@ -80,6 +82,11 @@ local function applyQuality()
 		ambientEmitter = emitter
 		emitter.Enabled = not low
 	end
+	for _, leaves in leafEmitters do
+		if leaves.Parent then
+			leaves.Enabled = not low
+		end
+	end
 	SkyFx.setReduced(low)
 end
 
@@ -95,6 +102,11 @@ local function updateAmbient()
 end
 
 local function trackSway(instance: Instance)
+	if instance:IsA("ParticleEmitter") and instance.Name == "LeafEmitter" then
+		table.insert(leafEmitters, instance)
+		instance.Enabled = not lowQuality
+		return
+	end
 	if instance:IsA("BasePart") then
 		local amount = instance:GetAttribute("Sway")
 		local pivot = instance:GetAttribute("SwayPivot")
