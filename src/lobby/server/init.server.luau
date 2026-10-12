@@ -700,6 +700,13 @@ end
 
 StoreService.init()
 
+-- Lo que trae el lugar vacío de Studio (piso y punto de aparición) sobra
+for _, child in workspace:GetChildren() do
+	if child.Name == "Baseplate" or child:IsA("SpawnLocation") then
+		child:Destroy()
+	end
+end
+
 local map = Instance.new("Folder")
 map.Name = "Map"
 setupLighting()

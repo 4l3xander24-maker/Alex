@@ -624,9 +624,11 @@ Config.Waves = {
 -- MaxPlayers; al llenarse o acabarse la cuenta, el grupo va a una partida
 -- privada en el lugar Match. Al terminar la partida vuelven al Lobby.
 -- Los ids salen de create.roblox.com (Places). 0 = no configurado.
+-- El Lobby es el lugar de inicio de la experiencia (ahí entra todo el mundo);
+-- la partida es el segundo lugar.
 Config.Places = {
-	Lobby = 0,
-	Match = 107080967531379,
+	Lobby = 107080967531379,
+	Match = 89403352500955,
 }
 -- Monetización. Los ids salen de create.roblox.com → tu experiencia →
 -- Monetization (Passes y Developer Products). 0 = no configurado: sale como
