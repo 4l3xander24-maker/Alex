@@ -630,7 +630,11 @@ local function buildCampLife(map: Instance)
 	for index, offset in { Vector3.new(-46, 0, 6), Vector3.new(46, 0, 6) } do
 		local position = camp + offset
 		local frame = CFrame.lookAt(position, Vector3.new(camp.X, 0, camp.Z))
-		ModelLibrary.place(if index == 1 then "HouseB" else "HouseC", frame, { Footprint = 16 }, true, map)
+		local name = if index == 1 then "FeriaHouseA" else "FeriaHouseB"
+		if not ModelLibrary.has(name) then
+			name = if index == 1 then "HouseB" else "HouseC"
+		end
+		ModelLibrary.place(name, frame, { Footprint = 20 }, true, map)
 	end
 	-- Carreta con ruedas y heno
 	local cart = CFrame.new(camp + Vector3.new(-14, 0, 30)) * CFrame.Angles(0, 0.5, 0)

@@ -264,24 +264,7 @@ local function buildTree(map: Instance, position: Vector3)
 	end
 	-- Algunos sueltan hojas que caen girando con el viento
 	if random:NextNumber() < 0.4 then
-		local box = makeProp({ Name = "LeafFall", Size = Vector3.new(height * 0.6, height * 0.25, height * 0.6), Position = position + Vector3.new(0, height * 0.65, 0), Transparency = 1, CastShadow = false, CanCollide = false, Parent = map })
-		local emitter = Instance.new("ParticleEmitter")
-		emitter.Name = "LeafEmitter"
-		emitter.Shape = Enum.ParticleEmitterShape.Box
-		emitter.ShapeStyle = Enum.ParticleEmitterShapeStyle.Volume
-		emitter.Rate = random:NextNumber(0.6, 1.4)
-		emitter.Lifetime = NumberRange.new(5, 8)
-		emitter.Speed = NumberRange.new(0.2, 0.8)
-		emitter.SpreadAngle = Vector2.new(180, 180)
-		emitter.Acceleration = Config.Wind.Direction.Unit * 0.9 + Vector3.new(0, -1.6, 0)
-		emitter.Drag = 0.4
-		emitter.Rotation = NumberRange.new(0, 360)
-		emitter.RotSpeed = NumberRange.new(-120, 120)
-		emitter.Size = NumberSequence.new(0.32)
-		emitter.LightInfluence = 1
-		emitter.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0), NumberSequenceKeypoint.new(0.85, 0), NumberSequenceKeypoint.new(1, 1) })
-		emitter.Color = ColorSequence.new(FOLIAGE[random:NextInteger(1, #FOLIAGE)], FOLIAGE[random:NextInteger(1, #FOLIAGE)])
-		emitter.Parent = box
+		Props.leafFall(map, position + Vector3.new(0, height * 0.65, 0), height * 0.6, FOLIAGE)
 	end
 end
 

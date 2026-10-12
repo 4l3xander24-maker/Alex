@@ -287,13 +287,19 @@ local function buildRuins(map: Instance, entrance: Vector3, outward: Vector3, ar
 end
 
 -- Casa con entramado de madera, techo de tejas, chimenea y ventanas encendidas
+-- Primero las de la plantilla Studio Tour (yeso, tejas y piedra); si faltan,
+-- las de la tienda
+local FERIA_HOUSES = { "FeriaHouseA", "FeriaHouseB" }
 local HOUSE_MODELS = { "HouseA", "HouseB", "HouseC" }
 local houseCount = 0
 
 local function buildHouse(map: Instance, frame: CFrame, width: number, depth: number)
 	-- Casa medieval de la tienda (se van turnando los tres modelos)
 	houseCount += 1
-	local name = HOUSE_MODELS[(houseCount - 1) % #HOUSE_MODELS + 1]
+	local name = FERIA_HOUSES[(houseCount - 1) % #FERIA_HOUSES + 1]
+	if not ModelLibrary.has(name) then
+		name = HOUSE_MODELS[(houseCount - 1) % #HOUSE_MODELS + 1]
+	end
 	if ModelLibrary.place(name, frame, { Footprint = math.max(width, depth) * 1.7 }, true, map) then
 		if theme.Medieval then
 			Props.candles(map, (frame * CFrame.new(2.6, 0, -depth / 2 - 3)).Position, 3, false)

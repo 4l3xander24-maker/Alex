@@ -66,6 +66,31 @@ function Props.sway(part: BasePart, pivot: Vector3, amount: number)
 	part:SetAttribute("SwayPivot", pivot)
 end
 
+-- Hojas que caen girando desde la copa de un árbol (caja invisible con
+-- partículas, centrada en `center`). WorldFx las apaga en calidad baja.
+local leafRandom = Random.new(19)
+function Props.leafFall(parent: Instance, center: Vector3, size: number, palette: { Color3 })
+	local box = Props.makeProp({ Name = "LeafFall", Size = Vector3.new(size, size * 0.4, size), Position = center, Transparency = 1, CastShadow = false, Parent = parent })
+	local emitter = Instance.new("ParticleEmitter")
+	emitter.Name = "LeafEmitter"
+	emitter.Shape = Enum.ParticleEmitterShape.Box
+	emitter.ShapeStyle = Enum.ParticleEmitterShapeStyle.Volume
+	emitter.Rate = leafRandom:NextNumber(0.6, 1.4)
+	emitter.Lifetime = NumberRange.new(5, 8)
+	emitter.Speed = NumberRange.new(0.2, 0.8)
+	emitter.SpreadAngle = Vector2.new(180, 180)
+	emitter.Acceleration = Config.Wind.Direction.Unit * 0.9 + Vector3.new(0, -1.6, 0)
+	emitter.Drag = 0.4
+	emitter.Rotation = NumberRange.new(0, 360)
+	emitter.RotSpeed = NumberRange.new(-120, 120)
+	emitter.Size = NumberSequence.new(0.32)
+	emitter.LightInfluence = 1
+	emitter.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0), NumberSequenceKeypoint.new(0.85, 0), NumberSequenceKeypoint.new(1, 1) })
+	emitter.Color = ColorSequence.new(palette[leafRandom:NextInteger(1, #palette)], palette[leafRandom:NextInteger(1, #palette)])
+	emitter.Parent = box
+	return box
+end
+
 function Props.vary(color: Color3, amount: number, random: Random): Color3
 	local factor = 1 + random:NextNumber(-amount, amount)
 	return Color3.new(math.min(color.R * factor, 1), math.min(color.G * factor, 1), math.min(color.B * factor, 1))

@@ -16,6 +16,7 @@ local Paths = require(ReplicatedStorage.Shared.Paths)
 local BellTower = require(script.Parent.BellTower)
 local BridgeBuilder = require(script.Parent.BridgeBuilder)
 local CampBuilder = require(script.Parent.CampBuilder)
+local FeriaBuilder = require(script.Parent.FeriaBuilder)
 local IslandBuilder = require(script.Parent.IslandBuilder)
 local MedievalBuilder = require(script.Parent.MedievalBuilder)
 local VoxelBuilder = require(script.Parent.VoxelBuilder)
@@ -199,28 +200,6 @@ end
 
 -- Hojas que caen de la copa de un árbol: emisor en una caja invisible del
 -- tamaño de la copa (WorldFx los apaga en calidad baja)
-local function addLeafFall(map: Instance, center: Vector3, size: number)
-	local box = makeProp({ Name = "LeafFall", Size = Vector3.new(size, size * 0.4, size), Position = center, Transparency = 1, CastShadow = false, Parent = map })
-	local emitter = Instance.new("ParticleEmitter")
-	emitter.Name = "LeafEmitter"
-	emitter.Shape = Enum.ParticleEmitterShape.Box
-	emitter.ShapeStyle = Enum.ParticleEmitterShapeStyle.Volume
-	emitter.Rate = random:NextNumber(0.6, 1.4)
-	emitter.Lifetime = NumberRange.new(5, 8)
-	emitter.Speed = NumberRange.new(0.2, 0.8)
-	emitter.SpreadAngle = Vector2.new(180, 180)
-	emitter.Acceleration = Config.Wind.Direction.Unit * 0.9 + Vector3.new(0, -1.6, 0)
-	emitter.Drag = 0.4
-	emitter.Rotation = NumberRange.new(0, 360)
-	emitter.RotSpeed = NumberRange.new(-120, 120)
-	emitter.Size = NumberSequence.new(0.32)
-	emitter.LightInfluence = 1
-	emitter.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0), NumberSequenceKeypoint.new(0.85, 0), NumberSequenceKeypoint.new(1, 1) })
-	local palette = theme.Foliage
-	emitter.Color = ColorSequence.new(palette[random:NextInteger(1, #palette)], palette[random:NextInteger(1, #palette)])
-	emitter.Parent = box
-end
-
 -- Árbol de otoño: tronco, dos ramas y una copa redonda de varias bolas de hojas
 local function buildAutumnTree(map: Instance, position: Vector3, scale: number)
 	-- Modelo 3D de la tienda: casi siempre el árbol B (4 piezas, más liviano)
@@ -237,7 +216,7 @@ local function buildAutumnTree(map: Instance, position: Vector3, scale: number)
 		end
 		-- Uno de cada tres suelta hojas que caen girando
 		if theme.Foliage and random:NextNumber() < 0.35 then
-			addLeafFall(map, position + Vector3.new(0, height * 0.65, 0), height * 0.6)
+			Props.leafFall(map, position + Vector3.new(0, height * 0.65, 0), height * 0.6, theme.Foliage)
 		end
 		return
 	end
@@ -915,6 +894,11 @@ function MapBuilder.build(): Folder
 	CampBuilder.build(map)
 	lowerForest(map)
 	map.Parent = workspace
+	-- Lomas, árboles y adornos de la plantilla Studio Tour (necesita el mapa
+	-- ya puesto para ver qué lugares están ocupados)
+	if not Config.Style.Tiles then
+		FeriaBuilder.build(map)
+	end
 
 	setupLighting()
 	return map
