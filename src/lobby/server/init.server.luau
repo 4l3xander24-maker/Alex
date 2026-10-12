@@ -559,6 +559,35 @@ local function buildRoom(map: Instance, index: number, center: Vector3): Room
 		local at = center + Vector3.new(math.cos(angle) * 4.6, 0.52, math.sin(angle) * 4.6)
 		table.insert(glow, makeProp({ Name = "Rune", Size = Vector3.new(0.3, 0.08, 1.4), CFrame = CFrame.lookAt(at, center + Vector3.new(0, 1.02, 0)) * CFrame.Angles(0, math.rad(step % 2 * 50 - 25), 0), Material = Enum.Material.Neon, Color = FREE, CastShadow = false, Parent = model }))
 	end
+	-- Borde brillante encima del disco: marca bien hasta dónde llega la sala
+	local edgeSteps = 32
+	local chord = 2 * math.pi * PAD_RADIUS / edgeSteps + 0.15
+	for step = 0, edgeSteps - 1 do
+		local angle = (step + 0.5) / edgeSteps * math.pi * 2
+		local at = center + Vector3.new(math.cos(angle) * (PAD_RADIUS - 0.35), 1.06, math.sin(angle) * (PAD_RADIUS - 0.35))
+		table.insert(glow, makeProp({ Name = "Edge", Size = Vector3.new(0.7, 0.12, chord), CFrame = CFrame.lookAt(at, center + Vector3.new(0, 1.06, 0)) * CFrame.Angles(0, math.pi / 2, 0), Material = Enum.Material.Neon, Color = FREE, CastShadow = false, Parent = model }))
+	end
+	-- Columna de luz del tamaño de la sala (se ve desde lejos y al estar adentro)
+	local beamHeight = 14
+	local beam = makeProp({ Name = "Beam", Shape = Enum.PartType.Cylinder, Size = Vector3.new(beamHeight, PAD_RADIUS * 2, PAD_RADIUS * 2), CFrame = CFrame.new(center + Vector3.new(0, 1 + beamHeight / 2, 0)) * CFrame.Angles(0, 0, math.pi / 2), Material = Enum.Material.Neon, Color = FREE, Transparency = 0.9, CastShadow = false, Parent = model })
+	beam.CanQuery = false
+	table.insert(glow, beam)
+	-- Letrero flotante encima
+	local hint = Instance.new("BillboardGui")
+	hint.Size = UDim2.fromOffset(220, 40)
+	hint.StudsOffset = Vector3.new(0, beamHeight / 2 + 1.5, 0)
+	hint.MaxDistance = 80
+	hint.Adornee = beam
+	hint.Parent = model
+	local hintLabel = Instance.new("TextLabel")
+	hintLabel.Size = UDim2.fromScale(1, 1)
+	hintLabel.BackgroundTransparency = 1
+	hintLabel.Font = Enum.Font.GothamBlack
+	hintLabel.TextScaled = true
+	hintLabel.TextColor3 = Color3.new(1, 1, 1)
+	hintLabel.TextStrokeTransparency = 0.2
+	hintLabel.Text = "⬇ PÁRATE AQUÍ ⬇"
+	hintLabel.Parent = hint
 	for step = 0, 5 do
 		local angle = step / 6 * math.pi * 2 + 0.3
 		local at = center + Vector3.new(math.cos(angle) * (PAD_RADIUS + 1.6), 0, math.sin(angle) * (PAD_RADIUS + 1.6))
