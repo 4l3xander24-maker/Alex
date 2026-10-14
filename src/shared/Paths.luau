@@ -5,6 +5,8 @@ local Config = require(script.Parent.Config)
 local Paths = {}
 
 local BELL = Config.Arena.Bell
+-- Sin terreno (estilo de baldosas) el piso está justo en la altura del código
+local SURFACE = if Config.Style.Tiles then 0 else (Config.Arena.TerrainSurface or 0)
 
 -- Puntos del camino de lejos a cerca, terminando en la campana
 function Paths.getPoints(name: string): { Vector3 }
@@ -133,6 +135,16 @@ function Paths.groundHeight(point: Vector3): number
 		return -drop
 	end
 	return 0
+end
+
+-- Altura donde se pisa de verdad: el suelo del código más lo que el terreno
+-- de Roblox queda por encima. Los zombis, las trampas y el puente van aquí.
+function Paths.walkHeight(point: Vector3): number
+	return Paths.groundHeight(point) + SURFACE
+end
+
+function Paths.surface(): number
+	return SURFACE
 end
 
 -- Donde pueden caminar los zombis: el bosque, el puente de piedra y la isla principal

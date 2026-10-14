@@ -66,7 +66,7 @@ end
 -- bosque más bajo, la rampa del puente)
 function EnemyMath.getPosition(path: Path, now: number): Vector3
 	local position = EnemyMath.locate(path, EnemyMath.getTraveled(path, now))
-	return position + Vector3.new(0, Paths.groundHeight(position), 0)
+	return position + Vector3.new(0, Paths.walkHeight(position), 0)
 end
 
 function EnemyMath.getDirection(path: Path, now: number): Vector3

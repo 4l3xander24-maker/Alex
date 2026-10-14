@@ -65,11 +65,11 @@ local function buildTerrain()
 
 	-- Tierra pisada en el campamento y el camino hacia la campana
 	local camp = arena.CampCenter
-	terrain:FillCylinder(CFrame.new(camp.X, -2, camp.Z), 4.1, arena.CampRadius, Enum.Material.Ground)
+	terrain:FillCylinder(CFrame.new(camp.X, -2, camp.Z), 4, arena.CampRadius, Enum.Material.Ground)
 	-- Camino de adoquines del campamento a la campana, y un anillo alrededor de la torre
 	local bell = arena.Bell
-	terrain:FillBlock(CFrame.new(bell.X, -2, (bell.Z + camp.Z) / 2), Vector3.new(9, 4.1, camp.Z - bell.Z), Enum.Material.Cobblestone)
-	terrain:FillCylinder(CFrame.new(bell.X, -2, bell.Z), 4.1, arena.TowerSize / 2 + 5, Enum.Material.Cobblestone)
+	terrain:FillBlock(CFrame.new(bell.X, -2, (bell.Z + camp.Z) / 2), Vector3.new(9, 4, camp.Z - bell.Z), Enum.Material.Cobblestone)
+	terrain:FillCylinder(CFrame.new(bell.X, -2, bell.Z), 4, arena.TowerSize / 2 + 5, Enum.Material.Cobblestone)
 	-- Los caminos angostos por donde llegan los zombis (no sobre el agua)
 	MedievalBuilder.paintPaths(terrain)
 
@@ -490,17 +490,59 @@ local function randomRingPoint(minRadius: number, maxRadius: number): Vector3
 	return Vector3.new(math.cos(angle) * radius, 0, math.sin(angle) * radius)
 end
 
+-- El puente de piedra es una rampa (el bosque está más abajo), pero el camino
+-- de tierra, el lodo y el pasto se pintaron planos: sobre la rampa quedaba un
+-- montículo de terreno que tapaba el paso y que los zombis atravesaban. Se
+-- vacía todo lo que quede encima de la rampa y lo que flota sobre el barranco.
+local function clearBridgeTerrain()
+	if Config.Style.Tiles then
+		return
+	end
+	local terrain = workspace.Terrain
+	local arena = Config.Arena
+	local bridge = arena.Bridge
+	local from, to = bridge.From, bridge.To
+	local flat = Vector3.new(to.X - from.X, 0, to.Z - from.Z)
+	local length = flat.Magnitude
+	local direction = flat.Unit
+	local width = bridge.Width + 6
+	-- El terreno trabaja en bloques de 4 studs: cada caja cubre 8 de largo y se
+	-- pisan entre sí (una caja fina solo lo afina y deja el bulto)
+	local step = 4
+	local depth = 8
+	-- Un poco antes y después de los extremos, para que no quede borde
+	for distance = -6, length + 6, step do
+		local point = from + direction * distance
+		local deck = Paths.walkHeight(point)
+		if distance < 0 then
+			deck = Paths.surface() - (arena.ForestDrop or 0)
+		elseif distance > length then
+			deck = Paths.surface()
+		end
+		local frame = CFrame.lookAt(Vector3.new(point.X, 0, point.Z), Vector3.new(point.X, 0, point.Z) + direction)
+		-- La caja arranca un poco más abajo que el piso en su punto más bajo
+		local bottom = deck - 0.9
+		terrain:FillBlock(frame * CFrame.new(0, bottom + 12, 0), Vector3.new(width, 24, depth), Enum.Material.Air)
+		-- Sobre el barranco, tampoco queda la losa de tierra del camino colgando
+		-- debajo del puente (sin tocar la roca del acantilado, más abajo)
+		if point.Z > arena.Ravine.ZMin and point.Z < arena.Ravine.ZMax then
+			terrain:FillBlock(frame * CFrame.new(0, deck - 1.5 - 4, 0), Vector3.new(width, 8, depth), Enum.Material.Air)
+		end
+	end
+end
+
 local function buildScenery(map: Instance)
 	-- Cementerio, castillo (y casas en el tema medieval) y el puente de piedra
 	MedievalBuilder.build(map)
 	BridgeBuilder.build(map)
+	clearBridgeTerrain()
 	-- Puente roto a la aldea: las tablas que faltan quedan guardadas para que
 	-- cada cliente las ponga cuando su jugador lo repara (VillageService)
 	local planks, sign = BridgeBuilder.buildVillageBridge(map)
 	planks.Parent = ReplicatedStorage
 	local repair = Instance.new("ProximityPrompt")
 	repair.Name = "VillageRepairPrompt"
-	repair.ActionText = `Reparar puente ({Config.Arena.VillageBridge.Price} 🪙)`
+	repair.ActionText = `Reparar puente ({Config.Arena.VillageBridge.Price} 💰)`
 	repair.ObjectText = "Puente a la aldea"
 	repair.HoldDuration = 1
 	repair.MaxActivationDistance = 12

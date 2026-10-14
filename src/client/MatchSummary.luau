@@ -1,4 +1,6 @@
--- Pantalla de fin de partida: oleadas, bajas, monedas y la XP de cuenta ganada.
+-- Pantalla de fin de partida: oleadas, bajas, monedas, la XP de cuenta ganada
+-- y la tabla de todo el equipo. Si subiste de nivel, un botón abre el panel de
+-- mejoras y talentos (y se abre solo al cerrar el resumen si quedan puntos).
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -6,6 +8,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Progression = require(Shared.Progression)
 local Remotes = require(Shared.Remotes)
 local Profile = require(script.Parent.Profile)
+local ShopUI = require(script.Parent.ShopUI)
 
 local GOLD = Color3.fromRGB(255, 215, 100)
 local AUTO_CLOSE = 14
@@ -41,6 +44,77 @@ local function hide()
 	gui.Enabled = false
 end
 
+-- Tabla del equipo: una fila por jugador, la tuya resaltada
+local function teamTable(team)
+	if #team == 0 then
+		return
+	end
+	local me = Players.LocalPlayer.UserId
+	local columns = { { "Jugador", 0.4 }, { "🧟", 0.14 }, { "💀", 0.12 }, { "💰", 0.17 }, { "⭐ XP", 0.17 } }
+	local frame = Instance.new("Frame")
+	frame.Size = UDim2.new(1, -40, 0, 26 * (#team + 1) + 8)
+	frame.BackgroundColor3 = Color3.fromRGB(14, 16, 18)
+	frame.BackgroundTransparency = 0.2
+	frame.LayoutOrder = nextOrder()
+	frame.Parent = panel
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 8)
+	corner.Parent = frame
+	local function line(index: number, values: { string }, color: Color3, highlight: boolean)
+		local x = 0
+		if highlight then
+			local back = Instance.new("Frame")
+			back.Position = UDim2.fromOffset(4, 4 + index * 26)
+			back.Size = UDim2.new(1, -8, 0, 24)
+			back.BackgroundColor3 = GOLD
+			back.BackgroundTransparency = 0.82
+			back.BorderSizePixel = 0
+			back.Parent = frame
+		end
+		for column, info in columns do
+			local cell = Instance.new("TextLabel")
+			cell.Position = UDim2.new(x, 10, 0, 4 + index * 26)
+			cell.Size = UDim2.new(info[2], -10, 0, 24)
+			cell.BackgroundTransparency = 1
+			cell.Font = if index == 0 then Enum.Font.GothamBlack else Enum.Font.GothamBold
+			cell.TextSize = 15
+			cell.TextColor3 = color
+			cell.TextXAlignment = if column == 1 then Enum.TextXAlignment.Left else Enum.TextXAlignment.Center
+			cell.TextTruncate = Enum.TextTruncate.AtEnd
+			cell.Text = values[column]
+			cell.ZIndex = 2
+			cell.Parent = frame
+			x += info[2]
+		end
+	end
+	local header = {}
+	for _, info in columns do
+		table.insert(header, info[1])
+	end
+	line(0, header, Color3.fromRGB(180, 180, 190), false)
+	for index, row in team do
+		local medal = if index == 1 then "🥇 " elseif index == 2 then "🥈 " elseif index == 3 then "🥉 " else ""
+		line(index, { medal .. row.Name, tostring(row.Kills), tostring(row.BossKills), tostring(row.Coins), tostring(row.Xp) }, Color3.new(1, 1, 1), row.UserId == me)
+	end
+end
+
+-- Abre el panel de talentos encima; si la votación sigue, el resumen vuelve
+-- al cerrarlo para poder votar
+local function openTalents()
+	local thisShow = showCount
+	gui.Enabled = false
+	ShopUI.open("Trainer")
+	task.spawn(function()
+		while ShopUI.isOpen() and showCount == thisShow do
+			task.wait(0.2)
+		end
+		local state = ReplicatedStorage:FindFirstChild("GameState")
+		if showCount == thisShow and state and state:GetAttribute("Vote") == true then
+			gui.Enabled = true
+		end
+	end)
+end
+
 local function show(summary)
 	for _, child in panel:GetChildren() do
 		if child:IsA("TextLabel") or child:IsA("TextButton") or child:IsA("Frame") then
@@ -59,8 +133,8 @@ local function show(summary)
 	elseif summary.BestWave and summary.BestWave > 0 then
 		makeLabel(panel, `🏆 Tu récord: {summary.BestWave} oleadas`, 17)
 	end
-	makeLabel(panel, `🪙 +{summary.Coins} monedas`, 20, GOLD)
-	makeLabel(panel, `⭐ +{summary.Xp} XP de cuenta`, 24, Color3.fromRGB(120, 200, 255))
+	makeLabel(panel, `💰 +{summary.Coins} monedas     ⭐ +{summary.Xp} XP de cuenta`, 20, GOLD)
+	teamTable(summary.Team or {})
 
 	local data = Profile.get()
 	local bar = Instance.new("Frame")
@@ -79,8 +153,23 @@ local function show(summary)
 	if summary.Levels > 0 then
 		makeLabel(panel, `🎉 ¡Subiste {summary.Levels} nivel{if summary.Levels > 1 then "es" else ""}!`, 24, GOLD)
 	end
-	if summary.StatPoints > 0 or summary.TalentPoints > 0 then
-		makeLabel(panel, `Tienes {summary.StatPoints} punto(s) de mejora y {summary.TalentPoints} de talento. Gástalos con Don Ramiro, el Veterano.`, 16, nil, 44)
+	local hasPoints = summary.StatPoints > 0 or summary.TalentPoints > 0
+	if hasPoints then
+		makeLabel(panel, `Tienes {summary.StatPoints} punto(s) de mejora y {summary.TalentPoints} de talento.`, 16, nil, 24)
+		local spend = Instance.new("TextButton")
+		spend.Size = UDim2.fromOffset(300, 44)
+		spend.BackgroundColor3 = Color3.fromRGB(120, 200, 255)
+		spend.Font = Enum.Font.GothamBlack
+		spend.TextSize = 18
+		spend.TextColor3 = Color3.fromRGB(16, 26, 60)
+		spend.Text = "⭐ Repartir mis puntos"
+		spend.Modal = true
+		spend.LayoutOrder = nextOrder()
+		spend.Parent = panel
+		local spendCorner = Instance.new("UICorner")
+		spendCorner.CornerRadius = UDim.new(0, 10)
+		spendCorner.Parent = spend
+		spend.Activated:Connect(openTalents)
 	end
 
 	-- Votación: Reintentar o Volver al lobby (el lobby solo si vinieron de una sala)
@@ -134,7 +223,7 @@ local function show(summary)
 	task.spawn(function()
 		local seenVote = false
 		local started = os.clock()
-		while showCount == thisShow and gui.Enabled do
+		while showCount == thisShow do
 			local voting = state ~= nil and state:GetAttribute("Vote") == true
 			if voting then
 				seenVote = true
@@ -146,6 +235,11 @@ local function show(summary)
 				voteLabel.Text = `{if myVote then "Votaste. " else "Elige: "}{counts}   ·   ⏳ {left} s`
 			elseif seenVote or os.clock() - started > AUTO_CLOSE then
 				hide()
+				-- Si le quedan puntos por repartir, se abre el panel de talentos
+				local data = Profile.get()
+				if (data.StatPoints > 0 or data.TalentPoints > 0) and not ShopUI.isOpen() then
+					ShopUI.open("Trainer")
+				end
 				break
 			end
 			task.wait(0.2)

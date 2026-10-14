@@ -540,12 +540,12 @@ function Hud.init(actions: Actions)
 
 	local function refreshProfile()
 		local data = Profile.get()
-		coinsLabel.Text = `🪙 {Profile.coins()}`
+		coinsLabel.Text = `💰 {Profile.coins()}`
 		local points = data.StatPoints + data.TalentPoints
 		levelLabel.Text = `⭐ Nivel {data.Level} · {data.Xp}/{Progression.xpNeeded(data.Level)} XP{if points > 0 then "  (¡puntos!)" else ""}`
 		xpFill.Size = UDim2.fromScale(math.clamp(data.Xp / math.max(Progression.xpNeeded(data.Level), 1), 0, 1), 1)
 		local matchXp = player:GetAttribute("MatchXp") or 0
-		matchLabel.Text = if matchXp > 0 then `+{matchXp} XP al terminar la partida` else ""
+		matchLabel.Text = if matchXp > 0 then `+{matchXp} XP en esta partida` else ""
 		for id, slot in weaponSlots do
 			local level = data.Weapons[id]
 			slot.Visible = level ~= nil

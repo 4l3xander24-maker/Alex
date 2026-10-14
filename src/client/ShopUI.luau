@@ -147,7 +147,7 @@ local function renderArmory(data: Progression.Profile, coins: number)
 		local nameColor = nil
 
 		if level == nil then
-			table.insert(buttons, { Text = `Comprar 🪙{weapon.Price}`, Enabled = coins >= weapon.Price, OnClick = function()
+			table.insert(buttons, { Text = `Comprar 💰{weapon.Price}`, Enabled = coins >= weapon.Price, OnClick = function()
 				runAction("BuyWeapon", id)
 			end })
 		else
@@ -158,7 +158,7 @@ local function renderArmory(data: Progression.Profile, coins: number)
 			if level < Config.WeaponUpgrade.MaxLevel then
 				local cost = Progression.weaponUpgradeCost(id, level)
 				local nextTier = Progression.weaponTier(level + 1)
-				table.insert(buttons, { Text = `{nextTier.Name} 🪙{cost}`, Enabled = coins >= cost, OnClick = function()
+				table.insert(buttons, { Text = `{nextTier.Name} 💰{cost}`, Enabled = coins >= cost, OnClick = function()
 					runAction("UpgradeWeapon", id)
 				end })
 			else
@@ -183,7 +183,7 @@ local function renderQuartermaster(data: Progression.Profile, coins: number)
 	local pistol = Progression.getWeaponStats(data, "Pistol", false)
 	row("🎒", `Cartuchera  ·  Nv {level}/{storage.MaxLevel}`, `Ahora cargas x{string.format("%.2f", multiplier)} balas (pistola: {pistol.StartReserve} al empezar, máximo {pistol.MaxReserve}).\nCada nivel: +{math.floor(storage.PerLevel * 100)}% en todas las armas.`, {
 		if cost
-			then { Text = `Mejorar 🪙{cost}`, Enabled = coins >= cost, OnClick = function()
+			then { Text = `Mejorar 💰{cost}`, Enabled = coins >= cost, OnClick = function()
 				runAction("UpgradeStorage", "")
 			end }
 			else { Text = "Máximo", Enabled = false },
@@ -195,7 +195,7 @@ local function renderQuartermaster(data: Progression.Profile, coins: number)
 	sectionHeader("Campana  ·  más vida para la campana (queda guardado)")
 	row("🔔", `Refuerzo de la campana  ·  Nv {armorLevel}/{armor.MaxLevel}`, `Vida de la campana: {Config.Bell.MaxHealth + armorLevel * armor.HealthPerLevel}. Cada nivel: +{armor.HealthPerLevel}.\nEn la partida cuenta el refuerzo más alto del servidor.`, {
 		if armorCost
-			then { Text = `Mejorar 🪙{armorCost}`, Enabled = coins >= armorCost, OnClick = function()
+			then { Text = `Mejorar 💰{armorCost}`, Enabled = coins >= armorCost, OnClick = function()
 				runAction("UpgradeBell", "")
 			end }
 			else { Text = "Máximo", Enabled = false },
@@ -207,7 +207,7 @@ local function renderQuartermaster(data: Progression.Profile, coins: number)
 	local placed = gameState:GetAttribute("Mines") or 0
 	local maxMines = gameState:GetAttribute("MinesMax") or #mine.Spots
 	row(mine.Icon, `{mine.DisplayName}  ·  {placed}/{maxMines} enterradas`, `Explota cuando pasa un zombi: {mine.Damage} de daño en {mine.Radius} studs (más fuerte en oleadas altas).`, {
-		{ Text = `Comprar 🪙{mine.Price}`, Enabled = placed < maxMines and coins >= mine.Price, OnClick = function()
+		{ Text = `Comprar 💰{mine.Price}`, Enabled = placed < maxMines and coins >= mine.Price, OnClick = function()
 			runAction("BuyMine", "")
 		end },
 	})
@@ -216,7 +216,7 @@ local function renderQuartermaster(data: Progression.Profile, coins: number)
 		local health = gameState:GetAttribute("Gate" .. id) or 0
 		local built = health > 0
 		row(gate.Icon, slot.Name, `Cierra ese camino: los zombis se detienen a romperla ({gate.Health} de vida). Los dragones pasan volando.{if built then `\nVida: {health}/{gate.Health}` else ""}`, {
-			{ Text = if built then "Construida" else `Construir 🪙{gate.Price}`, Enabled = not built and coins >= gate.Price, OnClick = function()
+			{ Text = if built then "Construida" else `Construir 💰{gate.Price}`, Enabled = not built and coins >= gate.Price, OnClick = function()
 				runAction("BuyGate", id)
 			end },
 		})
@@ -231,7 +231,7 @@ local function renderMystic(data: Progression.Profile, coins: number)
 		local description = `{power.Description}. Tecla {power.Key.Name}.`
 		local buttons: { ButtonSpec } = {}
 		if level == nil then
-			table.insert(buttons, { Text = `Comprar 🪙{power.Price}`, Enabled = coins >= power.Price, OnClick = function()
+			table.insert(buttons, { Text = `Comprar 💰{power.Price}`, Enabled = coins >= power.Price, OnClick = function()
 				runAction("BuyPower", id)
 			end })
 		else
@@ -239,7 +239,7 @@ local function renderMystic(data: Progression.Profile, coins: number)
 			description ..= `\nNv {level}/{power.MaxLevel} · espera {string.format("%.1f", stats.Cooldown)} s · siguiente: {power.LevelText}`
 			if level < power.MaxLevel then
 				local cost = Progression.powerUpgradeCost(id, level)
-				table.insert(buttons, { Text = `Mejorar 🪙{cost}`, Enabled = coins >= cost, OnClick = function()
+				table.insert(buttons, { Text = `Mejorar 💰{cost}`, Enabled = coins >= cost, OnClick = function()
 					runAction("UpgradePower", id)
 				end })
 			else
@@ -256,7 +256,7 @@ local function renderMystic(data: Progression.Profile, coins: number)
 		local description = `{pet.Description}. Daño {pet.Damage} · {pet.Rate} ataques/s · alcance {pet.Range}{if pet.Splash then ` · en área` else ""}.`
 		local buttons: { ButtonSpec } = {}
 		if not data.Pets[id] then
-			table.insert(buttons, { Text = `Comprar 🪙{pet.Price}`, Enabled = coins >= pet.Price, OnClick = function()
+			table.insert(buttons, { Text = `Comprar 💰{pet.Price}`, Enabled = coins >= pet.Price, OnClick = function()
 				runAction("BuyPet", id)
 			end })
 		elseif data.Pet == id then
@@ -317,7 +317,7 @@ local function renderTrainer(data: Progression.Profile)
 	local nextTalent = (data.Level // Config.Progression.TalentEvery + 1) * Config.Progression.TalentEvery
 	local rowHeight = 34
 	local rows = math.max(#Config.Stats, #Config.Talents)
-	local open = isOpen()
+	local open = true -- los puntos se reparten siempre, también en plena partida
 
 	local board = Instance.new("Frame")
 	board.BackgroundTransparency = 1
@@ -415,9 +415,9 @@ function ShopUI.render()
 	local titles = TITLES[currentShop]
 	title.Text = titles[1]
 	local xpText = `Nivel {data.Level} · {data.Xp}/{Progression.xpNeeded(data.Level)} XP`
-	subtitle.Text = `{titles[2]}   ·   🪙 {coins}   ·   {xpText}`
+	subtitle.Text = `{titles[2]}   ·   💰 {coins}   ·   {xpText}`
 
-	closedBanner.Visible = not isOpen()
+	closedBanner.Visible = not isOpen() and currentShop ~= "Trainer"
 	if currentShop == "Armory" then
 		renderArmory(data, coins)
 	elseif currentShop == "Mystic" then

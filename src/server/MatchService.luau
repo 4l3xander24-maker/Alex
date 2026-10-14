@@ -1,5 +1,7 @@
 -- Lleva la cuenta de cada jugador durante la partida (oleadas, bajas,
--- monedas) y al terminar le da la XP de cuenta con un resumen.
+-- monedas). La XP de cuenta se da en el momento (cada zombi y cada oleada),
+-- así se puede subir de nivel en plena partida; al terminar manda el resumen
+-- con la tabla de todo el equipo.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -15,7 +17,13 @@ type MatchStats = {
 	BossKills: number,
 	Coins: number,
 	Waves: number,
+	Xp: number, -- XP ya entregada en esta partida
+	XpExact: number, -- con decimales (el bono VIP), para no perder fracciones
+	StartLevel: number,
 }
+
+-- Una fila de la tabla del equipo al final
+export type TeamRow = { Name: string, UserId: number, Kills: number, BossKills: number, Coins: number, Xp: number, Waves: number }
 
 local MatchService = {}
 
@@ -24,54 +32,72 @@ local stats: { [Player]: MatchStats } = {}
 local function ensure(player: Player): MatchStats
 	local entry = stats[player]
 	if not entry then
-		entry = { Kills = 0, BossKills = 0, Coins = 0, Waves = 0 }
+		local data = DataService.get(player)
+		entry = { Kills = 0, BossKills = 0, Coins = 0, Waves = 0, Xp = 0, XpExact = 0, StartLevel = if data then data.Level else 1 }
 		stats[player] = entry
 	end
 	return entry
 end
 
-function MatchService.getXp(entry: MatchStats): number
-	local progression = Config.Progression
-	return entry.Waves * progression.XpPerWave + entry.Kills * progression.XpPerKill + entry.BossKills * progression.XpPerBossKill
-end
-
 -- El HUD muestra cuánta XP llevas ganada en esta partida
 local function publish(player: Player, entry: MatchStats)
-	player:SetAttribute("MatchXp", MatchService.getXp(entry))
+	player:SetAttribute("MatchXp", entry.Xp)
 	player:SetAttribute("MatchKills", entry.Kills)
+end
+
+-- Da XP de cuenta ya mismo (con el bono VIP). Si sube de nivel, el cliente
+-- muestra el cartel de "¡SUBISTE DE NIVEL!" al instante.
+local function grantXp(player: Player, entry: MatchStats, amount: number)
+	if StoreService.hasPass(player, "Vip") then
+		amount *= 1 + Config.Monetization.VipXpBonus
+	end
+	entry.XpExact += amount
+	local whole = math.floor(entry.XpExact) - entry.Xp
+	if whole > 0 then
+		entry.Xp += whole
+		DataService.addXp(player, whole)
+	end
+	publish(player, entry)
 end
 
 function MatchService.onKill(player: Player, isBoss: boolean, coins: number)
 	local entry = ensure(player)
+	local progression = Config.Progression
 	entry.Kills += 1
 	entry.Coins += coins
 	if isBoss then
 		entry.BossKills += 1
 	end
-	publish(player, entry)
+	grantXp(player, entry, progression.XpPerKill + (if isBoss then progression.XpPerBossKill else 0))
 end
 
 function MatchService.onWaveCleared()
 	for _, player in Players:GetPlayers() do
 		local entry = ensure(player)
 		entry.Waves += 1
-		publish(player, entry)
+		grantXp(player, entry, Config.Progression.XpPerWave)
 	end
 end
 
--- Da la XP de la partida. Si el jugador sigue conectado, le manda el resumen.
-function MatchService.award(player: Player, wave: number)
+local function teamRows(): { TeamRow }
+	local rows: { TeamRow } = {}
+	for player, entry in stats do
+		table.insert(rows, { Name = player.DisplayName, UserId = player.UserId, Kills = entry.Kills, BossKills = entry.BossKills, Coins = entry.Coins, Xp = entry.Xp, Waves = entry.Waves })
+	end
+	table.sort(rows, function(a, b)
+		return if a.Kills ~= b.Kills then a.Kills > b.Kills else a.Xp > b.Xp
+	end)
+	return rows
+end
+
+-- Cierra la partida de un jugador: récord, ranking y el resumen (si sigue
+-- conectado). La XP ya se entregó durante la partida.
+function MatchService.award(player: Player, wave: number, team: { TeamRow }?)
 	local entry = stats[player]
 	stats[player] = nil
 	if not entry then
 		return
 	end
-	local xp = MatchService.getXp(entry)
-	-- VIP: más XP
-	if StoreService.hasPass(player, "Vip") then
-		xp = math.floor(xp * (1 + Config.Monetization.VipXpBonus))
-	end
-	local levels = if xp > 0 then DataService.addXp(player, xp) else 0
 	local data = DataService.get(player)
 	local previousBest = if data then data.BestWave else 0
 	local newRecord = data ~= nil and entry.Waves > previousBest
@@ -94,14 +120,15 @@ function MatchService.award(player: Player, wave: number)
 			Kills = entry.Kills,
 			BossKills = entry.BossKills,
 			Coins = entry.Coins,
-			Xp = xp,
-			Levels = levels,
+			Xp = entry.Xp,
+			Levels = math.max(0, data.Level - entry.StartLevel),
 			Level = data.Level,
 			StatPoints = data.StatPoints,
 			TalentPoints = data.TalentPoints,
 			BestWave = data.BestWave,
 			PreviousBest = previousBest,
 			NewRecord = newRecord,
+			Team = team or {},
 		})
 	end
 end
@@ -111,8 +138,9 @@ function MatchService.endMatch(wave: number)
 	for _, player in Players:GetPlayers() do
 		ensure(player)
 	end
+	local team = teamRows()
 	for player in stats do
-		MatchService.award(player, wave)
+		MatchService.award(player, wave, team)
 	end
 end
 

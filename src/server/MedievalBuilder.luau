@@ -81,17 +81,26 @@ function MedievalBuilder.paintPaths(terrain: Terrain)
 			local a, b = points[index - 1], points[index]
 			local length = (b - a).Magnitude
 			local middle = (a + b) / 2
-			-- Al ras del suelo de cada lado (el bosque está más abajo)
+			-- Al ras del suelo de cada lado (el bosque está más abajo). Alto 4 justo:
+			-- el terreno va en bloques de 4 y con 4.1 el suelo subía 2 studs sobre
+			-- el piso por donde caminan los zombis
 			local ground = Paths.groundHeight(middle)
-			terrain:FillBlock(CFrame.lookAt(middle, b) * CFrame.new(0, -2 + ground, 0), Vector3.new(width, 4.1, length), material)
+			-- Los zombis caminan justo a esta altura: se vacía lo que sobresalga
+			-- encima (manchas de pasto alto, lodo, bordes de las islas), si no lo
+			-- atraviesan. Los tramos del puente los limpia MapBuilder (rampa).
+			if not (Paths.onBridge(a) or Paths.onBridge(b) or Paths.onBridge(middle)) then
+				terrain:FillBlock(CFrame.lookAt(middle, b) * CFrame.new(0, ground + 12, 0), Vector3.new(width + 2, 24, length + 4), Enum.Material.Air)
+				terrain:FillCylinder(CFrame.new(a.X, Paths.groundHeight(a) + 12, a.Z), 24, width / 2 + 1, Enum.Material.Air)
+			end
+			terrain:FillBlock(CFrame.lookAt(middle, b) * CFrame.new(0, -2 + ground, 0), Vector3.new(width, 4, length), material)
 			-- Esquinas redondeadas en cada curva
-			terrain:FillCylinder(CFrame.new(a.X, -2 + Paths.groundHeight(a), a.Z), 4.1, width / 2, material)
+			terrain:FillCylinder(CFrame.new(a.X, -2 + Paths.groundHeight(a), a.Z), 4, width / 2, material)
 		end
 		-- Charcos de lodo en el camino de tierra
 		if name == "Main" then
 			for distance = 60, 220, 45 do
 				local point = Paths.pointFromBell(name, distance + random:NextNumber(-8, 8))
-				terrain:FillBall(point + Vector3.new(random:NextNumber(-1.5, 1.5), -3.4 + Paths.groundHeight(point), random:NextNumber(-1.5, 1.5)), random:NextNumber(2.5, 3.5), Enum.Material.Mud)
+				terrain:FillBall(point + Vector3.new(random:NextNumber(-1.5, 1.5), -3.6 + Paths.groundHeight(point), random:NextNumber(-1.5, 1.5)), random:NextNumber(2.5, 3.5), Enum.Material.Mud)
 			end
 		end
 	end

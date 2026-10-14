@@ -260,12 +260,65 @@ local function isAimInput(input: InputObject): boolean
 	return input.UserInputType == Enum.UserInputType.MouseButton2 or input.KeyCode == Enum.KeyCode.ButtonL2
 end
 
+-- Los menús (tiendas de los NPC, resumen, tienda) liberan el mouse con un
+-- botón Modal, pero el puntero sigue escondido por el arma: se muestra
+-- mientras haya alguno visible y se vuelve a esconder al cerrarlo.
+local function watchMenus()
+	local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
+	local modals: { [GuiButton]: boolean } = {}
+	local function track(instance: Instance)
+		if instance:IsA("GuiButton") then
+			modals[instance] = true
+		end
+	end
+	for _, descendant in playerGui:GetDescendants() do
+		track(descendant)
+	end
+	playerGui.DescendantAdded:Connect(track)
+	playerGui.DescendantRemoving:Connect(function(instance)
+		modals[instance :: any] = nil
+	end)
+	local function isShown(button: GuiButton): boolean
+		if not button.Modal or not button.Visible then
+			return false
+		end
+		local parent = button.Parent
+		while parent and parent ~= playerGui do
+			if parent:IsA("LayerCollector") then
+				if not parent.Enabled then
+					return false
+				end
+			elseif parent:IsA("GuiObject") and not parent.Visible then
+				return false
+			end
+			parent = parent.Parent
+		end
+		return true
+	end
+	task.spawn(function()
+		while true do
+			local open = false
+			for button in modals do
+				if isShown(button) then
+					open = true
+					break
+				end
+			end
+			if UserInputService.MouseIconEnabled ~= open then
+				UserInputService.MouseIconEnabled = open
+			end
+			task.wait(0.15)
+		end
+	end)
+end
+
 function WeaponController.init(folder: Instance, hitCallback: () -> ())
 	enemyFolder = folder
 	onEnemyHit = hitCallback
 
 	if UserInputService.MouseEnabled then
 		UserInputService.MouseIconEnabled = false
+		watchMenus()
 	end
 
 	UserInputService.InputBegan:Connect(function(input, processed)

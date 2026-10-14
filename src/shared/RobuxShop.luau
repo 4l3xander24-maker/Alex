@@ -177,7 +177,7 @@ local function refresh()
 			end })
 		else
 			if info.CoinPrice then
-				table.insert(buttons, { Text = `🪙 {info.CoinPrice}`, Color = Color3.fromRGB(190, 140, 30), OnClick = function()
+				table.insert(buttons, { Text = `💰 {info.CoinPrice}`, Color = Color3.fromRGB(190, 140, 30), OnClick = function()
 					local ok, bought, message = pcall(function()
 						return remote:InvokeServer("BuyCoins", skin.Id)
 					end)
@@ -215,7 +215,7 @@ local function refresh()
 	end
 
 	if showCoins then
-		header("🪙 Monedas", nextOrder())
+		header("💰 Monedas", nextOrder())
 		for _, key in { "CoinsSmall", "CoinsBig" } do
 			local product = (monetization.Products :: any)[key]
 			if product.Id == 0 then

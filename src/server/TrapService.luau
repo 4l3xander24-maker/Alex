@@ -63,7 +63,7 @@ end
 function TrapService.getMineSpot(index: number): Vector3
 	local spot = mineConfig.Spots[index]
 	local position = Paths.pointFromBell(spot[1], spot[2])
-	return position + Vector3.new(0, Paths.groundHeight(position), 0)
+	return position + Vector3.new(0, Paths.walkHeight(position), 0)
 end
 
 -- La reja cruza el camino de lado a lado
@@ -121,7 +121,7 @@ function TrapService.buildGate(id: string): boolean
 	model.Name = "Gate" .. id
 	local offset = b - a
 	local length = offset.Magnitude
-	local lift = Vector3.new(0, Paths.groundHeight((a + b) / 2), 0)
+	local lift = Vector3.new(0, Paths.walkHeight((a + b) / 2), 0)
 	local frame = CFrame.lookAt(a + lift, b + lift) -- -Z va de A hacia B; X atraviesa el muro
 	local thickness = 3
 	local wallHeight = 9

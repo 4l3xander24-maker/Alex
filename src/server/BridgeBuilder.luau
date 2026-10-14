@@ -10,6 +10,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Paths = require(ReplicatedStorage.Shared.Paths)
 local Props = require(script.Parent.Props)
 
 local makePart, makeProp = Props.makePart, Props.makeProp
@@ -32,7 +33,9 @@ local DECK = 1.5 -- grosor de las losas (arriba en y = 0)
 -- extremo del bosque está ForestDrop más abajo: el puente es una rampa.
 local function bridgeFrame(from: Vector3, to: Vector3): (CFrame, number)
 	local drop = arena.ForestDrop or 0
-	local flatFrom, flatTo = Vector3.new(from.X, -drop, from.Z), Vector3.new(to.X, 0, to.Z)
+	-- A la altura del suelo de verdad (el terreno queda un poco más arriba)
+	local surface = Paths.surface()
+	local flatFrom, flatTo = Vector3.new(from.X, surface - drop, from.Z), Vector3.new(to.X, surface, to.Z)
 	return CFrame.lookAt((flatFrom + flatTo) / 2, flatTo), (Vector3.new(to.X, 0, to.Z) - Vector3.new(from.X, 0, from.Z)).Magnitude
 end
 
@@ -235,7 +238,7 @@ function BridgeBuilder.buildVillageBridge(map: Instance): (Folder, BasePart)
 	label.Font = Config.PixelFont
 	label.TextScaled = true
 	label.TextColor3 = Color3.fromRGB(255, 225, 140)
-	label.Text = `ALDEA\nPuente roto · {info.Price} 🪙`
+	label.Text = `ALDEA\nPuente roto · {info.Price} 💰`
 	label.Parent = surface
 
 	model.Parent = map

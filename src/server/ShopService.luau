@@ -16,7 +16,9 @@ local TrapService = require(script.Parent.TrapService)
 local NOT_ENOUGH = "No tienes suficientes monedas"
 local CLOSED = "🔒 Las tiendas solo abren antes de la partida"
 -- Acciones que se pueden hacer en cualquier momento
-local ALWAYS_ALLOWED = { EquipWeapon = true, RepairVillageBridge = true, EquipPet = true, FinishTutorial = true }
+-- Mejoras y talentos se reparten en cualquier momento (también al terminar la
+-- partida, después de subir de nivel)
+local ALWAYS_ALLOWED = { EquipWeapon = true, RepairVillageBridge = true, EquipPet = true, FinishTutorial = true, AddStat = true, LearnTalent = true }
 
 local ShopService = {}
 
@@ -191,7 +193,7 @@ function actions.RepairVillageBridge(player, data, _id)
 	end
 	local price = Config.Arena.VillageBridge.Price
 	if not DataService.spendCoins(player, price) then
-		return false, `Reparar el puente cuesta {price} 🪙`
+		return false, `Reparar el puente cuesta {price} 💰`
 	end
 	data.VillageBridge = true
 	return true, "🔨 ¡Reparaste el puente! Ya puedes ir a la aldea"

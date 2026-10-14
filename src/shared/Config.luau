@@ -252,7 +252,13 @@ Config.Arena = {
 	Bell = Vector3.new(0, 0, -24), -- frente a la puerta del castillo
 	-- El bosque (al norte del canal) está más abajo que la isla del campamento;
 	-- el puente de piedra sube como una rampa de un lado al otro
-	ForestDrop = 10,
+	-- Múltiplo de 4: el terreno de Roblox se arma en bloques de 4 studs y con
+	-- otro valor el suelo queda redondeado (los zombis caminaban hundidos)
+	ForestDrop = 8,
+	-- El terreno de Roblox queda 2 studs por encima de lo que se rellena (va en
+	-- bloques de 4): el suelo de verdad está en y = 2. Los zombis, las trampas
+	-- y el puente usan esa altura (Paths.walkHeight)
+	TerrainSurface = 2,
 	StopRadius = 9, -- distancia a la campana donde se paran a golpear
 	StopJitter = 3,
 	CampCenter = Vector3.new(0, 0, 38),
@@ -647,7 +653,7 @@ Config.Monetization = {
 	-- Productos: se compran las veces que quieras (solo dentro de la partida)
 	Products = {
 		Revive = { Id = 0, Name = "Revivir", Icon = "💖", Description = "Vuelves a la partida con la vida llena." },
-		CoinsSmall = { Id = 0, Name = "Bolsa de monedas", Icon = "🪙", Description = "+500 monedas.", Coins = 500 },
+		CoinsSmall = { Id = 0, Name = "Bolsa de monedas", Icon = "💰", Description = "+500 monedas.", Coins = 500 },
 		CoinsBig = { Id = 0, Name = "Cofre de monedas", Icon = "💎", Description = "+2000 monedas.", Coins = 2000 },
 	},
 	ReviveWindow = 10, -- segundos para comprar Revivir después de caer
@@ -965,7 +971,7 @@ Config.Stats = {
 	{ Id = "FireRate", Name = "Cadencia", Icon = "⚡", PerPoint = 0.03, Max = 10, Text = "+%d%% de disparos por segundo", Percent = true },
 	{ Id = "Ammo", Name = "Munición", Icon = "📦", PerPoint = 0.08, Max = 10, Text = "+%d%% de balas por cargador", Percent = true },
 	{ Id = "Crit", Name = "Crítico", Icon = "🎯", PerPoint = 0.02, Max = 10, Text = "+%d%% de probabilidad de crítico", Percent = true },
-	{ Id = "Loot", Name = "Botín", Icon = "🪙", PerPoint = 0.05, Max = 10, Text = "+%d%% de monedas", Percent = true },
+	{ Id = "Loot", Name = "Botín", Icon = "💰", PerPoint = 0.05, Max = 10, Text = "+%d%% de monedas", Percent = true },
 	{ Id = "Power", Name = "Poder", Icon = "✨", PerPoint = 0.05, Max = 10, Text = "+%d%% de daño de poderes y menos espera", Percent = true },
 }
 
