@@ -70,6 +70,14 @@ function StoreUi.init()
 	button.TextSize = 15
 	button.TextColor3 = Color3.new(1, 1, 1)
 	button.Text = if UserInputService.TouchEnabled then "🛒 Tienda" else "🛒 Tienda [B]"
+	if UserInputService.TouchEnabled then
+		-- En celular, justo debajo de las monedas y la hora (más abajo van la
+		-- munición y los botones de disparo), dentro del área segura del teléfono
+		gui.ScreenInsets = Enum.ScreenInsets.DeviceSafeInsets
+		button.Position = UDim2.new(1, -16, 0, 58)
+		button.Size = UDim2.fromOffset(110, 30)
+		button.TextSize = 14
+	end
 	button.Parent = gui
 	corner(button, 8)
 	button.Activated:Connect(toggleShop)

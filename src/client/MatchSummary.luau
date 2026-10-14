@@ -280,6 +280,19 @@ function MatchSummary.init()
 	layout.SortOrder = Enum.SortOrder.LayoutOrder
 	layout.Parent = panel
 
+	-- En pantallas bajas (celular acostado) el panel se achica para que entre
+	local fit = Instance.new("UIScale")
+	fit.Parent = panel
+	local function refit()
+		local height = workspace.CurrentCamera.ViewportSize.Y
+		local needed = panel.AbsoluteSize.Y / math.max(fit.Scale, 0.01)
+		fit.Scale = if needed > 0 then math.clamp((height - 24) / needed, 0.55, 1) else 1
+	end
+	panel:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+		task.defer(refit)
+	end)
+	workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(refit)
+
 	gui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
 
 	Remotes.MatchSummary.OnClientEvent:Connect(function(summary)

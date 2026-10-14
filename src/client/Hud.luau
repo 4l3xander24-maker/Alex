@@ -465,26 +465,64 @@ function Hud.init(actions: Actions)
 
 	local aimButton, sprintButton
 	if touch then
-		local fire = makeRoundButton(gui, "🔫", UDim2.new(1, -40, 1, -170), 110, Color3.fromRGB(220, 60, 50))
+		-- Nada debajo de la muesca ni de las esquinas redondeadas del teléfono
+		gui.ScreenInsets = Enum.ScreenInsets.DeviceSafeInsets
+		-- Celular (pantalla baja y ancha): abajo a la izquierda va el joystick de
+		-- Roblox y abajo a la derecha su botón de saltar, así que nada se pone
+		-- encima de ellos. Arriba a la izquierda: vida, XP y poderes. A la derecha,
+		-- de abajo hacia arriba: disparar (al lado del salto), recargar y cambiar
+		-- de arma, y más arriba las armas con su munición.
+		local fire = makeRoundButton(gui, "🔫", UDim2.new(1, -118, 1, -26), 92, Color3.fromRGB(220, 60, 50))
 		bindHoldButton(fire, actions.setTrigger)
-		local reload = makeRoundButton(gui, "🔄", UDim2.new(1, -165, 1, -190), 60, PANEL_COLOR)
+		local reload = makeRoundButton(gui, "RECARGAR", UDim2.new(1, -28, 1, -128), 64, PANEL_COLOR)
+		reload.Font = Enum.Font.GothamBlack
+		reload.TextSize = 11
+		reload.TextColor3 = Color3.new(1, 1, 1)
 		reload.Activated:Connect(actions.reload)
-		local swap = makeRoundButton(gui, "🔁", UDim2.new(1, -165, 1, -260), 54, PANEL_COLOR)
+		local swap = makeRoundButton(gui, "ARMA", UDim2.new(1, -218, 1, -36), 56, PANEL_COLOR)
+		swap.Font = Enum.Font.GothamBlack
+		swap.TextSize = 12
+		swap.TextColor3 = Color3.new(1, 1, 1)
 		swap.Activated:Connect(actions.cycleWeapon)
-		aimButton = makeRoundButton(gui, "🔭", UDim2.new(1, -60, 1, -290), 60, PANEL_COLOR)
+		aimButton = makeRoundButton(gui, "🔭", UDim2.new(1, -112, 1, -128), 56, PANEL_COLOR)
 		local aiming = false
 		aimButton.Activated:Connect(function()
 			aiming = not aiming
 			actions.setAiming(aiming)
 		end)
-		sprintButton = makeRoundButton(gui, "🏃", UDim2.new(0, 250, 1, -110), 60, PANEL_COLOR)
-		sprintButton.AnchorPoint = Vector2.new(0, 1)
+		-- Armas (solo para ver cuál llevas) y munición, encima de los botones
+		weaponRow.Position = UDim2.new(1, -16, 1, -202)
+		weaponRow.Size = UDim2.fromOffset(400, 34)
+		for _, slot in weaponSlots do
+			slot.Size = UDim2.fromOffset(54, 34)
+		end
+		weaponName.Visible = false
+		ammoLabel.Position = UDim2.new(1, -20, 1, -238)
+		ammoLabel.Size = UDim2.fromOffset(220, 32)
+		ammoLabel.TextSize = 28
+		melee.Position = UDim2.new(1, -20, 1, -238)
+		reloadBack.Position = UDim2.new(1, -140, 1, -198)
+		-- Vida, XP, poderes y correr arriba a la izquierda, debajo de los botones de Roblox
+		healthBack.Position = UDim2.new(0, 16, 0, 64)
+		healthBack.Size = UDim2.fromOffset(190, 14)
+		xpBack.Position = UDim2.new(0, 16, 0, 82)
+		xpBack.Size = UDim2.fromOffset(190, 5)
+		powerRow.AnchorPoint = Vector2.new(0, 0)
+		powerRow.Position = UDim2.new(0, 16, 0, 94)
+		for _, slot in powerSlots do
+			slot.Frame.Size = UDim2.fromOffset(50, 50)
+		end
+		dashSlot.Frame.Size = UDim2.fromOffset(50, 50)
+		sprintButton = makeRoundButton(gui, "🏃", UDim2.new(0, 16, 0, 150), 50, PANEL_COLOR)
+		sprintButton.AnchorPoint = Vector2.new(0, 0)
 		bindHoldButton(sprintButton, actions.setSprint)
-		-- Arriba de los botones de disparo y apuntar para que no se encimen
-		weaponRow.Position = UDim2.new(1, -16, 1, -370)
-		weaponName.Position = UDim2.new(1, -20, 1, -402)
-		healthBack.Position = UDim2.new(0, 16, 1, -100)
-		xpBack.Position = UDim2.new(0, 16, 1, -80)
+		-- Arriba a la derecha queda más compacto (monedas y hora)
+		coinsLabel.TextSize = 20
+		coinsLabel.Size = UDim2.fromOffset(160, 24)
+		clockLabel.Position = UDim2.new(1, -16, 0, 34)
+		-- El cartel de la oleada, un poco más chico
+		waveLabel.TextSize = 22
+		statusLabel.TextSize = 14
 	end
 
 	local function refreshState()
@@ -497,7 +535,8 @@ function Hud.init(actions: Actions)
 			waveLabel.Text = "PREPARACIÓN"
 			statusLabel.Text = "Compra en el campamento y reconstruye la campana (E) para empezar"
 		elseif state == "Intermission" then
-			statusLabel.Text = "¡Prepárate, vienen más zombis!"
+			local left = gameState:GetAttribute("EnemiesLeft") or 0
+			statusLabel.Text = if left > 0 then `⚠️ ¡Viene otra horda! · Quedan {left}` else "¡Prepárate, vienen más zombis!"
 		elseif state == "Wave" then
 			statusLabel.Text = `Zombis restantes: {gameState:GetAttribute("EnemiesLeft")}`
 		elseif state == "GameOver" then

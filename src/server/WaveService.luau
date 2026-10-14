@@ -164,6 +164,12 @@ local function runIntermission(seconds: number): boolean
 			GameState.set("EndReason", "Dead")
 			return false
 		end
+		-- Los zombis que quedaron de la horda anterior siguen atacando
+		if GameState.isBellDestroyed() then
+			GameState.set("EndReason", "Bell")
+			return false
+		end
+		GameState.set("EnemiesLeft", EnemyService.getAliveCount())
 		task.wait(0.25)
 	end
 	return true
@@ -191,7 +197,10 @@ local function runWave(wave: number): boolean
 	local spawnRate = WaveService.getSpawnRate(wave)
 	local budget = 0
 
-	while toSpawn > 0 or #bosses > 0 or EnemyService.getAliveCount() > 0 do
+	-- Termina cuando ya salieron todos y quedan pocos vivos (NextWaveAt): los
+	-- que quedan siguen y llega la próxima horda. Con jefes, hay que matarlos a todos.
+	local keep = if wave % waves.BossEvery == 0 then 0 else waves.NextWaveAt
+	while toSpawn > 0 or #bosses > 0 or EnemyService.getAliveCount() > keep do
 		if GameState.isBellDestroyed() or #Players:GetPlayers() == 0 then
 			GameState.set("EndReason", "Bell")
 			return false
@@ -306,7 +315,9 @@ function WaveService.start()
 			local wave = 0
 			repeat
 				wave += 1
-			until not runIntermission(if wave == 1 then waves.FirstIntermission else waves.Intermission) or not runWave(wave)
+				-- Si quedaron zombis de la horda anterior, la siguiente llega enseguida
+				local pause = if wave == 1 then waves.FirstIntermission elseif EnemyService.getAliveCount() > 0 then waves.OverlapIntermission else waves.Intermission
+			until not runIntermission(pause) or not runWave(wave)
 			PlayerService.setInMatch(false)
 
 			GameState.set("State", "GameOver")

@@ -586,6 +586,10 @@ Config.Enemies = {
 Config.Waves = {
 	FirstIntermission = 3,
 	Intermission = 12,
+	-- Cuando quedan estos zombis o menos (y ya salieron todos), viene la
+	-- siguiente horda sin esperar a matarlos. No aplica en oleadas de jefe.
+	NextWaveAt = 5,
+	OverlapIntermission = 3, -- segundos entre hordas cuando quedaron zombis vivos
 	FirstWaveCount = 22,
 	CountGrowth = 1.3, -- cada oleada trae 30% más zombis
 	FirstSpawnRate = 3.5, -- zombis por segundo

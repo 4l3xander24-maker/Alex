@@ -198,6 +198,14 @@ local function buildPanel()
 	panel.BackgroundTransparency = 0.15
 	panel.Visible = false
 	panel.Parent = gui
+	if touch then
+		-- En celular, arriba al centro (debajo del aviso de la oleada): a la
+		-- derecha están los botones de disparar y recargar
+		gui.ScreenInsets = Enum.ScreenInsets.DeviceSafeInsets
+		panel.AnchorPoint = Vector2.new(0.5, 0)
+		panel.Position = UDim2.new(0.5, 0, 0, 66)
+		panel.Size = UDim2.fromOffset(340, 92)
+	end
 	local corner = Instance.new("UICorner")
 	corner.CornerRadius = UDim.new(0, 10)
 	corner.Parent = panel

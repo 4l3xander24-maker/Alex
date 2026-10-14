@@ -91,7 +91,14 @@ end
 
 -- Cambia el recorrido del zombi y lo anota para mandarlo a los clientes
 local function setRoute(enemy: Enemy, points: { Vector3 }, now: number)
-	enemy.Path = EnemyMath.newRoute(points, enemy.Path.Speed, now)
+	-- Las rutas van a la altura del cuerpo; la del suelo (bosque, rampa) la
+	-- suma EnemyMath.getPosition. Al partir de la posición actual (que ya la
+	-- trae) hay que sacarla, si no se suma dos veces y el zombi se hunde o flota.
+	local flat = table.create(#points)
+	for index, point in points do
+		flat[index] = Vector3.new(point.X, enemy.HalfHeight, point.Z)
+	end
+	enemy.Path = EnemyMath.newRoute(flat, enemy.Path.Speed, now)
 	pendingUpdates[enemy.Id] = enemy
 end
 
