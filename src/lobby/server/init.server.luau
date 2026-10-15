@@ -5,6 +5,7 @@
 -- (servidor reservado solo para ellos). Alrededor: bosque de otoño con viento,
 -- montañas, ranking global, un guía que explica el juego y la tienda.
 local Lighting = game:GetService("Lighting")
+local PhysicsService = game:GetService("PhysicsService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -475,7 +476,7 @@ local function floatingTag(parent: Instance, adornee: BasePart, title: string, s
 	top.Font = Enum.Font.GothamBlack
 	top.TextScaled = true
 	top.TextColor3 = color
-	top.TextStrokeTransparency = 0.3
+	top.TextStrokeTransparency = 0.7
 	top.Text = title
 	top.Parent = board
 	local bottom = top:Clone()
@@ -582,8 +583,8 @@ local function buildRoom(map: Instance, index: number, center: Vector3): Room
 	hintLabel.Font = Enum.Font.GothamBlack
 	hintLabel.TextScaled = true
 	hintLabel.TextColor3 = Color3.new(1, 1, 1)
-	hintLabel.TextStrokeTransparency = 0.2
-	hintLabel.Text = "⬇ PÁRATE AQUÍ ⬇"
+	hintLabel.TextStrokeTransparency = 0.6
+	hintLabel.Text = "ENTRA AQUÍ"
 	hintLabel.Parent = hint
 	for step = 0, 5 do
 		local angle = step / 6 * math.pi * 2 + 0.3
@@ -611,6 +612,17 @@ local function buildRoom(map: Instance, index: number, center: Vector3): Room
 		Props.torch(model, (arch * CFrame.new(side * 6.5, 0, -1.4)).Position, 4.5)
 	end
 	makePart({ Name = "ArchTop", Size = Vector3.new(15.6, 1.8, 1.8), CFrame = arch * CFrame.new(0, 12.9, 0), Material = Enum.Material.Slate, Color = STONE, Parent = model })
+	-- Muro invisible alrededor del círculo: solo choca con quien ya está dentro
+	-- (grupo RoomPlayer), así se entra libremente pero no se sale caminando
+	local segments = 20
+	local wallRadius = PAD_RADIUS + 0.6
+	local segmentLength = 2 * math.pi * wallRadius / segments * 1.12
+	for step = 0, segments - 1 do
+		local angle = step / segments * math.pi * 2
+		local at = center + Vector3.new(math.cos(angle) * wallRadius, 7, math.sin(angle) * wallRadius)
+		local wall = makePart({ Name = "RoomWall", Size = Vector3.new(segmentLength, 14, 1), CFrame = CFrame.lookAt(at, center + Vector3.new(0, 7, 0)), Transparency = 1, CanQuery = false, CanTouch = false, CastShadow = false, Parent = model })
+		wall.CollisionGroup = "RoomWall"
+	end
 	local sign = makePart({ Name = "RoomSign", Size = Vector3.new(11, 4.6, 0.4), CFrame = arch * CFrame.new(0, 9.4, -0.6), Material = Enum.Material.WoodPlanks, Color = Color3.fromRGB(86, 58, 36), Parent = model })
 	local gui = Instance.new("SurfaceGui")
 	gui.Face = Enum.NormalId.Front
@@ -639,13 +651,13 @@ end
 
 local function refresh(room: Room)
 	local count = #room.Members
-	local text = `👥 {count}/{rooms.MaxPlayers}`
+	local text = `{count}/{rooms.MaxPlayers} jugadores`
 	if room.Launching then
 		text ..= "  ·  ¡Saliendo!"
 	elseif room.EndsAt then
-		text ..= `  ·  ⏳ {math.max(0, math.ceil(room.EndsAt - os.clock()))} s`
+		text ..= `  ·  sale en {math.max(0, math.ceil(room.EndsAt - os.clock()))} s`
 	else
-		text ..= "  ·  Párate aquí"
+		text ..= "  ·  Entra aquí"
 	end
 	room.Label.Text = text
 	local color = if count >= rooms.MaxPlayers then FULL elseif count > 0 then GOLD else FREE
@@ -660,19 +672,28 @@ local function refresh(room: Room)
 	end
 end
 
--- Dentro de la sala no se puede caminar ni saltar: se sale con el botón
--- Cancelar (te saca del círculo) o cuando empieza la partida
+-- Dentro de la sala puedes moverte, pero un muro invisible no te deja salir:
+-- se sale con el botón Cancelar (te saca del círculo) o cuando empieza la partida
+pcall(function()
+	PhysicsService:RegisterCollisionGroup("RoomWall")
+	PhysicsService:RegisterCollisionGroup("RoomPlayer")
+end)
+PhysicsService:CollisionGroupSetCollidable("RoomWall", "Default", false)
+PhysicsService:CollisionGroupSetCollidable("RoomWall", "RoomWall", false)
+PhysicsService:CollisionGroupSetCollidable("RoomWall", "RoomPlayer", true)
 local cancelEvent = Instance.new("RemoteEvent")
 cancelEvent.Name = "LobbyCancel"
 cancelEvent.Parent = ReplicatedStorage
 local groundY = 0 -- altura real del suelo (se mide al armar el mapa)
 
 local function setFrozen(player: Player, frozen: boolean)
-	local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
-	if humanoid then
-		humanoid.WalkSpeed = if frozen then 0 else 16
-		humanoid.UseJumpPower = false
-		humanoid.JumpHeight = if frozen then 0 else 7.2
+	local character = player.Character
+	if character then
+		for _, part in character:GetDescendants() do
+			if part:IsA("BasePart") then
+				part.CollisionGroup = if frozen then "RoomPlayer" else "Default"
+			end
+		end
 	end
 	player:SetAttribute("InRoom", frozen)
 end
