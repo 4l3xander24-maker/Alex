@@ -145,6 +145,10 @@ function StoreUi.init()
 	continueButton.Position = UDim2.new(0, 16, 1, -14)
 	continueButton.Size = UDim2.fromOffset(204, 54)
 	continueButton.TextSize = 18
+	continueButton.TextScaled = true
+	local continueLimit = Instance.new("UITextSizeConstraint")
+	continueLimit.MaxTextSize = 18
+	continueLimit.Parent = continueButton
 	continueButton.Activated:Connect(function()
 		if CONTINUE.Id ~= 0 then
 			MarketplaceService:PromptProductPurchase(player, CONTINUE.Id)
@@ -190,8 +194,12 @@ function StoreUi.init()
 			continuePanel.Visible = show
 			if show then
 				revivePanel.Visible = false
-				continueTimer.Text = `💀 ¡Cayeron todos!\n¿Seguir la partida?   ⏳ {math.ceil(left)}`
-				continueButton.Text = if CONTINUE.Id == 0 then "💖 Continuar (sin precio)" else `💖 Continuar{continuePrice}`
+				local team = #Players:GetPlayers() > 1
+				local bell = gameState:GetAttribute("ContinueReason") == "Bell"
+				local title = if bell then "🔔 ¡Cayó la campana!\n¿Revivirla y seguir?" elseif team then "💀 ¡Cayó todo tu equipo!\n¿Revivir a todos?" else "💀 ¡Caíste!\n¿Revivir y seguir?"
+				continueTimer.Text = `{title}   ⏳ {math.ceil(left)}`
+				local action = if bell then "Seguir" elseif team then "Revivir a todos" else "Revivirme"
+				continueButton.Text = if CONTINUE.Id == 0 then `💖 {action} (sin precio)` else `💖 {action}{continuePrice}`
 			end
 			task.wait(0.2)
 		end

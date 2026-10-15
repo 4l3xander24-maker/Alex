@@ -13,6 +13,7 @@ local Config = require(Shared.Config)
 local Remotes = require(Shared.Remotes)
 local DataService = require(script.Parent.DataService)
 local PlayerService = require(script.Parent.PlayerService)
+local GameState = require(script.Parent.GameState)
 local StoreService = require(script.Parent.StoreService)
 
 local monetization = Config.Monetization
@@ -47,8 +48,13 @@ local function grant(player: Player, key: string)
 		end
 	elseif key == "Continue" then
 		local count = PlayerService.reviveAll()
-		if count > 0 then
-			Remotes.Notify:FireAllClients(`💖 ¡{player.DisplayName} pagó para seguir! Todos de vuelta`)
+		-- Si había caído la campana, vuelve con la mitad de su vida
+		local bellBack = GameState.isBellDestroyed()
+		if bellBack then
+			GameState.reviveBell(0.5)
+		end
+		if count > 0 or bellBack then
+			Remotes.Notify:FireAllClients(`💖 ¡{player.DisplayName} pagó para seguir! La partida continúa`)
 		else
 			DataService.addCoins(player, monetization.ReviveRefund)
 			Remotes.Notify:FireClient(player, `💖 Ya no se podía continuar: te damos {monetization.ReviveRefund} monedas`)

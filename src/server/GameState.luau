@@ -55,6 +55,12 @@ function GameState.isBellDestroyed(): boolean
 	return bellHealth <= 0
 end
 
+-- Continuar partida después de caer la campana: vuelve con parte de su vida
+function GameState.reviveBell(fraction: number)
+	bellHealth = math.max(1, bellMaxHealth * fraction)
+	folder:SetAttribute("BellHealth", math.ceil(bellHealth))
+end
+
 -- Campana nueva al empezar la partida. maxHealth incluye el refuerzo comprado.
 function GameState.resetBell(maxHealth: number)
 	bellMaxHealth = maxHealth

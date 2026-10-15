@@ -253,7 +253,8 @@ Remotes.ContinueCancel.OnServerEvent:Connect(function(player)
 	cancelled[player] = true
 end)
 
-local function offerContinue(): boolean
+-- reason: "Dead" (cayeron todos los jugadores) o "Bell" (cayó la campana)
+local function offerContinue(reason: string): boolean
 	local monetization = Config.Monetization
 	-- Sin producto de Robux creado solo se ofrece en Studio (para probar)
 	if monetization.Products.Continue.Id == 0 and not RunService:IsStudio() then
@@ -261,14 +262,20 @@ local function offerContinue(): boolean
 	end
 	table.clear(cancelled)
 	local endsAt = workspace:GetServerTimeNow() + monetization.ContinueWindow
+	GameState.set("ContinueReason", reason)
 	GameState.set("ContinueEnds", endsAt)
 	local continued = false
 	while workspace:GetServerTimeNow() < endsAt do
-		if not PlayerService.allDown() then
+		if reason == "Bell" then
+			if not GameState.isBellDestroyed() then
+				continued = true
+				break
+			end
+		elseif not PlayerService.allDown() then
 			continued = true
 			break
 		end
-		if GameState.isBellDestroyed() or #Players:GetPlayers() == 0 then
+		if #Players:GetPlayers() == 0 or (reason == "Dead" and GameState.isBellDestroyed()) then
 			break
 		end
 		local everyoneCancelled = true
@@ -289,7 +296,12 @@ end
 
 -- Cayeron todos y nadie pagó para seguir: se termina por muerte
 local function everyoneDown(): boolean
-	return PlayerService.allDown() and not offerContinue()
+	return PlayerService.allDown() and not offerContinue("Dead")
+end
+
+-- Cayó la campana y nadie pagó para seguir
+local function bellDown(): boolean
+	return GameState.isBellDestroyed() and not offerContinue("Bell")
 end
 
 local function runIntermission(seconds: number): boolean
@@ -302,7 +314,7 @@ local function runIntermission(seconds: number): boolean
 			return false
 		end
 		-- Los zombis que quedaron de la horda anterior siguen atacando
-		if GameState.isBellDestroyed() then
+		if bellDown() then
 			GameState.set("EndReason", "Bell")
 			return false
 		end
@@ -338,7 +350,7 @@ local function runWave(wave: number): boolean
 	-- que quedan siguen y llega la próxima horda. Con jefes, hay que matarlos a todos.
 	local keep = if wave % waves.BossEvery == 0 then 0 else waves.NextWaveAt
 	while toSpawn > 0 or #bosses > 0 or EnemyService.getAliveCount() > keep do
-		if GameState.isBellDestroyed() or #Players:GetPlayers() == 0 then
+		if #Players:GetPlayers() == 0 or bellDown() then
 			GameState.set("EndReason", "Bell")
 			return false
 		end
