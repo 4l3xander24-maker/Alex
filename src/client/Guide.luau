@@ -42,8 +42,12 @@ local STEPS = {
 	{
 		Title = "Poderes",
 		Text = if touch
-			then "La Bruja vende poderes: granada, rayo y campanazo. Úsalos con los botones de abajo a la izquierda."
+			then "La Bruja vende poderes: granada, rayo y campanazo. Úsalos con los botones de arriba a la izquierda. Muévete con el joystick y salta con el botón de la derecha."
 			else "La Bruja vende poderes: G granada, Q rayo y F campanazo. ¡Que no destruyan la campana!",
+	},
+	{
+		Title = "Mercado y potenciadores",
+		Text = "Cruza el puente de la aldea hasta la isla del Mercado: el Capitán te vende compañeros que pelean contigo. Los zombis a veces sueltan potenciadores: míralos arriba a la derecha.",
 	},
 }
 

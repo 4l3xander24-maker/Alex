@@ -27,6 +27,7 @@ export type Profile = {
 	BellArmor: number, -- nivel del refuerzo de la campana
 	WeaponSkins: { [string]: boolean }, -- skins de armas compradas al Sastre
 	WeaponSkin: string, -- skin de arma puesta ("" = ninguna)
+	Achievements: { [string]: boolean }, -- logros ya conseguidos
 }
 
 local Progression = {}
@@ -66,6 +67,7 @@ function Progression.defaultProfile(): Profile
 		BellArmor = 0,
 		WeaponSkins = {},
 		WeaponSkin = "",
+		Achievements = {},
 	}
 end
 

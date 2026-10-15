@@ -617,6 +617,34 @@ Config.Difficulties = {
 	{ Id = 5, Name = "Infierno", Icon = "👹", Color = Color3.fromRGB(180, 70, 220), Count = 2.0, Health = 2.5, Spawn = 1.7, Coins = 2.4, Xp = 2.4, Goal = 16, Description = "Solo para los mejores. Premios enormes." },
 }
 
+-- Logros: se revisan al terminar cada partida. Reward = monedas. Stat: qué se mide
+-- (Kills = bajas en total, Wave = mejor oleada, BossKills = jefes de la partida,
+-- Level = nivel de cuenta, MatchKills = bajas en una partida).
+Config.Achievements = {
+	{ Id = "Kills100", Icon = "🧟", Name = "Cazador", Description = "100 zombis eliminados", Stat = "Kills", Goal = 100, Reward = 150 },
+	{ Id = "Kills1000", Icon = "💀", Name = "Exterminador", Description = "1000 zombis eliminados", Stat = "Kills", Goal = 1000, Reward = 800 },
+	{ Id = "Kills10000", Icon = "☠️", Name = "Plaga viviente", Description = "10000 zombis eliminados", Stat = "Kills", Goal = 10000, Reward = 5000 },
+	{ Id = "Wave5", Icon = "🔔", Name = "Guardián", Description = "Llega a la oleada 5", Stat = "Wave", Goal = 5, Reward = 100 },
+	{ Id = "Wave10", Icon = "🛡️", Name = "Defensor", Description = "Llega a la oleada 10", Stat = "Wave", Goal = 10, Reward = 300 },
+	{ Id = "Wave20", Icon = "🏰", Name = "Leyenda de la campana", Description = "Llega a la oleada 20", Stat = "Wave", Goal = 20, Reward = 1500 },
+	{ Id = "Boss1", Icon = "👹", Name = "Matajefes", Description = "Derrota un jefe", Stat = "BossKills", Goal = 1, Reward = 250 },
+	{ Id = "Level10", Icon = "⭐", Name = "Veterano", Description = "Llega al nivel 10", Stat = "Level", Goal = 10, Reward = 400 },
+	{ Id = "Match200", Icon = "🔥", Name = "Racha", Description = "200 bajas en una sola partida", Stat = "MatchKills", Goal = 200, Reward = 500 },
+}
+
+-- Eventos de oleada: a veces una oleada (no de jefe, desde la 3) trae un giro.
+-- Los números multiplican la cantidad, vida y velocidad de aparición de los
+-- zombis y las monedas que dan.
+Config.WaveEvents = {
+	Chance = 0.3,
+	FirstWave = 3,
+	Types = {
+		Swarm = { Name = "Enjambre", Icon = "🐝", Count = 1.4, Health = 0.75, Spawn = 1.3, Coins = 1.0, Description = "Muchísimos zombis, pero más débiles" },
+		Armored = { Name = "Blindados", Icon = "🛡️", Count = 0.7, Health = 1.6, Spawn = 1.0, Coins = 1.5, Description = "Menos zombis, muy resistentes y con mejor premio" },
+		Golden = { Name = "Fiebre del oro", Icon = "🤑", Count = 1.0, Health = 1.0, Spawn = 1.0, Coins = 2.0, Description = "Todos dan el doble de monedas" },
+	},
+}
+
 -- Potenciadores: los zombis a veces los sueltan y se aplican a todo el equipo
 Config.Powerups = {
 	DropChance = 0.06,

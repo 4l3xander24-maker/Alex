@@ -8,6 +8,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage.Shared
 local Config = require(Shared.Config)
 local Remotes = require(Shared.Remotes)
+local AchievementService = require(script.Parent.AchievementService)
 local DataService = require(script.Parent.DataService)
 local Leaderboard = require(script.Parent.Leaderboard)
 local StoreService = require(script.Parent.StoreService)
@@ -114,6 +115,7 @@ function MatchService.award(player: Player, wave: number, team: { TeamRow }?)
 		data.TotalKills += entry.Kills
 		Leaderboard.submit(player.UserId, "BestWave", data.BestWave)
 		Leaderboard.submit(player.UserId, "Kills", data.TotalKills)
+		AchievementService.check(player, { Kills = data.TotalKills, Wave = data.BestWave, BossKills = entry.BossKills, Level = data.Level, MatchKills = entry.Kills })
 	end
 	if player.Parent and data then
 		player:SetAttribute("MatchXp", 0)

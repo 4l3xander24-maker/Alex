@@ -130,6 +130,32 @@ Remotes.SelectDifficulty.OnServerEvent:Connect(function(player, id)
 	end
 end)
 
+-- Evento de la oleada en curso (Config.WaveEvents), o nil
+local waveEvent: { Count: number, Health: number, Spawn: number, Coins: number }? = nil
+
+function WaveService.getEventCoins(): number
+	return if waveEvent then waveEvent.Coins else 1
+end
+
+local function rollWaveEvent(wave: number)
+	waveEvent = nil
+	GameState.set("WaveEvent", "")
+	local events = Config.WaveEvents
+	if wave < events.FirstWave or wave % waves.BossEvery == 0 or random:NextNumber() >= events.Chance then
+		return
+	end
+	local names = {}
+	for name in events.Types do
+		table.insert(names, name)
+	end
+	table.sort(names)
+	local name = names[random:NextInteger(1, #names)]
+	local info = events.Types[name]
+	waveEvent = info
+	GameState.set("WaveEvent", `{info.Icon} {info.Name}`)
+	Remotes.Notify:FireAllClients(`{info.Icon} ¡Evento: {info.Name}! {info.Description}`)
+end
+
 -- Jugadores extra en la partida (0 si juegas solo)
 local function extraPlayers(): number
 	return math.max(#Players:GetPlayers() - 1, 0)
@@ -137,7 +163,7 @@ end
 
 function WaveService.getEnemyCount(wave: number): number
 	local base = waves.FirstWaveCount * waves.CountGrowth ^ (wave - 1)
-	return math.max(1, math.floor(base * (1 + waves.PerExtraPlayer.Count * extraPlayers()) * WaveService.getDifficulty().Count))
+	return math.max(1, math.floor(base * (1 + waves.PerExtraPlayer.Count * extraPlayers()) * WaveService.getDifficulty().Count * (if waveEvent then waveEvent.Count else 1)))
 end
 
 -- Vida de la campana: la base más el refuerzo más alto entre los jugadores
@@ -155,7 +181,7 @@ end
 
 -- Zombis por segundo. De noche llegan más (Config.DayCycle.NightSpawnMultiplier).
 function WaveService.getSpawnRate(wave: number, night: boolean?): number
-	local rate = (waves.FirstSpawnRate + waves.SpawnRateGrowth * (wave - 1)) * (1 + waves.PerExtraPlayer.SpawnRate * extraPlayers()) * WaveService.getDifficulty().Spawn
+	local rate = (waves.FirstSpawnRate + waves.SpawnRateGrowth * (wave - 1)) * (1 + waves.PerExtraPlayer.SpawnRate * extraPlayers()) * WaveService.getDifficulty().Spawn * (if waveEvent then waveEvent.Spawn else 1)
 	rate = math.min(waves.MaxSpawnRate, rate)
 	if night then
 		rate = math.min(waves.MaxSpawnRate, rate * Config.DayCycle.NightSpawnMultiplier)
@@ -164,7 +190,7 @@ function WaveService.getSpawnRate(wave: number, night: boolean?): number
 end
 
 function WaveService.getHealthMultiplier(wave: number): number
-	return (1 + waves.HealthGrowth * (wave - 1)) * (1 + waves.PerExtraPlayer.Health * extraPlayers()) * WaveService.getDifficulty().Health
+	return (1 + waves.HealthGrowth * (wave - 1)) * (1 + waves.PerExtraPlayer.Health * extraPlayers()) * WaveService.getDifficulty().Health * (if waveEvent then waveEvent.Health else 1)
 end
 
 -- Jefes de la oleada: uno más cada BossEvery oleadas, rotando la lista
@@ -330,6 +356,7 @@ local function runWave(wave: number): boolean
 	GameState.set("Wave", wave)
 	GameState.set("State", "Wave")
 	PlayerService.onWaveStart()
+	rollWaveEvent(wave)
 	-- Avisa qué zombis vienen en esta oleada
 	local names = {}
 	for _, typeName in WaveService.getLineup(wave) do

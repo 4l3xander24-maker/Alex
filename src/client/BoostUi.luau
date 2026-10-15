@@ -10,6 +10,7 @@ local UserInputService = game:GetService("UserInputService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
 local Remotes = require(Shared.Remotes)
+local Sfx = require(script.Parent.Sfx)
 
 local BoostUi = {}
 
@@ -69,6 +70,7 @@ function BoostUi.init()
 		if not info then
 			return
 		end
+		Sfx.play("Powerup")
 		local timed = duration > 0
 		local endTime = workspace:GetServerTimeNow() + (if timed then duration else INSTANT_TIME)
 		local chip = chips[name]
