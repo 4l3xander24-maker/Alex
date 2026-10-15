@@ -82,7 +82,13 @@ end
 -- Los árboles y rocas van en tierra firme, no pegados al borde. En la aldea
 -- no hay árboles sueltos: ahí van las casas, el molino y la Bruja.
 local function onLand(position: Vector3, margin: number): boolean
-	return Paths.isGround(position, margin) and not Paths.onIsland(position, "Village", -6)
+	return Paths.isGround(position, margin) and not Paths.onIsland(position, "Village", -6) and not Paths.onIsland(position, "Market", -6)
+end
+
+-- Dentro del bosque tupido (donde no hay paso entre los árboles)
+local function inDenseForest(position: Vector3): boolean
+	local dense = Config.Arena.DenseForest
+	return position.X >= dense.XMin and position.X <= dense.XMax and position.Z >= dense.ZMin and position.Z <= dense.ZMax
 end
 
 -- La campana (destruida al empezar) sobre su montículo, con los avisos para
@@ -578,22 +584,33 @@ local function buildScenery(map: Instance)
 	end
 
 	-- Bosque alrededor del claro
-	for _ = 1, 240 do
+	for _ = 1, 120 do
 		local position = randomRingPoint(225, 430)
-		if onLand(position, 8) and MedievalBuilder.isClear(position, 6) then
+		if onLand(position, 8) and not inDenseForest(position) and MedievalBuilder.isClear(position, 6) then
 			buildTree(map, position, random:NextNumber(1, 1.8))
 		end
 	end
 	-- Muro de bosque alrededor del claro
-	for _ = 1, 260 do
+	for _ = 1, 130 do
 		local position = randomRingPoint(200, 280)
-		if onLand(position, 6) and MedievalBuilder.isClear(position, 5) then
+		if onLand(position, 6) and not inDenseForest(position) and MedievalBuilder.isClear(position, 5) then
 			buildTree(map, position, random:NextNumber(1.1, 1.9))
 		end
 	end
-	-- El bosque del norte, tupido: de entre estos árboles salen los zombis
-	for _ = 1, 400 do
-		local position = Vector3.new(random:NextNumber(-430, 430), 0, random:NextNumber(-360, -135))
+	-- El bosque del norte, tan tupido que no hay paso: una cuadrícula de árboles
+	-- con desvío al azar. De entre ellos salen los zombis, cada uno por un lugar distinto.
+	local dense = Config.Arena.DenseForest
+	for x = dense.XMin, dense.XMax, dense.Spacing do
+		for z = dense.ZMin, dense.ZMax, dense.Spacing do
+			local position = Vector3.new(x + random:NextNumber(-4.5, 4.5), 0, z + random:NextNumber(-4.5, 4.5))
+			if onLand(position, 6) and MedievalBuilder.isClear(position, 3) and (position - Config.Arena.Bridge.From).Magnitude > 16 then
+				buildTree(map, position, random:NextNumber(1, 1.9))
+			end
+		end
+	end
+	-- Más allá (norte), pocos árboles
+	for _ = 1, 50 do
+		local position = Vector3.new(random:NextNumber(-430, 430), 0, random:NextNumber(-430, dense.ZMin))
 		if onLand(position, 8) and MedievalBuilder.isClear(position, 5) then
 			buildTree(map, position, random:NextNumber(1, 1.8))
 		end
@@ -931,6 +948,23 @@ local function lowerForest(map: Instance)
 	end
 end
 
+-- Quita los árboles que cayeron en las zonas sin árboles (Config.Arena.ClearZones)
+local function clearTreeZones(map: Instance)
+	local zones = Config.Arena.ClearZones
+	for _, model in map:GetDescendants() do
+		if not model:IsA("Model") or not (string.find(model.Name, "Tree") or model.Name == "Pine") then
+			continue
+		end
+		local position = model:GetPivot().Position
+		for _, zone in zones do
+			if math.abs(position.X - zone.Center.X) <= zone.Size.X / 2 and math.abs(position.Z - zone.Center.Z) <= zone.Size.Y / 2 then
+				model:Destroy()
+				break
+			end
+		end
+	end
+end
+
 function MapBuilder.build(): Folder
 	for _, child in workspace:GetChildren() do
 		if child.Name == "Baseplate" or child:IsA("SpawnLocation") then
@@ -962,6 +996,7 @@ function MapBuilder.build(): Folder
 	if not Config.Style.Tiles then
 		FeriaBuilder.build(map)
 	end
+	clearTreeZones(map)
 
 	setupLighting()
 	return map

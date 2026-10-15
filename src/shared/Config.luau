@@ -287,7 +287,30 @@ Config.Arena = {
 			Boxes = {},
 			Disks = { { Center = Vector2.new(135, -10), Radius = 50 } },
 		},
+		-- Isla del Mercado, pegada a la aldea por el lado derecho
+		Market = {
+			Boxes = { { Center = Vector2.new(188, -10), Size = Vector2.new(34, 28) } },
+			Disks = { { Center = Vector2.new(240, -10), Radius = 52 } },
+		},
 	},
+	-- Mercado: plaza, Capitán (compañeros), Sastre (skins) y aldeanos
+	Market = {
+		Plaza = Vector3.new(240, 0, -10),
+		Captain = Vector3.new(222, 0, -34),
+		Tailor = Vector3.new(262, 0, -32),
+		Villagers = {
+			{ Offset = Vector3.new(-12, 0, 12), Name = "Marta", Role = "Aldeana", Lines = { "Los zombis odian las minas. ¡Pon varias!", "Mi marido dice que el bosque está cada vez más espeso...", "Entre oleadas, el molino te cura con pan caliente." } },
+			{ Offset = Vector3.new(14, 0, 8), Name = "Tomás", Role = "Granjero", Lines = { "Yo no salgo de noche. Ni de día, la verdad.", "Cuida tu munición: cada zombi te da una bala.", "¿Viste los potenciadores? Algunos zombis los sueltan." } },
+			{ Offset = Vector3.new(0, 0, 22), Name = "Lucía", Role = "Niña", Lines = { "¡Me encantan las mascotas! El Capitán vende compañeros.", "El Sastre tiene capas y skins brillantes para tus armas.", "Dicen que el Dragoncito escupe fuego." } },
+		},
+	},
+	-- Zonas donde no crece ningún árbol (rectángulos: centro y tamaño en x, z)
+	ClearZones = {
+		{ Center = Vector3.new(29, 0, 9), Size = Vector2.new(34, 32) },
+		{ Center = Vector3.new(100, 0, -8), Size = Vector2.new(16, 48) },
+	},
+	-- Bosque tupido: tantos árboles que no hay paso (de aquí salen los zombis)
+	DenseForest = { XMin = -430, XMax = 430, ZMin = -335, ZMax = -140, Spacing = 13 },
 	-- Puente de madera a la aldea: empieza ROTO y cada jugador lo repara una vez
 	VillageBridge = { From = Vector3.new(49, 0, -8), To = Vector3.new(88, 0, -8), Width = 6, Price = 500 },
 	-- El molino de la aldea: entre oleadas, cerca de él te curas (pan recién hecho)
@@ -683,6 +706,11 @@ Config.Monetization = {
 	Products = {
 		Revive = { Id = 0, Name = "Revivir", Icon = "💖", Description = "Vuelves a la partida con la vida llena." },
 		Continue = { Id = 0, Name = "Continuar partida", Icon = "💖", Description = "Cuando caen todos: el equipo entero vuelve y la partida sigue." },
+		PetGolem = { Id = 0, Name = "Gólem de piedra", Icon = "🗿", Description = "Compañero que aplasta zombis en área.", Pet = "Golem" },
+		PetPhoenix = { Id = 0, Name = "Fénix", Icon = "🔥", Description = "Compañero que lanza fuego desde el aire.", Pet = "Phoenix" },
+		SkinBlood = { Id = 0, Name = "Skin Sangrienta", Icon = "🟥", Description = "Skin de arma roja brillante.", WeaponSkin = "Blood" },
+		SkinGalaxy = { Id = 0, Name = "Skin Galaxia", Icon = "🟪", Description = "Skin de arma morada brillante.", WeaponSkin = "Galaxy" },
+		SkinGold = { Id = 0, Name = "Skin Oro Macizo", Icon = "🟨", Description = "Skin de arma dorada brillante.", WeaponSkin = "Gold" },
 		CoinsSmall = { Id = 0, Name = "Bolsa de monedas", Icon = "💰", Description = "+500 monedas.", Coins = 500 },
 		CoinsBig = { Id = 0, Name = "Cofre de monedas", Icon = "💎", Description = "+2000 monedas.", Coins = 2000 },
 	},
@@ -936,6 +964,26 @@ Config.Pets = {
 	},
 }
 Config.PetOrder = { "Bat", "Wolf", "Owl", "Dragonling" }
+
+-- Compañeros del Capitán (isla del Mercado): pelean a tu lado igual que las
+-- mascotas (se usan los mismos campos). Product = producto de Robux (Monetization.Products).
+Config.Pets.Soldier = { DisplayName = "Soldado", Icon = "💂", Price = 2200, Damage = 2.4, Rate = 1.4, Range = 38, Color = Color3.fromRGB(150, 60, 56), Shop = "Captain", Description = "Dispara a los zombis que se acercan" }
+Config.Pets.Archer = { DisplayName = "Arquera", Icon = "🏹", Price = 3200, Damage = 3.2, Rate = 1.0, Range = 60, Color = Color3.fromRGB(70, 130, 70), Shop = "Captain", Description = "Flechas desde muy lejos" }
+Config.Pets.Hound = { DisplayName = "Perro de guerra", Icon = "🐕", Price = 1500, Damage = 2.6, Rate = 1.1, Range = 20, Color = Color3.fromRGB(110, 80, 50), Shop = "Captain", Description = "Muerde rápido a los que se te acercan" }
+Config.Pets.Golem = { DisplayName = "Gólem de piedra", Icon = "🗿", Price = 0, Product = "PetGolem", Damage = 4.5, Rate = 0.6, Range = 22, Splash = 9, Color = Color3.fromRGB(120, 124, 132), Shop = "Captain", Description = "Aplasta a varios zombis a la vez" }
+Config.Pets.Phoenix = { DisplayName = "Fénix", Icon = "🔥", Price = 0, Product = "PetPhoenix", Damage = 3.8, Rate = 1.2, Range = 55, Splash = 6, Color = Color3.fromRGB(255, 130, 40), Shop = "Captain", Description = "Lluvia de fuego desde el aire" }
+Config.CompanionOrder = { "Hound", "Soldier", "Archer", "Golem", "Phoenix" }
+
+-- Skins de armas (las vende el Sastre): cambian el color del arma que llevas.
+-- CoinPrice = monedas; Product = producto de Robux (Monetization.Products).
+Config.WeaponSkins = {
+	{ Id = "Rust", Name = "Oxidada", Icon = "🟧", CoinPrice = 800, Main = Color3.fromRGB(110, 62, 36), Accent = Color3.fromRGB(190, 110, 50) },
+	{ Id = "Arctic", Name = "Ártica", Icon = "🟦", CoinPrice = 1800, Main = Color3.fromRGB(150, 200, 235), Accent = Color3.fromRGB(235, 248, 255) },
+	{ Id = "Toxic", Name = "Tóxica", Icon = "🟩", CoinPrice = 3500, Main = Color3.fromRGB(40, 120, 50), Accent = Color3.fromRGB(120, 255, 90), Glow = true },
+	{ Id = "Blood", Name = "Sangrienta", Icon = "🟥", Product = "SkinBlood", Main = Color3.fromRGB(110, 14, 20), Accent = Color3.fromRGB(255, 50, 60), Glow = true },
+	{ Id = "Galaxy", Name = "Galaxia", Icon = "🟪", Product = "SkinGalaxy", Main = Color3.fromRGB(40, 24, 90), Accent = Color3.fromRGB(170, 120, 255), Glow = true },
+	{ Id = "Gold", Name = "Oro Macizo", Icon = "🟨", CoinPrice = 9000, Product = "SkinGold", Main = Color3.fromRGB(200, 150, 30), Accent = Color3.fromRGB(255, 230, 120), Glow = true },
+}
 
 Config.CritMultiplier = 2
 Config.BaseCritChance = 0.05

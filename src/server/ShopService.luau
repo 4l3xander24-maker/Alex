@@ -18,7 +18,7 @@ local CLOSED = "🔒 Las tiendas solo abren antes de la partida"
 -- Acciones que se pueden hacer en cualquier momento
 -- Mejoras y talentos se reparten en cualquier momento (también al terminar la
 -- partida, después de subir de nivel)
-local ALWAYS_ALLOWED = { EquipWeapon = true, RepairVillageBridge = true, EquipPet = true, FinishTutorial = true, AddStat = true, LearnTalent = true }
+local ALWAYS_ALLOWED = { EquipWeapon = true, RepairVillageBridge = true, EquipPet = true, EquipWeaponSkin = true, FinishTutorial = true, AddStat = true, LearnTalent = true }
 
 local ShopService = {}
 
@@ -208,6 +208,9 @@ function actions.BuyPet(player, data, id)
 	if data.Pets[id] then
 		return false, "Ya tienes esta mascota"
 	end
+	if pet.Product then
+		return false, "Este compañero se compra con Robux"
+	end
 	if not DataService.spendCoins(player, pet.Price) then
 		return false, NOT_ENOUGH
 	end
@@ -226,6 +229,47 @@ function actions.EquipPet(_player, data, id)
 	end
 	data.Pet = id
 	return true, `{Config.Pets[id].Icon} {Config.Pets[id].DisplayName} te acompaña`
+end
+
+-- Skins de armas del Sastre (Config.WeaponSkins)
+local function weaponSkin(id: string)
+	for _, skin in Config.WeaponSkins do
+		if skin.Id == id then
+			return skin
+		end
+	end
+	return nil
+end
+
+function actions.BuyWeaponSkin(player, data, id)
+	local skin = weaponSkin(id)
+	if not skin then
+		return false, "Skin desconocida"
+	end
+	if data.WeaponSkins[id] then
+		return false, "Ya tienes esta skin"
+	end
+	if not skin.CoinPrice then
+		return false, "Esta skin se compra con Robux"
+	end
+	if not DataService.spendCoins(player, skin.CoinPrice) then
+		return false, NOT_ENOUGH
+	end
+	data.WeaponSkins[id] = true
+	data.WeaponSkin = id
+	return true, `{skin.Icon} ¡Skin {skin.Name} puesta en tus armas!`
+end
+
+function actions.EquipWeaponSkin(_player, data, id)
+	if id == "" then
+		data.WeaponSkin = ""
+		return true, "Armas con su color normal"
+	end
+	if not data.WeaponSkins[id] then
+		return false, "No tienes esta skin"
+	end
+	data.WeaponSkin = id
+	return true, `Skin {weaponSkin(id).Name} puesta`
 end
 
 -- Para avisos fuera de las ventanas de tienda (como el letrero del puente)

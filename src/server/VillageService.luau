@@ -57,7 +57,23 @@ local function feed()
 	end
 end
 
+-- Aldeanos del Mercado: cada "E" dice una frase distinta
+local function bindTalk(prompt: ProximityPrompt)
+	local lines = string.split(prompt:GetAttribute("Talk") :: string, "|")
+	local names = string.match(prompt.ObjectText, "^(.-) ·") or prompt.ObjectText
+	local count = 0
+	prompt.Triggered:Connect(function(player)
+		count += 1
+		Remotes.Notify:FireClient(player, `💬 {names}: {lines[(count - 1) % #lines + 1]}`)
+	end)
+end
+
 function VillageService.init(map: Instance)
+	for _, descendant in map:GetDescendants() do
+		if descendant:IsA("ProximityPrompt") and descendant:GetAttribute("Talk") then
+			bindTalk(descendant)
+		end
+	end
 	local prompt = map:FindFirstChild("VillageRepairPrompt", true)
 	if prompt and prompt:IsA("ProximityPrompt") then
 		bindRepairPrompt(prompt)

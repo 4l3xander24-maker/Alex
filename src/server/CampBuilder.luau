@@ -298,7 +298,7 @@ local function buildNpc(parent: Instance, info, cframe: CFrame)
 	model.PrimaryPart = torso
 	-- Si se subió su sprite pixelado, AssetService lo muestra en lugar del muñeco
 	local spriteKeys = { Armory = "Armero", Mystic = "Bruja", Trainer = "Veterano", Quartermaster = "Intendente" }
-	model:SetAttribute("SpriteKey", spriteKeys[info.Shop])
+	model:SetAttribute("SpriteKey", spriteKeys[info.Shop or ""])
 
 	local tag = Instance.new("BillboardGui")
 	tag.Name = "NameTag"
@@ -326,7 +326,11 @@ local function buildNpc(parent: Instance, info, cframe: CFrame)
 	prompt.ObjectText = `{info.Name} · {info.Role}`
 	prompt.MaxActivationDistance = 12
 	prompt.RequiresLineOfSight = false
-	prompt:SetAttribute("Shop", info.Shop)
+	if info.Talk then
+		prompt:SetAttribute("Talk", table.concat(info.Talk, "|"))
+	else
+		prompt:SetAttribute("Shop", info.Shop)
+	end
 	prompt.Parent = torso
 
 	model.Parent = parent
@@ -669,7 +673,88 @@ local function buildCampLife(map: Instance)
 	makeProp({ Name = "WellBucket", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.8, 0.8, 0.8), CFrame = CFrame.new(well + Vector3.new(0, 3.5, 0)) * CFrame.Angles(0, 0, math.pi / 2), Material = Enum.Material.WoodPlanks, Color = WOOD, Parent = map })
 end
 
+-- Isla del Mercado: el Capitán (compañeros), la Sastre (skins) y aldeanos que
+-- charlan. Mira hacia la plaza; el piso está en y = 0 (MapBuilder lo sube).
+local function buildMarket(map: Instance)
+	local market = Config.Arena.Market
+	local plaza = market.Plaza
+
+	-- Plaza de adoquines con un farol y estandartes
+	makePart({ Name = "MarketPlaza", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.4, 30, 30), CFrame = CFrame.new(plaza + Vector3.new(0, 0.2, 0)) * CFrame.Angles(0, 0, math.pi / 2), Material = Enum.Material.Cobblestone, Color = Props.Colors.Stone, Parent = map })
+	Props.lantern(map, plaza)
+	Props.banner(map, plaza + Vector3.new(-14, 0, -6), 0, Color3.fromRGB(150, 50, 46))
+	Props.banner(map, plaza + Vector3.new(14, 0, -6), 0, Color3.fromRGB(40, 70, 170))
+	Props.sign(map, CFrame.new(plaza + Vector3.new(0, 9, 14)) * CFrame.Angles(0, math.pi, 0), "MERCADO", Color3.fromRGB(255, 215, 100))
+	for _, corner in { Vector3.new(-30, 0, 10), Vector3.new(30, 0, 10), Vector3.new(-26, 0, 26), Vector3.new(26, 0, 26) } do
+		Props.lantern(map, plaza + corner)
+	end
+	Props.barrel(map, plaza + Vector3.new(-22, 0, 14))
+	Props.crate(map, CFrame.new(plaza + Vector3.new(22, 0, 16)), 2.4)
+
+	-- Capitán Rolando: puesto con armas y estandarte; vende compañeros
+	local captainStall = CFrame.lookAt(market.Captain, plaza)
+	buildCanopy(map, captainStall, Color3.fromRGB(150, 50, 46))
+	buildCounter(map, captainStall)
+	Props.sign(map, captainStall * CFrame.new(0, 7.3, -3.6), "COMPAÑEROS", Color3.fromRGB(255, 160, 140))
+	Props.crate(map, captainStall * CFrame.new(-6.5, 0, -1), 2.4)
+	buildNpc(map, {
+		Name = "Capitán Rolando",
+		Role = "Compañeros",
+		Action = "Contratar compañeros",
+		Shop = "Captain",
+		Skin = Color3.fromRGB(224, 172, 140),
+		Shirt = Color3.fromRGB(150, 50, 46),
+		Pants = Color3.fromRGB(50, 50, 60),
+		Extras = function(piece)
+			piece("Helmet", Vector3.new(1.5, 0.9, 1.5), Vector3.new(0, 5.3, 0), Color3.fromRGB(170, 174, 184), Enum.Material.Metal)
+			piece("Plume", Vector3.new(0.3, 0.9, 1.1), Vector3.new(0, 6.0, 0), Color3.fromRGB(200, 40, 40), Enum.Material.Fabric)
+			piece("Sash", Vector3.new(2.2, 0.5, 1.2), Vector3.new(0, 3.4, 0), Color3.fromRGB(230, 190, 70), Enum.Material.Fabric)
+		end,
+	}, captainStall * CFrame.new(-1.5, 0, -4.5))
+
+	-- Elena, la Sastre: puesto de telas con skins de trajes y de armas
+	local tailorStall = CFrame.lookAt(market.Tailor, plaza)
+	buildCanopy(map, tailorStall, Color3.fromRGB(90, 50, 130))
+	buildCounter(map, tailorStall)
+	Props.sign(map, tailorStall * CFrame.new(0, 7.3, -3.6), "SASTRERÍA", Color3.fromRGB(200, 160, 255))
+	for index, color in { Color3.fromRGB(150, 30, 36), Color3.fromRGB(40, 70, 170), Color3.fromRGB(30, 120, 70), Color3.fromRGB(220, 170, 50) } do
+		makeProp({ Name = "Cloth", Size = Vector3.new(1.6, 3.2, 0.3), CFrame = tailorStall * CFrame.new(-3.6 + index * 1.8, 4, 4), Material = Enum.Material.Fabric, Color = color, Parent = map })
+	end
+	buildNpc(map, {
+		Name = "Elena",
+		Role = "Sastre",
+		Action = "Ver trajes y skins",
+		Shop = "Tailor",
+		Skin = Color3.fromRGB(236, 190, 160),
+		Shirt = Color3.fromRGB(120, 70, 160),
+		Pants = Color3.fromRGB(60, 40, 80),
+		Extras = function(piece)
+			piece("Apron", Vector3.new(2.1, 1.6, 0.2), Vector3.new(0, 2.8, -0.55), Color3.fromRGB(230, 220, 240), Enum.Material.Fabric)
+			piece("Bow", Vector3.new(1.6, 0.4, 0.4), Vector3.new(0, 5.4, 0.3), Color3.fromRGB(230, 90, 160), Enum.Material.Fabric)
+		end,
+	}, tailorStall * CFrame.new(-1.5, 0, -4.5))
+
+	-- Aldeanos: charlan con "E"
+	local shirts = { Color3.fromRGB(190, 150, 90), Color3.fromRGB(100, 130, 80), Color3.fromRGB(170, 100, 110) }
+	for index, villager in market.Villagers do
+		local position = plaza + villager.Offset
+		buildNpc(map, {
+			Name = villager.Name,
+			Role = villager.Role,
+			Action = "Charlar",
+			Talk = villager.Lines,
+			Skin = Color3.fromRGB(230, 184, 150),
+			Shirt = shirts[(index - 1) % #shirts + 1],
+			Pants = Color3.fromRGB(70, 60, 50),
+			Extras = function(piece)
+				piece("Hat", Vector3.new(1.6, 0.35, 1.6), Vector3.new(0, 5.4, 0), Color3.fromRGB(200, 170, 100), Enum.Material.Fabric)
+			end,
+		}, CFrame.lookAt(position, plaza + Vector3.new(0, 0, 0.01)))
+	end
+end
+
 function CampBuilder.build(map: Instance)
+	buildMarket(map)
 	buildCampfire(map)
 	buildShelter(map)
 	buildArmory(map)

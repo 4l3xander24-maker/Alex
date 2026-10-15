@@ -25,6 +25,8 @@ export type Profile = {
 	StarterPack: boolean, -- ya recibió lo del Pack Inicial
 	Difficulty: number, -- la dificultad más alta que tiene abierta (1 a 5)
 	BellArmor: number, -- nivel del refuerzo de la campana
+	WeaponSkins: { [string]: boolean }, -- skins de armas compradas al Sastre
+	WeaponSkin: string, -- skin de arma puesta ("" = ninguna)
 }
 
 local Progression = {}
@@ -62,6 +64,8 @@ function Progression.defaultProfile(): Profile
 		StarterPack = false,
 		Difficulty = 1,
 		BellArmor = 0,
+		WeaponSkins = {},
+		WeaponSkin = "",
 	}
 end
 

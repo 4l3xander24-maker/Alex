@@ -6,6 +6,7 @@
 --   Intendente → cartuchera (más balas) y trampas para la partida
 -- Solo se puede comprar durante la preparación; equipar armas, siempre.
 local Players = game:GetService("Players")
+local MarketplaceService = game:GetService("MarketplaceService")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -16,6 +17,7 @@ local Progression = require(Shared.Progression)
 local Remotes = require(Shared.Remotes)
 local Notify = require(script.Parent.Notify)
 local Profile = require(script.Parent.Profile)
+local RobuxShop = require(Shared.RobuxShop)
 local Sfx = require(script.Parent.Sfx)
 local WeaponController = require(script.Parent.WeaponController)
 
@@ -34,6 +36,8 @@ local TITLES = {
 	Mystic = { "🔮 TIENDA DE LA BRUJA", "Morgana, la Bruja" },
 	Trainer = { "🎖️ ENTRENAMIENTO", "Don Ramiro, el Veterano" },
 	Quartermaster = { "🎒 INTENDENCIA", "Gustavo, el Intendente" },
+	Captain = { "⚔️ COMPAÑEROS", "Capitán Rolando" },
+	Tailor = { "🧵 SASTRERÍA", "Elena, la Sastre" },
 }
 
 local ShopUI = {}
@@ -109,7 +113,7 @@ local function row(icon: string, name: string, description: string, buttons: { B
 	for index, spec in buttons do
 		local button = Instance.new("TextButton")
 		-- Fuera de la preparación solo funcionan equipar armas y llevar mascotas
-		if not isOpen() and spec.Text ~= "Equipar" and spec.Text ~= "Llevar" and spec.Text ~= "Quitar" then
+		if not isOpen() and spec.Text ~= "Equipar" and spec.Text ~= "Llevar" and spec.Text ~= "Quitar" and string.sub(spec.Text, 1, 5) ~= "Robux" and string.sub(spec.Text, 1, 5) ~= "Abrir" then
 			spec.Enabled = false
 		end
 		button.AnchorPoint = Vector2.new(1, 0.5)
@@ -272,6 +276,86 @@ local function renderMystic(data: Progression.Profile, coins: number)
 	end
 end
 
+-- Compra con Robux de un producto de Config.Monetization.Products
+local function buyProduct(key: string)
+	local product = Config.Monetization.Products[key]
+	if not product or product.Id == 0 then
+		Notify.show("Este producto llega pronto", RED)
+		return
+	end
+	MarketplaceService:PromptProductPurchase(player, product.Id)
+end
+
+local function petButtons(data: Progression.Profile, coins: number, id: string): { ButtonSpec }
+	local pet = Config.Pets[id]
+	local buttons: { ButtonSpec } = {}
+	if data.Pets[id] then
+		if data.Pet == id then
+			table.insert(buttons, { Text = "Quitar", Enabled = true, OnClick = function()
+				runAction("EquipPet", "")
+			end })
+		else
+			table.insert(buttons, { Text = "Llevar", Enabled = true, OnClick = function()
+				runAction("EquipPet", id)
+			end })
+		end
+	elseif pet.Product then
+		table.insert(buttons, { Text = "Robux 💎", Enabled = true, OnClick = function()
+			buyProduct(pet.Product)
+		end })
+	else
+		table.insert(buttons, { Text = `Comprar 💰{pet.Price}`, Enabled = coins >= pet.Price, OnClick = function()
+			runAction("BuyPet", id)
+		end })
+	end
+	return buttons
+end
+
+local function renderCaptain(data: Progression.Profile, coins: number)
+	sectionHeader("Compañeros  ·  pelean a tu lado (uno a la vez, junto a tu mascota)")
+	for _, id in Config.CompanionOrder do
+		local pet = Config.Pets[id]
+		local description = `{pet.Description}. Daño {pet.Damage} · {pet.Rate} ataques/s · alcance {pet.Range}{if pet.Splash then " · en área" else ""}.`
+		if pet.Product then
+			description ..= "\n💎 Compañero especial: se compra con Robux."
+		end
+		row(pet.Icon, pet.DisplayName .. (if data.Pet == id then "  ·  te acompaña" else ""), description, petButtons(data, coins, id), if data.Pet == id then GREEN else nil)
+	end
+end
+
+local function renderTailor(data: Progression.Profile, coins: number)
+	sectionHeader("Trajes  ·  capas, armaduras y sombreros")
+	row("🧥", "Trajes y capas", "Capas de viajero, de cazador, reales y más. Se pagan con monedas o Robux.", { { Text = "Abrir trajes", Enabled = true, OnClick = function()
+		ShopUI.close()
+		RobuxShop.open(true)
+	end } })
+	sectionHeader("Skins de armas  ·  cambian el color de todas tus armas")
+	row("🔫", "Armas normales", "Quita la skin y usa el color de cada arma según su nivel.", { { Text = if data.WeaponSkin == "" then "Puesta" else "Quitar", Enabled = data.WeaponSkin ~= "", OnClick = function()
+		runAction("EquipWeaponSkin", "")
+	end } })
+	for _, skin in Config.WeaponSkins do
+		local owned = data.WeaponSkins[skin.Id]
+		local buttons: { ButtonSpec } = {}
+		if owned then
+			table.insert(buttons, { Text = if data.WeaponSkin == skin.Id then "Puesta" else "Equipar", Enabled = data.WeaponSkin ~= skin.Id, OnClick = function()
+				runAction("EquipWeaponSkin", skin.Id)
+			end })
+		else
+			if skin.CoinPrice then
+				table.insert(buttons, { Text = `Comprar 💰{skin.CoinPrice}`, Enabled = coins >= skin.CoinPrice, OnClick = function()
+					runAction("BuyWeaponSkin", skin.Id)
+				end })
+			end
+			if skin.Product then
+				table.insert(buttons, { Text = "Robux 💎", Enabled = true, OnClick = function()
+					buyProduct(skin.Product)
+				end })
+			end
+		end
+		row(skin.Icon, `Skin {skin.Name}`, if skin.Glow then "Brilla con luz propia." else "Color nuevo para tus armas.", buttons, if data.WeaponSkin == skin.Id then GREEN else nil)
+	end
+end
+
 -- Veterano al estilo de Guns 'n Goblins: dos columnas en letra pixelada.
 -- Izquierda las mejoras con barritas (cada barrita llena = puntos gastados),
 -- derecha los talentos con su estado. Abajo, qué hace lo que señalas.
@@ -424,6 +508,10 @@ function ShopUI.render()
 		renderMystic(data, coins)
 	elseif currentShop == "Quartermaster" then
 		renderQuartermaster(data, coins)
+	elseif currentShop == "Captain" then
+		renderCaptain(data, coins)
+	elseif currentShop == "Tailor" then
+		renderTailor(data, coins)
 	else
 		renderTrainer(data)
 	end

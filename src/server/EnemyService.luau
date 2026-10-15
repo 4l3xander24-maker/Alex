@@ -249,10 +249,16 @@ local function create(typeName: string, healthMultiplier: number, start: Vector3
 	local origin = start
 	if not origin then
 		-- Del bosque salen repartidos a lo ancho, como si vinieran de entre los árboles
-		local spread = if Config.Paths[route].Entrance then 0 else Config.PathStyle.SpawnSpread
-		local along = (points[2] - points[1]).Unit
-		local across = Vector3.new(-along.Z, 0, along.X)
-		origin = points[1] + laneOffset + across * random:NextNumber(-spread, spread)
+		if Config.Paths[route].Entrance then
+			origin = points[1] + laneOffset
+		else
+			-- Del bosque salen de cualquier lugar de su zona, no siempre del mismo punto
+			local dense = Config.Arena.DenseForest
+			local first = points[1]
+			local xMin, xMax = math.max(dense.XMin + 30, first.X - 110), math.min(dense.XMax - 30, first.X + 110)
+			local zMin, zMax = math.max(dense.ZMin + 12, first.Z - 40), math.min(dense.ZMax - 12, first.Z + 40)
+			origin = Vector3.new(random:NextNumber(xMin, xMax), 0, random:NextNumber(zMin, zMax))
+		end
 	end
 	origin = Vector3.new(origin.X, halfHeight, origin.Z)
 	local spawnTime = workspace:GetServerTimeNow()

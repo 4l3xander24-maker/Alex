@@ -357,6 +357,22 @@ function Viewmodel.setWeapon(weaponId: string, zoomFactor: number, level: number
 		local turn = meshSpec.Turn or CFrame.identity
 		for _, descendant in mesh:GetDescendants() do
 			if descendant:IsA("BasePart") then
+				-- Skin de arma: el modelo toma el color de la skin
+				if tier.Tint then
+					-- Sin la textura original el color se ve entero
+					if descendant:IsA("MeshPart") then
+						descendant.TextureID = ""
+					end
+					for _, appearance in descendant:GetChildren() do
+						if appearance:IsA("SurfaceAppearance") then
+							appearance:Destroy()
+						end
+					end
+					descendant.Color = tier.Main:Lerp(tier.Accent, 0.45)
+					if tier.Glow then
+						descendant.Material = Enum.Material.Neon
+					end
+				end
 				descendant.Anchored = true
 				descendant.CanCollide = false
 				descendant.CanQuery = false

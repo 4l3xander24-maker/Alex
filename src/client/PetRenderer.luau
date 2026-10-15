@@ -100,6 +100,82 @@ local function buildSpec(id: string): PetSpec
 				p(Vector3.new(0.3, 0.3, 1.0), Vector3.new(0, 0.45, 1.5), shade(color, 0.1)),
 			},
 		}
+	elseif id == "Soldier" or id == "Archer" then
+		local skin = Color3.fromRGB(224, 172, 140)
+		local pants = Color3.fromRGB(46, 46, 56)
+		local parts = {
+			p(Vector3.new(0.4, 0.9, 0.4), Vector3.new(-0.22, -0.95, 0), pants),
+			p(Vector3.new(0.4, 0.9, 0.4), Vector3.new(0.22, -0.95, 0), pants),
+			p(Vector3.new(0.9, 1.0, 0.5), Vector3.new(0, 0, 0), color),
+			p(Vector3.new(0.35, 0.9, 0.35), Vector3.new(-0.65, 0, 0), color),
+			p(Vector3.new(0.35, 0.9, 0.35), Vector3.new(0.65, 0, -0.1), color),
+			p(Vector3.new(0.6, 0.6, 0.6), Vector3.new(0, 0.8, 0), skin),
+		}
+		if id == "Soldier" then
+			table.insert(parts, p(Vector3.new(0.7, 0.35, 0.7), Vector3.new(0, 1.2, 0), Color3.fromRGB(150, 154, 164)))
+			table.insert(parts, p(Vector3.new(0.18, 0.18, 1.3), Vector3.new(0.65, 0.05, -0.8), Color3.fromRGB(40, 40, 46)))
+			table.insert(parts, p(Vector3.new(0.2, 0.2, 0.1), Vector3.new(0.65, 0.05, -1.5), Color3.fromRGB(255, 200, 80), true))
+		else
+			table.insert(parts, p(Vector3.new(0.75, 0.4, 0.75), Vector3.new(0, 1.15, 0), Color3.fromRGB(40, 80, 40)))
+			table.insert(parts, p(Vector3.new(0.14, 1.9, 0.14), Vector3.new(-0.7, 0.1, -0.5), Color3.fromRGB(110, 76, 46)))
+			table.insert(parts, p(Vector3.new(0.05, 1.7, 0.05), Vector3.new(-0.7, 0.1, -0.52), Color3.fromRGB(235, 235, 225)))
+		end
+		return { Follow = Vector3.new(-2.8, -1.1, 1.8), Flying = false, Attack = if id == "Soldier" then Color3.fromRGB(255, 220, 120) else Color3.fromRGB(180, 255, 150), Parts = parts }
+	elseif id == "Hound" then
+		return {
+			Follow = Vector3.new(2.6, -1.9, 1.8),
+			Flying = false,
+			Attack = WHITE,
+			Parts = {
+				p(Vector3.new(1.0, 0.9, 2.0), Vector3.zero, color),
+				p(Vector3.new(0.9, 0.8, 0.9), Vector3.new(0, 0.45, -1.3), color),
+				p(Vector3.new(0.5, 0.35, 0.5), Vector3.new(0, 0.3, -1.85), shade(color, 0.2)),
+				p(Vector3.new(0.18, 0.15, 0.1), Vector3.new(0, 0.45, -2.1), BLACK),
+				p(Vector3.new(0.22, 0.45, 0.2), Vector3.new(-0.3, 0.95, -1.2), shade(color, 0.3)),
+				p(Vector3.new(0.22, 0.45, 0.2), Vector3.new(0.3, 0.95, -1.2), shade(color, 0.3)),
+				p(Vector3.new(1.05, 0.25, 0.5), Vector3.new(0, 0.35, -1.0), Color3.fromRGB(190, 40, 40)),
+				p(Vector3.new(0.3, 0.8, 0.3), Vector3.new(-0.3, -0.8, -0.6), color),
+				p(Vector3.new(0.3, 0.8, 0.3), Vector3.new(0.3, -0.8, -0.6), color),
+				p(Vector3.new(0.3, 0.8, 0.3), Vector3.new(-0.3, -0.8, 0.6), color),
+				p(Vector3.new(0.3, 0.8, 0.3), Vector3.new(0.3, -0.8, 0.6), color),
+				p(Vector3.new(0.25, 0.25, 0.9), Vector3.new(0, 0.5, 1.3), shade(color, 0.1)),
+			},
+		}
+	elseif id == "Golem" then
+		local stone = shade(color, 0.1)
+		return {
+			Follow = Vector3.new(-3.2, -0.6, 2.2),
+			Flying = false,
+			Attack = Color3.fromRGB(210, 200, 170),
+			Parts = {
+				p(Vector3.new(0.9, 1.1, 0.9), Vector3.new(-0.55, -1.2, 0), stone),
+				p(Vector3.new(0.9, 1.1, 0.9), Vector3.new(0.55, -1.2, 0), stone),
+				p(Vector3.new(2.0, 1.9, 1.3), Vector3.new(0, 0, 0), color),
+				p(Vector3.new(0.9, 1.9, 0.9), Vector3.new(-1.5, -0.1, 0), stone),
+				p(Vector3.new(0.9, 1.9, 0.9), Vector3.new(1.5, -0.1, 0), stone),
+				p(Vector3.new(1.1, 0.9, 1.0), Vector3.new(0, 1.4, -0.1), color),
+				p(Vector3.new(0.22, 0.14, 0.05), Vector3.new(-0.25, 1.5, -0.6), Color3.fromRGB(110, 230, 255), true),
+				p(Vector3.new(0.22, 0.14, 0.05), Vector3.new(0.25, 1.5, -0.6), Color3.fromRGB(110, 230, 255), true),
+				p(Vector3.new(0.5, 0.5, 0.1), Vector3.new(0, 0.2, -0.7), Color3.fromRGB(110, 230, 255), true),
+			},
+		}
+	elseif id == "Phoenix" then
+		return {
+			Follow = Vector3.new(2.8, 2.8, 1.0),
+			Flying = true,
+			Attack = Color3.fromRGB(255, 150, 40),
+			Parts = {
+				p(Vector3.new(0.9, 0.9, 1.5), Vector3.zero, color),
+				p(Vector3.new(0.7, 0.7, 0.7), Vector3.new(0, 0.7, -0.9), Color3.fromRGB(255, 190, 60)),
+				p(Vector3.new(0.2, 0.2, 0.4), Vector3.new(0, 0.6, -1.4), Color3.fromRGB(255, 220, 90), true),
+				p(Vector3.new(0.14, 0.12, 0.05), Vector3.new(-0.2, 0.8, -1.26), BLACK),
+				p(Vector3.new(0.14, 0.12, 0.05), Vector3.new(0.2, 0.8, -1.26), BLACK),
+				p(Vector3.new(0.5, 0.3, 1.8), Vector3.new(0, 0.1, 1.4), Color3.fromRGB(255, 90, 30), true),
+				p(Vector3.new(0.3, 0.2, 1.2), Vector3.new(0, 0.2, 2.2), Color3.fromRGB(255, 220, 90), true),
+				p(Vector3.new(1.8, 0.12, 1.2), Vector3.new(-1.4, 0.4, 0), Color3.fromRGB(255, 110, 30), true, -1),
+				p(Vector3.new(1.8, 0.12, 1.2), Vector3.new(1.4, 0.4, 0), Color3.fromRGB(255, 110, 30), true, 1),
+			},
+		}
 	end
 	-- Dragoncito
 	return {

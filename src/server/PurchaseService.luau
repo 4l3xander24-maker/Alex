@@ -53,6 +53,20 @@ local function grant(player: Player, key: string)
 			DataService.addCoins(player, monetization.ReviveRefund)
 			Remotes.Notify:FireClient(player, `💖 Ya no se podía continuar: te damos {monetization.ReviveRefund} monedas`)
 		end
+	elseif product.Pet then
+		local data = DataService.get(player)
+		if data then
+			data.Pets[product.Pet] = true
+			data.Pet = product.Pet
+			Remotes.Notify:FireClient(player, `{product.Icon} ¡{product.Name} ahora pelea a tu lado!`)
+		end
+	elseif product.WeaponSkin then
+		local data = DataService.get(player)
+		if data then
+			data.WeaponSkins[product.WeaponSkin] = true
+			data.WeaponSkin = product.WeaponSkin
+			Remotes.Notify:FireClient(player, `{product.Icon} ¡{product.Name} puesta en tus armas!`)
+		end
 	elseif product.Coins then
 		DataService.addCoins(player, product.Coins)
 		Remotes.Notify:FireClient(player, `{product.Icon} +{product.Coins} monedas. ¡Gracias por tu compra!`)

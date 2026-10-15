@@ -70,7 +70,15 @@ local function cancelReload()
 end
 
 local function showWeapon()
-	local level = Profile.get().Weapons[equipped] or 0
+	local data = Profile.get()
+	local level = data.Weapons[equipped] or 0
+	-- Una skin de arma (Sastre) manda sobre el color del nivel de mejora
+	for index, skin in Config.WeaponSkins do
+		if skin.Id == data.WeaponSkin and data.WeaponSkins[skin.Id] then
+			Viewmodel.setWeapon(equipped, Config.Weapons[equipped].Zoom, 1000 + index, { Name = skin.Name, Main = skin.Main, Accent = skin.Accent, Glow = skin.Glow, Tint = true })
+			return
+		end
+	end
 	Viewmodel.setWeapon(equipped, Config.Weapons[equipped].Zoom, level, Progression.weaponTier(level))
 end
 
