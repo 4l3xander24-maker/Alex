@@ -189,8 +189,8 @@ local function show(summary)
 		corner.CornerRadius = UDim.new(0, 10)
 		corner.Parent = button
 		button.Activated:Connect(function()
-			if myVote then
-				return -- ya eligió
+			if myVote == choice then
+				return
 			end
 			myVote = choice
 			Remotes.Vote:FireServer(choice)
@@ -220,7 +220,7 @@ local function show(summary)
 			if voting then
 				seenVote = true
 				local counts = `🔄 {state:GetAttribute("VoteRetry") or 0}   🏰 {state:GetAttribute("VoteLobby") or 0}`
-				voteLabel.Text = `{if myVote then "Elegiste. Esperando a los demás… " else "Elige: "}{counts}`
+				voteLabel.Text = `{if myVote then "Votaste. Gana la mayoría del equipo · " else "Vota: gana la mayoría del equipo · "}{counts}`
 			elseif seenVote or os.clock() - started > AUTO_CLOSE then
 				hide()
 				break

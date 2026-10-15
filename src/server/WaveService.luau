@@ -45,6 +45,55 @@ function WaveService.getDifficulty()
 	return Config.Difficulties[difficultyId]
 end
 
+-- La dificultad se decide en equipo: cada jugador vota y gana la mayoría. Empieza
+-- en cuanto una opción pasa de la mitad (o votan todos); si no, a los
+-- DifficultyVoteTime segundos gana la más votada (en empate, la más fácil).
+local DIFFICULTY_VOTE_TIME = 15
+local difficultyVotes: { [Player]: number } = {}
+local difficultyTimer = 0
+
+local function tally(): ({ [number]: number }, number)
+	local counts: { [number]: number } = {}
+	local voted = 0
+	for player, id in difficultyVotes do
+		if player.Parent then
+			counts[id] = (counts[id] or 0) + 1
+			voted += 1
+		end
+	end
+	return counts, voted
+end
+
+local function finishDifficultyVote()
+	if startRequested or GameState.get("State") ~= "Lobby" then
+		return
+	end
+	local counts, voted = tally()
+	local best, bestCount = 0, 0
+	for id = 1, #Config.Difficulties do
+		if (counts[id] or 0) > bestCount then
+			best, bestCount = id, counts[id]
+		end
+	end
+	if best == 0 then
+		return
+	end
+	local info = Config.Difficulties[best]
+	difficultyId = best
+	GameState.set("Difficulty", best)
+	startRequested = true
+	difficultyTimer += 1
+	table.clear(difficultyVotes)
+	if startPrompt then
+		startPrompt.Enabled = false
+	end
+	BellTower.rebuild()
+	local suffix = if #Players:GetPlayers() > 1 then ` (ganó con {bestCount} de {voted} votos)` else ""
+	for _, other in Players:GetPlayers() do
+		Remotes.Notify:FireClient(other, `🔔 {info.Icon} {info.Name}{suffix}: ¡la campana se reconstruye y la partida empieza!`)
+	end
+end
+
 Remotes.SelectDifficulty.OnServerEvent:Connect(function(player, id)
 	if typeof(id) ~= "number" or GameState.get("State") ~= "Lobby" or startRequested then
 		return
@@ -54,15 +103,30 @@ Remotes.SelectDifficulty.OnServerEvent:Connect(function(player, id)
 	if not info or not data or id > (data.Difficulty or 1) then
 		return -- esa dificultad todavía tiene candado
 	end
-	difficultyId = id
-	GameState.set("Difficulty", id)
-	startRequested = true
-	if startPrompt then
-		startPrompt.Enabled = false
+	local firstVote = next(difficultyVotes) == nil
+	difficultyVotes[player] = id
+	local counts, voted = tally()
+	local total = #Players:GetPlayers()
+	if voted >= total or (counts[id] or 0) * 2 > total then
+		finishDifficultyVote()
+		return
 	end
-	BellTower.rebuild()
 	for _, other in Players:GetPlayers() do
-		Remotes.Notify:FireClient(other, `🔔 {player.DisplayName} reconstruyó la campana · {info.Icon} {info.Name}: ¡la partida empieza!`)
+		Remotes.Notify:FireClient(other, `🗳️ {player.DisplayName} votó {info.Icon} {info.Name} ({voted}/{total}). Gana la mayoría`)
+		-- A los demás se les abre el menú para que voten
+		if firstVote and other ~= player and not difficultyVotes[other] then
+			local otherData = DataService.get(other)
+			Remotes.DifficultyMenu:FireClient(other, if otherData then otherData.Difficulty else 1)
+		end
+	end
+	if firstVote then
+		difficultyTimer += 1
+		local token = difficultyTimer
+		task.delay(DIFFICULTY_VOTE_TIME, function()
+			if token == difficultyTimer then
+				finishDifficultyVote()
+			end
+		end)
 	end
 end)
 
@@ -323,15 +387,16 @@ local function runWave(wave: number): boolean
 	return true
 end
 
--- Al perder: cada jugador elige Reintentar o Volver al lobby. No hay cuenta
--- regresiva: termina cuando todos eligieron. Quien eligió el lobby vuelve solo
--- y los que reintentan siguen en el servidor. (Por si alguien se queda
--- dormido, pasados VoteMaxWait segundos se cuenta como Reintentar.)
+-- Al perder: el equipo vota Reintentar o Volver al lobby y gana la mayoría (vale
+-- para todos). No hay cuenta regresiva: termina cuando una opción pasa de la
+-- mitad o votan todos; cada uno puede cambiar su voto mientras tanto. (Por si
+-- alguien se queda dormido, pasados VoteMaxWait segundos se cuenta como Reintentar.)
 local votes: { [Player]: string } = {}
 local voting = false
 
--- Devuelve los jugadores que eligieron volver al lobby
-function WaveService.runVote(): { Player }
+-- Decide la mayoría y vale para todo el equipo. Devuelve "Lobby" o "Retry"
+-- (en empate o sin mayoría para el lobby, se reintenta)
+function WaveService.runVote(): string
 	table.clear(votes)
 	voting = true
 	GameState.set("VoteRetry", 0)
@@ -350,20 +415,23 @@ function WaveService.runVote(): { Player }
 		end
 		GameState.set("VoteRetry", retry)
 		GameState.set("VoteLobby", lobby)
-		if total == 0 or retry + lobby >= total or os.clock() - started > Config.Rooms.VoteMaxWait then
+		-- Termina cuando una opción tiene más de la mitad, o votaron todos
+		if total == 0 or retry * 2 > total or lobby * 2 > total or retry + lobby >= total or os.clock() - started > Config.Rooms.VoteMaxWait then
 			break
 		end
 		task.wait(0.25)
 	end
 	voting = false
 	GameState.set("Vote", false)
-	local leaving = {}
+	local retry, lobby = 0, 0
 	for _, player in Players:GetPlayers() do
 		if votes[player] == "Lobby" then
-			table.insert(leaving, player)
+			lobby += 1
+		elseif votes[player] == "Retry" then
+			retry += 1
 		end
 	end
-	return leaving
+	return if lobby > retry and lobby * 2 > #Players:GetPlayers() then "Lobby" else "Retry"
 end
 
 Remotes.Vote.OnServerEvent:Connect(function(player, choice)
@@ -410,20 +478,18 @@ function WaveService.start()
 			currentWave = 0
 			GameState.set("Wave", 0)
 			-- Votación: reintentar aquí mismo o volver al lobby (solo si vinieron de una sala)
-			local leaving = WaveService.runVote()
-			if #leaving > 0 then
+			local decision = WaveService.runVote()
+			if decision == "Lobby" then
 				if LobbyReturn.isRoomMatch() then
-					for _, player in leaving do
-						Remotes.Notify:FireClient(player, "🏰 Volviendo al lobby...")
-					end
-					LobbyReturn.sendPlayers(leaving)
+					Remotes.Notify:FireAllClients("🏰 La mayoría eligió volver al lobby")
+					LobbyReturn.sendPlayers(Players:GetPlayers())
 					task.wait(4)
 				else
 					-- Fuera de una sala (Studio) no hay lobby al que volver
-					for _, player in leaving do
-						Remotes.Notify:FireClient(player, "🏰 Aquí no hay lobby: seguimos en la partida")
-					end
+					Remotes.Notify:FireAllClients("🏰 Aquí no hay lobby: seguimos en la partida")
 				end
+			else
+				Remotes.Notify:FireAllClients("🔄 La mayoría eligió reintentar")
 			end
 			local retryNames = #Players:GetPlayers()
 			if retryNames > 0 then
