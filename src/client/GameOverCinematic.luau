@@ -38,6 +38,8 @@ local function play(reason: string?, bell: Vector3, duration: number)
 		return
 	end
 	playing = true
+	-- Sin arma en la mano ni botones mientras dura (Viewmodel, Hud y StoreUi lo miran)
+	player:SetAttribute("InCinematic", true)
 	local camera = workspace.CurrentCamera
 	local startCFrame = camera.CFrame
 	local focus = bell + Vector3.new(0, 11, 0)
@@ -99,6 +101,7 @@ local function play(reason: string?, bell: Vector3, duration: number)
 		grade:Destroy()
 	end)
 	camera.CameraType = Enum.CameraType.Custom
+	player:SetAttribute("InCinematic", false)
 	task.wait(0.5)
 	gui.Enabled = false
 	playing = false

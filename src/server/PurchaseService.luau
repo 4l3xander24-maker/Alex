@@ -45,6 +45,14 @@ local function grant(player: Player, key: string)
 			DataService.addCoins(player, monetization.ReviveRefund)
 			Remotes.Notify:FireClient(player, `💖 No hacía falta revivir: te damos {monetization.ReviveRefund} monedas`)
 		end
+	elseif key == "Continue" then
+		local count = PlayerService.reviveAll()
+		if count > 0 then
+			Remotes.Notify:FireAllClients(`💖 ¡{player.DisplayName} pagó para seguir! Todos de vuelta`)
+		else
+			DataService.addCoins(player, monetization.ReviveRefund)
+			Remotes.Notify:FireClient(player, `💖 Ya no se podía continuar: te damos {monetization.ReviveRefund} monedas`)
+		end
 	elseif product.Coins then
 		DataService.addCoins(player, product.Coins)
 		Remotes.Notify:FireClient(player, `{product.Icon} +{product.Coins} monedas. ¡Gracias por tu compra!`)

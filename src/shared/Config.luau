@@ -657,10 +657,12 @@ Config.Monetization = {
 	-- Productos: se compran las veces que quieras (solo dentro de la partida)
 	Products = {
 		Revive = { Id = 0, Name = "Revivir", Icon = "💖", Description = "Vuelves a la partida con la vida llena." },
+		Continue = { Id = 0, Name = "Continuar partida", Icon = "💖", Description = "Cuando caen todos: el equipo entero vuelve y la partida sigue." },
 		CoinsSmall = { Id = 0, Name = "Bolsa de monedas", Icon = "💰", Description = "+500 monedas.", Coins = 500 },
 		CoinsBig = { Id = 0, Name = "Cofre de monedas", Icon = "💎", Description = "+2000 monedas.", Coins = 2000 },
 	},
 	ReviveWindow = 10, -- segundos para comprar Revivir después de caer
+	ContinueWindow = 10, -- cuenta cuando caen todos, para comprar Continuar
 	ReviveRefund = 300, -- monedas si compraste Revivir pero ya no se podía usar
 	VipXpBonus = 0.25,
 	-- Skins: capa (y armadura o sombrero) que ven todos. Cómo se consiguen:

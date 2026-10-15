@@ -199,6 +199,18 @@ function PlayerService.revive(player: Player): boolean
 	return true
 end
 
+-- Continuar (Robux, cuando caen todos): vuelven todos los caídos. Devuelve
+-- cuántos volvieron.
+function PlayerService.reviveAll(): number
+	local count = 0
+	for _, player in Players:GetPlayers() do
+		if PlayerService.revive(player) then
+			count += 1
+		end
+	end
+	return count
+end
+
 -- true si no queda ningún jugador vivo (ni esperando para revivir)
 function PlayerService.allDown(): boolean
 	local now = os.clock()

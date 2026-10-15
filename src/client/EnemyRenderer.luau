@@ -14,6 +14,7 @@ local RunService = game:GetService("RunService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
 local EnemyMath = require(Shared.EnemyMath)
+local Paths = require(Shared.Paths)
 local Remotes = require(Shared.Remotes)
 local ResolvedAssets = require(Shared.ResolvedAssets)
 local DamageNumbers = require(script.Parent.DamageNumbers)
@@ -464,6 +465,9 @@ local function render(dt: number)
 	for _, visual in visuals do
 		local traveled = EnemyMath.getTraveled(visual.Path, now)
 		local position, direction = EnemyMath.locate(visual.Path, traveled)
+		-- La ruta va a la altura del cuerpo: se le suma el suelo (bosque más
+		-- bajo, rampa del puente, terreno), igual que el hitbox del servidor
+		position += Vector3.new(0, Paths.walkHeight(position), 0)
 		local toEnemy = position - cameraPosition
 		local distance = toEnemy.Magnitude
 

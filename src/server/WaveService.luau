@@ -155,12 +155,42 @@ end
 
 -- Descanso antes de cada oleada (sin conteo en pantalla). Devuelve false si
 -- cayeron todos los jugadores.
+-- Cayeron todos: cuenta de ContinueWindow segundos para que cualquiera compre
+-- Continuar (Robux) y vuelvan todos. true si alguien pagó y la partida sigue.
+-- Los zombis siguen atacando la campana mientras tanto.
+local function offerContinue(): boolean
+	local monetization = Config.Monetization
+	if monetization.Products.Continue.Id == 0 then
+		return false
+	end
+	local endsAt = workspace:GetServerTimeNow() + monetization.ContinueWindow
+	GameState.set("ContinueEnds", endsAt)
+	local continued = false
+	while workspace:GetServerTimeNow() < endsAt do
+		if not PlayerService.allDown() then
+			continued = true
+			break
+		end
+		if GameState.isBellDestroyed() or #Players:GetPlayers() == 0 then
+			break
+		end
+		task.wait(0.2)
+	end
+	GameState.set("ContinueEnds", 0)
+	return continued
+end
+
+-- Cayeron todos y nadie pagó para seguir: se termina por muerte
+local function everyoneDown(): boolean
+	return PlayerService.allDown() and not offerContinue()
+end
+
 local function runIntermission(seconds: number): boolean
 	GameState.set("State", "Intermission")
 	CombatService.restockAll()
 	local finish = os.clock() + seconds
 	while os.clock() < finish do
-		if PlayerService.allDown() then
+		if everyoneDown() then
 			GameState.set("EndReason", "Dead")
 			return false
 		end
@@ -205,7 +235,7 @@ local function runWave(wave: number): boolean
 			GameState.set("EndReason", "Bell")
 			return false
 		end
-		if PlayerService.allDown() then
+		if everyoneDown() then
 			GameState.set("EndReason", "Dead")
 			return false
 		end

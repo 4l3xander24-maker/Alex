@@ -129,6 +129,49 @@ function StoreUi.init()
 		MarketplaceService:PromptProductPurchase(player, REVIVE.Id)
 	end)
 
+	-- Cayeron todos: cuenta y botón para que cualquiera pague y sigan todos
+	local CONTINUE = Config.Monetization.Products.Continue
+	local continuePanel = revivePanel:Clone()
+	continuePanel.Name = "Continue"
+	continuePanel.Size = UDim2.fromOffset(360, 140)
+	continuePanel.Position = UDim2.fromScale(0.5, 0.55)
+	continuePanel.Parent = gui
+	local continueTimer = continuePanel:FindFirstChildOfClass("TextLabel") :: TextLabel
+	continueTimer.Size = UDim2.new(1, 0, 0, 48)
+	continueTimer.TextWrapped = true
+	local continueButton = continuePanel:FindFirstChildOfClass("TextButton") :: TextButton
+	continueButton.Activated:Connect(function()
+		MarketplaceService:PromptProductPurchase(player, CONTINUE.Id)
+	end)
+	local gameState = ReplicatedStorage:WaitForChild("GameState")
+	local continuePrice = ""
+	task.spawn(function()
+		if CONTINUE.Id ~= 0 then
+			local ok, info = pcall(function()
+				return MarketplaceService:GetProductInfo(CONTINUE.Id, Enum.InfoType.Product)
+			end)
+			continuePrice = if ok and info and info.PriceInRobux then ` R$ {info.PriceInRobux}` else ""
+		end
+	end)
+	task.spawn(function()
+		while true do
+			local endsAt = gameState:GetAttribute("ContinueEnds") or 0
+			local left = endsAt - workspace:GetServerTimeNow()
+			local show = left > 0
+			continuePanel.Visible = show
+			if show then
+				revivePanel.Visible = false
+				continueTimer.Text = `💀 ¡Cayeron todos! ¿Seguir la partida?  ⏳ {math.ceil(left)}`
+				continueButton.Text = `💖 Continuar{continuePrice}`
+			end
+			task.wait(0.2)
+		end
+	end)
+
+	player:GetAttributeChangedSignal("InCinematic"):Connect(function()
+		button.Visible = not player:GetAttribute("InCinematic")
+	end)
+
 	Remotes.ReviveOffer.OnClientEvent:Connect(function(seconds)
 		task.spawn(showRevive, seconds)
 	end)

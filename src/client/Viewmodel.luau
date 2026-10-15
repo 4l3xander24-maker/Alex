@@ -392,7 +392,8 @@ local function update(dt: number)
 	aimAlpha += ((if aiming then 1 else 0) - aimAlpha) * math.min(1, dt * 14)
 	camera.FieldOfView = BASE_FOV / (1 + (zoom - 1) * aimAlpha)
 
-	local visible = isAlive() and not (hideWhenAiming and aimAlpha > 0.9)
+	-- En la cinemática de derrota no se ve el arma (GameOverCinematic)
+	local visible = isAlive() and not (hideWhenAiming and aimAlpha > 0.9) and not player:GetAttribute("InCinematic")
 	folder.Parent = if visible then camera else nil
 	if not visible then
 		return

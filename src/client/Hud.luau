@@ -601,6 +601,10 @@ function Hud.init(actions: Actions)
 
 	gameState.AttributeChanged:Connect(refreshState)
 	player.AttributeChanged:Connect(refreshProfile)
+	-- La cinemática de derrota se ve limpia, sin botones ni barras
+	player:GetAttributeChangedSignal("InCinematic"):Connect(function()
+		gui.Enabled = not player:GetAttribute("InCinematic")
+	end)
 	Profile.Changed:Connect(refreshProfile)
 	refreshState()
 	refreshProfile()
