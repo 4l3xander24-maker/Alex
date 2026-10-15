@@ -61,20 +61,11 @@ function TouchControls.init(actions: { jump: () -> () })
 	local base = circle(zone, 128)
 	base.Position = HOME
 	HudIcons.styleButton(base)
-	HudIcons.dpad(base, 106)
+	base.BackgroundTransparency = 0.7
 	local knob = circle(base, 54)
 	knob.Position = UDim2.fromScale(0.5, 0.5)
-	knob.BackgroundTransparency = 0.25
+	knob.BackgroundTransparency = 0.35
 	knob.ZIndex = 3
-	local knobRing = Instance.new("UIStroke")
-	knobRing.Color = Color3.new(1, 1, 1)
-	knobRing.Transparency = 0.1
-	knobRing.Thickness = 2
-	knobRing.Parent = knob
-	local knobShade = Instance.new("UIGradient")
-	knobShade.Rotation = 90
-	knobShade.Color = ColorSequence.new(Color3.new(1, 1, 1), Color3.fromRGB(170, 175, 185))
-	knobShade.Parent = knob
 
 	local active: InputObject? = nil
 	local origin = Vector2.zero
@@ -89,7 +80,7 @@ function TouchControls.init(actions: { jump: () -> () })
 			active = input
 			origin = toLocal(input.Position)
 			base.Position = UDim2.fromOffset(origin.X, origin.Y)
-			base.BackgroundTransparency = 0.2
+			base.BackgroundTransparency = 0.55
 		end
 	end)
 	UserInputService.InputChanged:Connect(function(input)
@@ -108,7 +99,7 @@ function TouchControls.init(actions: { jump: () -> () })
 			active = nil
 			move = Vector2.zero
 			base.Position = HOME
-			base.BackgroundTransparency = 0.38
+			base.BackgroundTransparency = 0.7
 			knob.Position = UDim2.fromScale(0.5, 0.5)
 		end
 	end)
@@ -117,15 +108,15 @@ function TouchControls.init(actions: { jump: () -> () })
 	local jump = Instance.new("TextButton")
 	jump.AnchorPoint = Vector2.new(1, 1)
 	jump.Position = UDim2.new(1, -24, 1, -28)
-	jump.Size = UDim2.fromOffset(78, 78)
+	jump.Size = UDim2.fromOffset(70, 70)
 	jump.Text = ""
 	jump.AutoButtonColor = false
 	jump.Parent = root
 	local jumpCorner = Instance.new("UICorner")
 	jumpCorner.CornerRadius = UDim.new(1, 0)
 	jumpCorner.Parent = jump
-	HudIcons.styleButton(jump, 2.5)
-	HudIcons.jump(jump, 44)
+	HudIcons.styleButton(jump, 1.5)
+	HudIcons.jump(jump, 40)
 	HudIcons.bindPress(jump)
 	jump.Activated:Connect(actions.jump)
 

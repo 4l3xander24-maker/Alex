@@ -78,28 +78,33 @@ end
 -- Botones de línea blanca
 ----------------------------------------------------------------------
 
--- Bala de fusil apuntando arriba, con punta plateada y vaina dorada
+-- Bala blanca inclinada hacia arriba a la derecha, como el botón de disparo de
+-- Call of Duty Mobile
 function HudIcons.fire(button: GuiObject, size: number): Frame
 	local icon = holder(button, size)
-	local brass = Color3.fromRGB(255, 205, 90)
-	local brassDark = Color3.fromRGB(214, 150, 50)
-	-- Punta redondeada, cuerpo de la vaina, ranura y base con borde
-	bar(icon, size, 0.5, 0.24, 0.24, 0.3, 0, true, Color3.fromRGB(235, 240, 248))
-	bar(icon, size, 0.5, 0.41, 0.24, 0.12, 0, false, Color3.fromRGB(235, 240, 248))
-	bar(icon, size, 0.5, 0.53, 0.24, 0.16, 0, false, brass)
-	bar(icon, size, 0.5, 0.63, 0.24, 0.035, 0, false, DARK)
-	bar(icon, size, 0.5, 0.74, 0.3, 0.2, 0, false, brass)
-	bar(icon, size, 0.5, 0.855, 0.36, 0.06, 0, false, brassDark)
-	bar(icon, size, 0.5, 0.74, 0.1, 0.1, 0, true, brassDark)
-	-- Brillo
-	bar(icon, size, 0.44, 0.28, 0.035, 0.18, 0, true, WHITE)
+	local root = Instance.new("Frame")
+	root.AnchorPoint = Vector2.new(0.5, 0.5)
+	root.Position = UDim2.fromScale(0.5, 0.5)
+	root.Size = UDim2.fromScale(1, 1)
+	root.Rotation = 40
+	root.BackgroundTransparency = 1
+	root.Parent = icon
+	local white = Color3.fromRGB(246, 248, 250)
+	local grey = Color3.fromRGB(190, 196, 204)
+	-- Punta, cuerpo, ranura de la vaina y base
+	bar(root, size, 0.5, 0.2, 0.2, 0.36, 0, true, white)
+	bar(root, size, 0.5, 0.42, 0.22, 0.2, 0, false, white)
+	bar(root, size, 0.5, 0.585, 0.27, 0.15, 0, false, grey)
+	bar(root, size, 0.5, 0.51, 0.27, 0.025, 0, false, DARK)
+	bar(root, size, 0.5, 0.7, 0.32, 0.07, 0, true, white)
+	bar(root, size, 0.5, 0.77, 0.27, 0.05, 0, false, grey)
 	return icon
 end
 
 -- Flecha circular (recargar)
 function HudIcons.reload(button: GuiObject, size: number): Frame
 	local icon = holder(button, size)
-	local circle = ring(icon, size, 0.5, 0.52, 0.6, 0.09)
+	local circle = ring(icon, size, 0.5, 0.52, 0.6, 0.06)
 	-- Abre un hueco arriba a la derecha: el trazo se desvanece en esa esquina
 	local stroke = circle:FindFirstChildOfClass("UIStroke") :: UIStroke
 	local gradient = Instance.new("UIGradient")
@@ -112,26 +117,26 @@ function HudIcons.reload(button: GuiObject, size: number): Frame
 	})
 	gradient.Parent = stroke
 	local angle = math.rad(70)
-	arrowHead(icon, size, 0.5 + math.cos(angle) * 0.3, 0.52 - math.sin(angle) * 0.3, 25, 0.22, 0.09)
+	arrowHead(icon, size, 0.5 + math.cos(angle) * 0.3, 0.52 - math.sin(angle) * 0.3, 25, 0.2, 0.06)
 	return icon
 end
 
 -- Dos flechas que se cruzan (cambiar de arma)
 function HudIcons.swap(button: GuiObject, size: number): Frame
 	local icon = holder(button, size)
-	bar(icon, size, 0.46, 0.36, 0.52, 0.09, 0, true)
-	arrowHead(icon, size, 0.8, 0.36, 0, 0.22, 0.09)
-	bar(icon, size, 0.54, 0.64, 0.52, 0.09, 0, true)
-	arrowHead(icon, size, 0.2, 0.64, 180, 0.22, 0.09)
+	bar(icon, size, 0.46, 0.36, 0.52, 0.06, 0, true)
+	arrowHead(icon, size, 0.8, 0.36, 0, 0.2, 0.06)
+	bar(icon, size, 0.54, 0.64, 0.52, 0.06, 0, true)
+	arrowHead(icon, size, 0.2, 0.64, 180, 0.2, 0.06)
 	return icon
 end
 
 -- Dos flechas hacia arriba (saltar)
 function HudIcons.jump(button: GuiObject, size: number): Frame
 	local icon = holder(button, size)
-	arrowHead(icon, size, 0.5, 0.24, 270, 0.4, 0.1)
-	arrowHead(icon, size, 0.5, 0.52, 270, 0.4, 0.1)
-	bar(icon, size, 0.5, 0.7, 0.1, 0.2, 0, true)
+	arrowHead(icon, size, 0.5, 0.24, 270, 0.36, 0.07)
+	arrowHead(icon, size, 0.5, 0.52, 270, 0.36, 0.07)
+	bar(icon, size, 0.5, 0.7, 0.07, 0.2, 0, true)
 	return icon
 end
 
@@ -150,8 +155,8 @@ end
 -- Dos flechas hacia adelante (correr)
 function HudIcons.sprint(button: GuiObject, size: number): Frame
 	local icon = holder(button, size)
-	arrowHead(icon, size, 0.52, 0.5, 0, 0.34, 0.1)
-	arrowHead(icon, size, 0.8, 0.5, 0, 0.34, 0.1)
+	arrowHead(icon, size, 0.52, 0.5, 0, 0.3, 0.07)
+	arrowHead(icon, size, 0.8, 0.5, 0, 0.3, 0.07)
 	return icon
 end
 
@@ -248,38 +253,16 @@ end
 -- Estilo de botones
 ----------------------------------------------------------------------
 
--- Círculo de cristal oscuro con borde blanco fino y un aro interior
+-- Círculo plano de vidrio oscuro con borde blanco fino (como Call of Duty Mobile)
 function HudIcons.styleButton(button: GuiObject, strokeThickness: number?)
-	button.BackgroundColor3 = DARK
-	button.BackgroundTransparency = 0.38
+	button.BackgroundColor3 = Color3.fromRGB(24, 26, 30)
+	button.BackgroundTransparency = 0.5
 	local stroke = button:FindFirstChildOfClass("UIStroke") or Instance.new("UIStroke")
 	stroke.Color = WHITE
-	stroke.Transparency = 0.2
-	stroke.Thickness = strokeThickness or 2
+	stroke.Transparency = 0.25
+	stroke.Thickness = strokeThickness or 1.5
 	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	stroke.Parent = button
-	-- Luz suave desde arriba
-	local gloss = Instance.new("UIGradient")
-	gloss.Rotation = 90
-	gloss.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.55), NumberSequenceKeypoint.new(1, 0) })
-	gloss.Parent = button
-	-- Aro interior
-	local inner = Instance.new("Frame")
-	inner.Name = "InnerRing"
-	inner.AnchorPoint = Vector2.new(0.5, 0.5)
-	inner.Position = UDim2.fromScale(0.5, 0.5)
-	inner.Size = UDim2.new(1, -12, 1, -12)
-	inner.BackgroundTransparency = 1
-	inner.ZIndex = 1
-	inner.Parent = button
-	local innerCorner = Instance.new("UICorner")
-	innerCorner.CornerRadius = UDim.new(1, 0)
-	innerCorner.Parent = inner
-	local innerStroke = Instance.new("UIStroke")
-	innerStroke.Color = WHITE
-	innerStroke.Transparency = 0.82
-	innerStroke.Thickness = 1
-	innerStroke.Parent = inner
 end
 
 -- El botón se encoge un poco mientras lo tocas
@@ -304,20 +287,6 @@ end
 -- Para saber si hace falta (pantalla táctil)
 function HudIcons.isTouch(): boolean
 	return UserInputService.TouchEnabled
-end
-
--- Joystick: cuatro flechitas en la base
-function HudIcons.dpad(base: GuiObject, size: number)
-	local icon = holder(base, size)
-	arrowHead(icon, size, 0.5, 0.1, 270, 0.16, 0.05)
-	arrowHead(icon, size, 0.5, 0.9, 90, 0.16, 0.05)
-	arrowHead(icon, size, 0.1, 0.5, 180, 0.16, 0.05)
-	arrowHead(icon, size, 0.9, 0.5, 0, 0.16, 0.05)
-	for _, child in icon:GetChildren() do
-		if child:IsA("Frame") then
-			child.BackgroundTransparency = 0.45
-		end
-	end
 end
 
 return HudIcons
