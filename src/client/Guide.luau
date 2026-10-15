@@ -36,7 +36,7 @@ local STEPS = {
 	{
 		Title = "¡Defiende la campana!",
 		Text = if touch
-			then "Los zombis vienen del bosque por el puente. Dispara con 🔫, recarga con 🔄 y cambia de arma con 🔁."
+			then "Los zombis vienen del bosque por el puente. Dispara con el botón grande de la bala, recarga con la flecha circular y cambia de arma con las flechas cruzadas."
 			else "Los zombis vienen del bosque por el puente. Dispara con clic izquierdo, R recarga, 1 a 6 cambia de arma.",
 	},
 	{
