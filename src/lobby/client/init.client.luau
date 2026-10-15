@@ -67,6 +67,40 @@ cancel.Activated:Connect(function()
 	cancelEvent:FireServer()
 end)
 
+-- Reconectar: si te desconectaste de una partida en curso, aparece este botón
+local reconnectOffer = ReplicatedStorage:WaitForChild("ReconnectOffer")
+local reconnectGo = ReplicatedStorage:WaitForChild("ReconnectGo")
+local reconnect = Instance.new("TextButton")
+reconnect.AnchorPoint = Vector2.new(0.5, 0)
+reconnect.Position = UDim2.new(0.5, 0, 0, 16)
+reconnect.Size = UDim2.fromOffset(300, 52)
+reconnect.BackgroundColor3 = Color3.fromRGB(46, 150, 86)
+reconnect.Font = Enum.Font.GothamBlack
+reconnect.TextSize = 18
+reconnect.TextColor3 = Color3.new(1, 1, 1)
+reconnect.Text = "VOLVER A MI PARTIDA"
+reconnect.Visible = false
+reconnect.Parent = gui
+local reconnectCorner = Instance.new("UICorner")
+reconnectCorner.CornerRadius = UDim.new(0, 12)
+reconnectCorner.Parent = reconnect
+local reconnectStroke = Instance.new("UIStroke")
+reconnectStroke.Color = Color3.fromRGB(190, 255, 210)
+reconnectStroke.Thickness = 1.5
+reconnectStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+reconnectStroke.Parent = reconnect
+reconnectOffer.OnClientEvent:Connect(function(available)
+	reconnect.Visible = available == true
+	reconnect.Text = "VOLVER A MI PARTIDA"
+	if available ~= true then
+		panel.Text = "Esa partida ya terminó."
+	end
+end)
+reconnect.Activated:Connect(function()
+	reconnect.Text = "Conectando..."
+	reconnectGo:FireServer()
+end)
+
 local currentRoom = nil
 status.OnClientEvent:Connect(function(room, count, seconds, problem)
 	cancel.Visible = room ~= nil and not problem

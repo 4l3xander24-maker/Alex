@@ -7,8 +7,35 @@ local RunService = game:GetService("RunService")
 local TeleportService = game:GetService("TeleportService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local MatchRegistry = require(ReplicatedStorage.Shared.MatchRegistry)
 
 local LobbyReturn = {}
+
+-- Jugadores que se van al Lobby a propósito (no cuentan como desconexión)
+local leaving: { [Player]: boolean } = {}
+
+function LobbyReturn.isLeaving(player: Player): boolean
+	return leaving[player] == true
+end
+
+-- Mientras la partida siga viva marca "sigo aquí" para que los que se
+-- desconectaron puedan volver (ver MatchRegistry)
+function LobbyReturn.startHeartbeat()
+	if not LobbyReturn.isRoomMatch() then
+		return
+	end
+	local privateId = game.PrivateServerId
+	MatchRegistry.heartbeat(privateId)
+	task.spawn(function()
+		while true do
+			task.wait(MatchRegistry.HeartbeatEvery)
+			MatchRegistry.heartbeat(privateId)
+		end
+	end)
+	game:BindToClose(function()
+		MatchRegistry.finish(privateId)
+	end)
+end
 
 -- true si este servidor lo reservó el Lobby para una sala
 function LobbyReturn.isRoomMatch(): boolean
@@ -19,6 +46,11 @@ end
 function LobbyReturn.sendPlayers(players: { Player })
 	if #players == 0 then
 		return
+	end
+	-- Van al Lobby a propósito: ya no tienen partida a la que reconectarse
+	for _, player in players do
+		leaving[player] = true
+		MatchRegistry.clear(player.UserId)
 	end
 	for attempt = 1, 3 do
 		local ok, err = pcall(function()

@@ -12,6 +12,7 @@ local CombatService = require(script.CombatService)
 local DataService = require(script.DataService)
 local EnemyService = require(script.EnemyService)
 local GameState = require(script.GameState)
+local LobbyReturn = require(script.LobbyReturn)
 local MapBuilder = require(script.MapBuilder)
 local MatchService = require(script.MatchService)
 local PetService = require(script.PetService)
@@ -80,7 +81,12 @@ Remotes.GetSnapshot.OnServerInvoke = EnemyService.getSnapshot
 Players.PlayerRemoving:Connect(function(player)
 	MatchService.award(player, WaveService.getCurrentWave())
 	DataService.release(player)
+	-- Si se desconectó (no se fue al Lobby a propósito) puede volver desde el Lobby
+	if LobbyReturn.isRoomMatch() and not LobbyReturn.isLeaving(player) then
+		Remotes.Notify:FireAllClients(`📡 {player.DisplayName} se desconectó. Puede volver desde el Lobby`)
+	end
 end)
+LobbyReturn.startHeartbeat()
 
 RunService.Heartbeat:Connect(function(dt)
 	local now = workspace:GetServerTimeNow()

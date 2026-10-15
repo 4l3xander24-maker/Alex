@@ -297,11 +297,10 @@ Config.Arena = {
 	Market = {
 		Plaza = Vector3.new(240, 0, -10),
 		Captain = Vector3.new(222, 0, -34),
-		Tailor = Vector3.new(262, 0, -32),
 		Villagers = {
 			{ Offset = Vector3.new(-12, 0, 12), Name = "Marta", Role = "Aldeana", Lines = { "Los zombis odian las minas. ¡Pon varias!", "Mi marido dice que el bosque está cada vez más espeso...", "Entre oleadas, el molino te cura con pan caliente." } },
 			{ Offset = Vector3.new(14, 0, 8), Name = "Tomás", Role = "Granjero", Lines = { "Yo no salgo de noche. Ni de día, la verdad.", "Cuida tu munición: cada zombi te da una bala.", "¿Viste los potenciadores? Algunos zombis los sueltan." } },
-			{ Offset = Vector3.new(0, 0, 22), Name = "Lucía", Role = "Niña", Lines = { "¡Me encantan las mascotas! El Capitán vende compañeros.", "El Sastre tiene capas y skins brillantes para tus armas.", "Dicen que el Dragoncito escupe fuego." } },
+			{ Offset = Vector3.new(0, 0, 22), Name = "Lucía", Role = "Niña", Lines = { "¡Me encantan las mascotas! El Capitán vende compañeros.", "La Sastre del campamento tiene capas y skins brillantes para tus armas.", "Dicen que el Dragoncito escupe fuego." } },
 		},
 	},
 	-- Zonas donde no crece ningún árbol (rectángulos: centro y tamaño en x, z)
@@ -381,7 +380,7 @@ Config.Paths = {
 Config.PathOrder = { "Main", "ForestNorth", "ForestWest", "ForestEast" }
 Config.PathStyle = {
 	Width = 8, -- camino angosto de tierra
-	Lane = 2.5, -- cuánto se puede desviar cada zombi del centro del camino
+	Lane = 4.5, -- cuánto se puede desviar cada zombi del centro del camino
 	SpawnSpread = 12, -- en los senderos del bosque salen entre los árboles, repartidos a lo ancho
 }
 
@@ -611,7 +610,7 @@ Config.Enemies = {
 -- se abre la que sigue. Count/Health/Spawn multiplican a los zombis;
 -- Coins y Xp lo que ganas.
 Config.Difficulties = {
-	{ Id = 1, Name = "Normal", Icon = "⚔️", Color = Color3.fromRGB(110, 190, 120), Count = 0.85, Health = 0.9, Spawn = 0.9, Coins = 1.0, Xp = 1.0, Goal = 8, Description = "Una partida pareja y agradable para empezar." },
+	{ Id = 1, Name = "Normal", Icon = "⚔️", Color = Color3.fromRGB(110, 190, 120), Count = 0.65, Health = 0.55, Spawn = 0.7, Coins = 1.0, Xp = 1.0, Goal = 8, Description = "Pocos zombis y muy débiles: ideal para aprender." },
 	{ Id = 2, Name = "Difícil", Icon = "🔥", Color = Color3.fromRGB(240, 170, 70), Count = 1.1, Health = 1.15, Spawn = 1.1, Coins = 1.2, Xp = 1.2, Goal = 10, Description = "Más zombis y más duros. Mejores premios." },
 	{ Id = 3, Name = "Experto", Icon = "🎯", Color = Color3.fromRGB(110, 170, 240), Count = 1.3, Health = 1.45, Spawn = 1.25, Coins = 1.45, Xp = 1.45, Goal = 12, Description = "Para quien ya domina el campamento." },
 	{ Id = 4, Name = "Pesadilla", Icon = "💀", Color = Color3.fromRGB(220, 90, 90), Count = 1.55, Health = 1.8, Spawn = 1.4, Coins = 1.7, Xp = 1.7, Goal = 14, Description = "Hordas enormes y zombis resistentes." },

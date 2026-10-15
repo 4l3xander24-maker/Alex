@@ -12,6 +12,7 @@ local RunService = game:GetService("RunService")
 local TeleportService = game:GetService("TeleportService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local MatchRegistry = require(ReplicatedStorage.Shared.MatchRegistry)
 local Props = require(script.Props)
 local ModelLibrary = require(script.ModelLibrary)
 local Leaderboard = require(script.Leaderboard)
@@ -752,8 +753,15 @@ local function launch(room: Room)
 		if RunService:IsStudio() then
 			error("En Studio no se puede teletransportar: publica y prueba desde Roblox")
 		end
+		-- Servidor reservado con código: así se puede volver si alguien se desconecta
+		local code, privateId = TeleportService:ReserveServer(Config.Places.Match)
+		local userIds = {}
+		for _, member in members do
+			table.insert(userIds, member.UserId)
+		end
+		MatchRegistry.register(userIds, code, privateId)
 		local options = Instance.new("TeleportOptions")
-		options.ShouldReserveServer = true
+		options.ReservedServerAccessCode = code
 		options:SetTeleportData({ Room = room.Index, Players = #members })
 		TeleportService:TeleportAsync(Config.Places.Match, members, options)
 	end)
@@ -779,6 +787,57 @@ local function launch(room: Room)
 end
 
 StoreService.init()
+
+-- Reconexión: si te desconectaste de una partida que sigue en curso, al volver
+-- al Lobby te sale un botón para regresar a ella
+local reconnectOffer = Instance.new("RemoteEvent")
+reconnectOffer.Name = "ReconnectOffer"
+reconnectOffer.Parent = ReplicatedStorage
+local reconnectGo = Instance.new("RemoteEvent")
+reconnectGo.Name = "ReconnectGo"
+reconnectGo.Parent = ReplicatedStorage
+
+local function checkReconnect(player: Player)
+	local record = MatchRegistry.lookup(player.UserId)
+	if record and MatchRegistry.isAlive(record.Id) then
+		reconnectOffer:FireClient(player, true)
+	elseif record then
+		MatchRegistry.clear(player.UserId)
+	end
+end
+
+Players.PlayerAdded:Connect(function(player)
+	task.delay(3, checkReconnect, player)
+end)
+for _, player in Players:GetPlayers() do
+	task.spawn(checkReconnect, player)
+end
+
+local reconnecting: { [Player]: boolean } = {}
+reconnectGo.OnServerEvent:Connect(function(player)
+	if reconnecting[player] then
+		return
+	end
+	local record = MatchRegistry.lookup(player.UserId)
+	if not record or not MatchRegistry.isAlive(record.Id) then
+		MatchRegistry.clear(player.UserId)
+		reconnectOffer:FireClient(player, false)
+		return
+	end
+	reconnecting[player] = true
+	local ok, err = pcall(function()
+		local options = Instance.new("TeleportOptions")
+		options.ReservedServerAccessCode = record.Code
+		TeleportService:TeleportAsync(Config.Places.Match, { player }, options)
+	end)
+	if not ok then
+		warn(`Reconexión de {player.Name}: {err}`)
+		reconnectOffer:FireClient(player, false)
+	end
+	task.delay(10, function()
+		reconnecting[player] = nil
+	end)
+end)
 
 -- Lo que trae el lugar vacío de Studio (piso y punto de aparición) sobra
 for _, child in workspace:GetChildren() do

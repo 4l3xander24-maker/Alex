@@ -673,6 +673,31 @@ local function buildCampLife(map: Instance)
 	makeProp({ Name = "WellBucket", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.8, 0.8, 0.8), CFrame = CFrame.new(well + Vector3.new(0, 3.5, 0)) * CFrame.Angles(0, 0, math.pi / 2), Material = Enum.Material.WoodPlanks, Color = WOOD, Parent = map })
 end
 
+local function buildTailor(map: Instance)
+	-- Elena, la Sastre: puesto de telas con skins de trajes y de armas
+	local tailorStall = facingCamp(camp + Vector3.new(23, 0, 8))
+	buildCanopy(map, tailorStall, Color3.fromRGB(90, 50, 130))
+	buildCounter(map, tailorStall)
+	Props.sign(map, tailorStall * CFrame.new(0, 7.3, -3.6), "SASTRERÍA", Color3.fromRGB(200, 160, 255))
+	for index, color in { Color3.fromRGB(150, 30, 36), Color3.fromRGB(40, 70, 170), Color3.fromRGB(30, 120, 70), Color3.fromRGB(220, 170, 50) } do
+		makeProp({ Name = "Cloth", Size = Vector3.new(1.6, 3.2, 0.3), CFrame = tailorStall * CFrame.new(-3.6 + index * 1.8, 4, 4), Material = Enum.Material.Fabric, Color = color, Parent = map })
+	end
+	buildNpc(map, {
+		Name = "Elena",
+		Role = "Sastre",
+		Action = "Ver trajes y skins",
+		Shop = "Tailor",
+		Skin = Color3.fromRGB(236, 190, 160),
+		Shirt = Color3.fromRGB(120, 70, 160),
+		Pants = Color3.fromRGB(60, 40, 80),
+		Extras = function(piece)
+			piece("Apron", Vector3.new(2.1, 1.6, 0.2), Vector3.new(0, 2.8, -0.55), Color3.fromRGB(230, 220, 240), Enum.Material.Fabric)
+			piece("Bow", Vector3.new(1.6, 0.4, 0.4), Vector3.new(0, 5.4, 0.3), Color3.fromRGB(230, 90, 160), Enum.Material.Fabric)
+		end,
+	}, tailorStall * CFrame.new(-1.5, 0, -4.5))
+
+end
+
 -- Isla del Mercado: el Capitán (compañeros), la Sastre (skins) y aldeanos que
 -- charlan. Mira hacia la plaza; el piso está en y = 0 (MapBuilder lo sube).
 local function buildMarket(map: Instance)
@@ -712,28 +737,6 @@ local function buildMarket(map: Instance)
 		end,
 	}, captainStall * CFrame.new(-1.5, 0, -4.5))
 
-	-- Elena, la Sastre: puesto de telas con skins de trajes y de armas
-	local tailorStall = CFrame.lookAt(market.Tailor, plaza)
-	buildCanopy(map, tailorStall, Color3.fromRGB(90, 50, 130))
-	buildCounter(map, tailorStall)
-	Props.sign(map, tailorStall * CFrame.new(0, 7.3, -3.6), "SASTRERÍA", Color3.fromRGB(200, 160, 255))
-	for index, color in { Color3.fromRGB(150, 30, 36), Color3.fromRGB(40, 70, 170), Color3.fromRGB(30, 120, 70), Color3.fromRGB(220, 170, 50) } do
-		makeProp({ Name = "Cloth", Size = Vector3.new(1.6, 3.2, 0.3), CFrame = tailorStall * CFrame.new(-3.6 + index * 1.8, 4, 4), Material = Enum.Material.Fabric, Color = color, Parent = map })
-	end
-	buildNpc(map, {
-		Name = "Elena",
-		Role = "Sastre",
-		Action = "Ver trajes y skins",
-		Shop = "Tailor",
-		Skin = Color3.fromRGB(236, 190, 160),
-		Shirt = Color3.fromRGB(120, 70, 160),
-		Pants = Color3.fromRGB(60, 40, 80),
-		Extras = function(piece)
-			piece("Apron", Vector3.new(2.1, 1.6, 0.2), Vector3.new(0, 2.8, -0.55), Color3.fromRGB(230, 220, 240), Enum.Material.Fabric)
-			piece("Bow", Vector3.new(1.6, 0.4, 0.4), Vector3.new(0, 5.4, 0.3), Color3.fromRGB(230, 90, 160), Enum.Material.Fabric)
-		end,
-	}, tailorStall * CFrame.new(-1.5, 0, -4.5))
-
 	-- Aldeanos: charlan con "E"
 	local shirts = { Color3.fromRGB(190, 150, 90), Color3.fromRGB(100, 130, 80), Color3.fromRGB(170, 100, 110) }
 	for index, villager in market.Villagers do
@@ -759,6 +762,7 @@ function CampBuilder.build(map: Instance)
 	buildShelter(map)
 	buildArmory(map)
 	buildMystic(map)
+	buildTailor(map)
 	buildTrainer(map)
 	buildQuartermaster(map)
 	-- Sin empalizada de madera alrededor del campamento

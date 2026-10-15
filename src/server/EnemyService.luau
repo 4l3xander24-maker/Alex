@@ -252,12 +252,22 @@ local function create(typeName: string, healthMultiplier: number, start: Vector3
 		if Config.Paths[route].Entrance then
 			origin = points[1] + laneOffset
 		else
-			-- Del bosque salen de cualquier lugar de su zona, no siempre del mismo punto
+			-- Del bosque salen de cualquier lugar entre los árboles (no de un punto
+			-- ni en fila); la ruta es la del sendero más cercano a ese lugar
 			local dense = Config.Arena.DenseForest
-			local first = points[1]
-			local xMin, xMax = math.max(dense.XMin + 30, first.X - 110), math.min(dense.XMax - 30, first.X + 110)
-			local zMin, zMax = math.max(dense.ZMin + 12, first.Z - 40), math.min(dense.ZMax - 12, first.Z + 40)
-			origin = Vector3.new(random:NextNumber(xMin, xMax), 0, random:NextNumber(zMin, zMax))
+			origin = Vector3.new(random:NextNumber(dense.XMin + 25, dense.XMax - 25), 0, random:NextNumber(dense.ZMin + 12, dense.ZMax - 12))
+			local nearest, nearestDistance = route, math.huge
+			for _, name in Config.PathOrder do
+				local pathInfo = Config.Paths[name]
+				if not pathInfo.Entrance then
+					local distance = (pathInfo.Points[1] - origin).Magnitude
+					if distance < nearestDistance then
+						nearest, nearestDistance = name, distance
+					end
+				end
+			end
+			route = nearest
+			points = Config.Paths[route].Points
 		end
 	end
 	origin = Vector3.new(origin.X, halfHeight, origin.Z)
