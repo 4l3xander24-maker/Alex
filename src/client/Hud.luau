@@ -10,6 +10,7 @@ local DayCycle = require(Shared.DayCycle)
 local Progression = require(Shared.Progression)
 local Profile = require(script.Parent.Profile)
 local WeaponIcon = require(script.Parent.WeaponIcon)
+local HudIcons = require(script.Parent.HudIcons)
 
 local player = Players.LocalPlayer
 
@@ -472,19 +473,22 @@ function Hud.init(actions: Actions)
 		-- encima de ellos. Arriba a la izquierda: vida, XP y poderes. A la derecha,
 		-- de abajo hacia arriba: disparar (al lado del salto), recargar y cambiar
 		-- de arma, y más arriba las armas con su munición.
-		local fire = makeRoundButton(gui, "🔫", UDim2.new(1, -118, 1, -26), 92, Color3.fromRGB(220, 60, 50))
+		-- Iconos de línea blancos sobre círculos oscuros, como Call of Duty Mobile
+		local fire = makeRoundButton(gui, "", UDim2.new(1, -118, 1, -26), 92, PANEL_COLOR)
+		HudIcons.styleButton(fire, 3)
+		HudIcons.fire(fire, 56)
 		bindHoldButton(fire, actions.setTrigger)
-		local reload = makeRoundButton(gui, "RECARGAR", UDim2.new(1, -28, 1, -128), 64, PANEL_COLOR)
-		reload.Font = Enum.Font.GothamBlack
-		reload.TextSize = 11
-		reload.TextColor3 = Color3.new(1, 1, 1)
+		local reload = makeRoundButton(gui, "", UDim2.new(1, -28, 1, -128), 64, PANEL_COLOR)
+		HudIcons.styleButton(reload)
+		HudIcons.reload(reload, 38)
 		reload.Activated:Connect(actions.reload)
-		local swap = makeRoundButton(gui, "ARMA", UDim2.new(1, -218, 1, -36), 56, PANEL_COLOR)
-		swap.Font = Enum.Font.GothamBlack
-		swap.TextSize = 12
-		swap.TextColor3 = Color3.new(1, 1, 1)
+		local swap = makeRoundButton(gui, "", UDim2.new(1, -218, 1, -36), 56, PANEL_COLOR)
+		HudIcons.styleButton(swap)
+		HudIcons.swap(swap, 34)
 		swap.Activated:Connect(actions.cycleWeapon)
-		aimButton = makeRoundButton(gui, "🔭", UDim2.new(1, -112, 1, -128), 56, PANEL_COLOR)
+		aimButton = makeRoundButton(gui, "", UDim2.new(1, -112, 1, -128), 56, PANEL_COLOR)
+		HudIcons.styleButton(aimButton)
+		HudIcons.scope(aimButton, 34)
 		local aiming = false
 		aimButton.Activated:Connect(function()
 			aiming = not aiming
@@ -513,7 +517,12 @@ function Hud.init(actions: Actions)
 			slot.Frame.Size = UDim2.fromOffset(50, 50)
 		end
 		dashSlot.Frame.Size = UDim2.fromOffset(50, 50)
-		sprintButton = makeRoundButton(gui, "🏃", UDim2.new(0, 16, 0, 150), 50, PANEL_COLOR)
+		dashSlot.Frame.Text = ""
+		HudIcons.styleButton(dashSlot.Frame)
+		HudIcons.dash(dashSlot.Frame, 32)
+		sprintButton = makeRoundButton(gui, "", UDim2.new(0, 16, 0, 150), 50, PANEL_COLOR)
+		HudIcons.styleButton(sprintButton)
+		HudIcons.sprint(sprintButton, 30)
 		sprintButton.AnchorPoint = Vector2.new(0, 0)
 		bindHoldButton(sprintButton, actions.setSprint)
 		-- Arriba a la derecha queda más compacto (monedas y hora)

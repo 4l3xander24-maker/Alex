@@ -504,7 +504,7 @@ function ShopUI.init()
 	close.Font = Enum.Font.GothamBlack
 	close.TextSize = 20
 	close.TextColor3 = Color3.new(1, 1, 1)
-	close.Text = "✕"
+	close.Text = "X"
 	-- Modal libera el mouse en primera persona mientras la ventana está abierta
 	close.Modal = true
 	close.Parent = panel

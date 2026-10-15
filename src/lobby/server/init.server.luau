@@ -42,6 +42,7 @@ type Room = {
 	Launching: boolean,
 	Label: TextLabel,
 	Glow: { BasePart },
+	Outward: Vector3,
 	Light: PointLight,
 	Sparkles: ParticleEmitter,
 }
@@ -547,25 +548,25 @@ local function buildRoom(map: Instance, index: number, center: Vector3): Room
 	model.Name = "Room" .. index
 	local outward = Vector3.new(center.X - BELL.X, 0, center.Z - BELL.Z).Unit
 	local glow: { BasePart } = {}
-	makePart({ Name = "Pad", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.8, PAD_RADIUS * 2, PAD_RADIUS * 2), CFrame = CFrame.new(center + Vector3.new(0, 0.6, 0)) * CFrame.Angles(0, 0, math.pi / 2), Material = Enum.Material.Slate, Color = Color3.fromRGB(32, 32, 38), Parent = model })
-	table.insert(glow, makeProp({ Name = "Ring", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.7, PAD_RADIUS * 2 + 1, PAD_RADIUS * 2 + 1), CFrame = CFrame.new(center + Vector3.new(0, 0.55, 0)) * CFrame.Angles(0, 0, math.pi / 2), Material = Enum.Material.Neon, Color = FREE, Parent = model }))
+	makePart({ Name = "Pad", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.8, PAD_RADIUS * 2, PAD_RADIUS * 2), CFrame = CFrame.new(center + Vector3.new(0, 0.25, 0)) * CFrame.Angles(0, 0, math.pi / 2), Material = Enum.Material.Slate, Color = Color3.fromRGB(32, 32, 38), Parent = model })
+	table.insert(glow, makeProp({ Name = "Ring", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.7, PAD_RADIUS * 2 + 1, PAD_RADIUS * 2 + 1), CFrame = CFrame.new(center + Vector3.new(0, 0.2, 0)) * CFrame.Angles(0, 0, math.pi / 2), Material = Enum.Material.Neon, Color = FREE, Parent = model }))
 	-- Runas: un círculo interior de marcas y piedras alrededor
 	for step = 0, 11 do
 		local angle = step / 12 * math.pi * 2
-		local at = center + Vector3.new(math.cos(angle) * 4.6, 0.52, math.sin(angle) * 4.6)
-		table.insert(glow, makeProp({ Name = "Rune", Size = Vector3.new(0.3, 0.08, 1.4), CFrame = CFrame.lookAt(at, center + Vector3.new(0, 1.02, 0)) * CFrame.Angles(0, math.rad(step % 2 * 50 - 25), 0), Material = Enum.Material.Neon, Color = FREE, CastShadow = false, Parent = model }))
+		local at = center + Vector3.new(math.cos(angle) * 4.6, 0.67, math.sin(angle) * 4.6)
+		table.insert(glow, makeProp({ Name = "Rune", Size = Vector3.new(0.3, 0.08, 1.4), CFrame = CFrame.lookAt(at, center + Vector3.new(0, 0.67, 0)) * CFrame.Angles(0, math.rad(step % 2 * 50 - 25), 0), Material = Enum.Material.Neon, Color = FREE, CastShadow = false, Parent = model }))
 	end
 	-- Borde brillante encima del disco: marca bien hasta dónde llega la sala
 	local edgeSteps = 32
 	local chord = 2 * math.pi * PAD_RADIUS / edgeSteps + 0.15
 	for step = 0, edgeSteps - 1 do
 		local angle = (step + 0.5) / edgeSteps * math.pi * 2
-		local at = center + Vector3.new(math.cos(angle) * (PAD_RADIUS - 0.35), 1.06, math.sin(angle) * (PAD_RADIUS - 0.35))
-		table.insert(glow, makeProp({ Name = "Edge", Size = Vector3.new(0.7, 0.12, chord), CFrame = CFrame.lookAt(at, center + Vector3.new(0, 1.06, 0)) * CFrame.Angles(0, math.pi / 2, 0), Material = Enum.Material.Neon, Color = FREE, CastShadow = false, Parent = model }))
+		local at = center + Vector3.new(math.cos(angle) * (PAD_RADIUS - 0.35), 0.71, math.sin(angle) * (PAD_RADIUS - 0.35))
+		table.insert(glow, makeProp({ Name = "Edge", Size = Vector3.new(0.7, 0.12, chord), CFrame = CFrame.lookAt(at, center + Vector3.new(0, 0.71, 0)) * CFrame.Angles(0, math.pi / 2, 0), Material = Enum.Material.Neon, Color = FREE, CastShadow = false, Parent = model }))
 	end
 	-- Columna de luz del tamaño de la sala (se ve desde lejos y al estar adentro)
 	local beamHeight = 14
-	local beam = makeProp({ Name = "Beam", Shape = Enum.PartType.Cylinder, Size = Vector3.new(beamHeight, PAD_RADIUS * 2, PAD_RADIUS * 2), CFrame = CFrame.new(center + Vector3.new(0, 1 + beamHeight / 2, 0)) * CFrame.Angles(0, 0, math.pi / 2), Material = Enum.Material.Neon, Color = FREE, Transparency = 0.9, CastShadow = false, Parent = model })
+	local beam = makeProp({ Name = "Beam", Shape = Enum.PartType.Cylinder, Size = Vector3.new(beamHeight, PAD_RADIUS * 2, PAD_RADIUS * 2), CFrame = CFrame.new(center + Vector3.new(0, 0.7 + beamHeight / 2, 0)) * CFrame.Angles(0, 0, math.pi / 2), Material = Enum.Material.Neon, Color = FREE, Transparency = 0.9, CastShadow = false, Parent = model })
 	beam.CanQuery = false
 	table.insert(glow, beam)
 	-- Letrero flotante encima
@@ -633,7 +634,7 @@ local function buildRoom(map: Instance, index: number, center: Vector3): Room
 	label.TextColor3 = Color3.new(1, 1, 1)
 	label.Parent = gui
 	model.Parent = map
-	return { Index = index, Center = center, Members = {}, EndsAt = nil, Launching = false, Label = label, Glow = glow, Light = light, Sparkles = sparkles }
+	return { Index = index, Center = center, Members = {}, EndsAt = nil, Launching = false, Label = label, Glow = glow, Outward = outward, Light = light, Sparkles = sparkles }
 end
 
 local function refresh(room: Room)
@@ -659,12 +660,40 @@ local function refresh(room: Room)
 	end
 end
 
+-- Dentro de la sala no se puede caminar ni saltar: se sale con el botón
+-- Cancelar (te saca del círculo) o cuando empieza la partida
+local cancelEvent = Instance.new("RemoteEvent")
+cancelEvent.Name = "LobbyCancel"
+cancelEvent.Parent = ReplicatedStorage
+local groundY = 0 -- altura real del suelo (se mide al armar el mapa)
+
+local function setFrozen(player: Player, frozen: boolean)
+	local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+	if humanoid then
+		humanoid.WalkSpeed = if frozen then 0 else 16
+		humanoid.UseJumpPower = false
+		humanoid.JumpHeight = if frozen then 0 else 7.2
+	end
+	player:SetAttribute("InRoom", frozen)
+end
+
+-- Saca al jugador del círculo, hacia afuera de la sala
+local function pushOut(player: Player, room: Room)
+	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	if root then
+		local outside = room.Center + room.Outward * (PAD_RADIUS + 5)
+		local character = player.Character :: Model
+		character:PivotTo(CFrame.lookAt(Vector3.new(outside.X, groundY + 4, outside.Z), Vector3.new(BELL.X, groundY + 4, BELL.Z)))
+	end
+end
+
 local function leave(player: Player)
 	local room = roomOf[player]
 	if not room or room.Launching then
 		return
 	end
 	roomOf[player] = nil
+	setFrozen(player, false)
 	local index = table.find(room.Members, player)
 	if index then
 		table.remove(room.Members, index)
@@ -682,6 +711,7 @@ local function join(player: Player, room: Room)
 	end
 	leave(player)
 	roomOf[player] = room
+	setFrozen(player, true)
 	table.insert(room.Members, player)
 	if not room.EndsAt then
 		room.EndsAt = os.clock() + rooms.Countdown
@@ -713,9 +743,13 @@ local function launch(room: Room)
 		end
 	end
 	task.wait(if ok then 8 else 3)
-	-- Quien no se fue (falló o se desconectó) vuelve a la plaza
+	-- Quien no se fue (falló o se desconectó) vuelve a la plaza, fuera del círculo
 	for _, player in members do
 		roomOf[player] = nil
+		if player.Parent then
+			setFrozen(player, false)
+			pushOut(player, room)
+		end
 	end
 	table.clear(room.Members)
 	room.EndsAt = nil
@@ -752,6 +786,31 @@ for index = 1, rooms.Count do
 end
 local waveBoard = buildBoard(map, Vector3.new(-38, 0, 6), "MEJOR OLEADA", 8)
 local killBoard = buildBoard(map, Vector3.new(38, 0, 6), "MÁS ZOMBIS", 8)
+-- El terreno de Roblox queda un poco más arriba de lo que se rellena (va en
+-- bloques de 4 studs): se mide el piso de verdad y todo sube esa altura, así
+-- nada queda metido bajo el suelo
+do
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Include
+	params.FilterDescendantsInstances = { workspace.Terrain }
+	-- El terreno recién llenado tarda un cuadro en poder medirse
+	task.wait()
+	local hit = workspace:Raycast(Vector3.new(0, 60, 40), Vector3.new(0, -120, 0), params)
+	-- Sin medida, lo normal: el terreno queda 2 studs sobre lo rellenado
+	groundY = if hit then hit.Position.Y else 2
+	if groundY ~= 0 then
+		for _, part in map:GetDescendants() do
+			if part:IsA("BasePart") then
+				part.CFrame += Vector3.new(0, groundY, 0)
+				for name, value in part:GetAttributes() do
+					if typeof(value) == "Vector3" and string.sub(name, -5) == "Pivot" then
+						part:SetAttribute(name, value + Vector3.new(0, groundY, 0))
+					end
+				end
+			end
+		end
+	end
+end
 map.Parent = workspace
 
 task.spawn(function()
@@ -764,6 +823,15 @@ end)
 
 Players.PlayerRemoving:Connect(function(player)
 	leave(player)
+end)
+
+-- Botón Cancelar del cliente: sales de la sala y te saca del círculo
+cancelEvent.OnServerEvent:Connect(function(player)
+	local room = roomOf[player]
+	if room and not room.Launching then
+		leave(player)
+		pushOut(player, room)
+	end
 end)
 
 -- Cada cuarto de segundo: quién está parado en qué sala y las cuentas
@@ -784,6 +852,11 @@ task.spawn(function()
 			end
 			if inside then
 				join(player, inside)
+				-- Sala llena o saliendo: no te deja pasar
+				if roomOf[player] ~= inside and root then
+					pushOut(player, inside)
+					status:FireClient(player, inside.Index, #inside.Members, nil, "Esa sala está llena o ya va a salir")
+				end
 			elseif roomOf[player] then
 				leave(player)
 			end

@@ -892,25 +892,37 @@ local function setupLighting()
 	end
 end
 
--- Todo se construye a la altura de las islas; lo que quedó en el bosque (al
--- norte del canal) baja ForestDrop studs junto con el terreno. El puente de
--- piedra no: ya es una rampa (BridgeBuilder).
+-- Todo se construye con el piso en y = 0, pero el terreno de Roblox queda
+-- TerrainSurface (2) studs más arriba (va en bloques de 4): sin esto las casas,
+-- puestos, carpas, árboles... quedaban metidos bajo el suelo. Aquí todo sube
+-- esa altura y lo que quedó en el bosque (al norte del canal) además baja
+-- ForestDrop. Los puentes ya se construyen a la altura real (BridgeBuilder).
 local function lowerForest(map: Instance)
-	local drop = Config.Arena.ForestDrop or 0
-	if drop == 0 or Config.Style.Tiles then
+	if Config.Style.Tiles then
 		return
 	end
-	local offset = Vector3.new(0, -drop, 0)
-	local bridge = map:FindFirstChild("StoneBridge")
+	local drop = Config.Arena.ForestDrop or 0
+	local surface = Paths.surface()
+	local ownHeight = { StoneBridge = true, VillageBridge = true }
 	for _, part in map:GetDescendants() do
-		if not part:IsA("BasePart") or (bridge and part:IsDescendantOf(bridge)) then
+		if not part:IsA("BasePart") then
 			continue
 		end
-		if not Paths.onNorthLand(part.Position) then
+		local skip = false
+		local ancestor = part.Parent
+		while ancestor and ancestor ~= map do
+			if ownHeight[ancestor.Name] then
+				skip = true
+				break
+			end
+			ancestor = ancestor.Parent
+		end
+		if skip then
 			continue
 		end
+		local offset = Vector3.new(0, surface - (if Paths.onNorthLand(part.Position) then drop else 0), 0)
 		part.CFrame += offset
-		-- Los puntos de giro guardados (viento, trabajo) bajan con la pieza
+		-- Los puntos de giro guardados (viento, trabajo) suben y bajan con la pieza
 		for name, value in part:GetAttributes() do
 			if typeof(value) == "Vector3" and string.sub(name, -5) == "Pivot" then
 				part:SetAttribute(name, value + offset)

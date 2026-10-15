@@ -137,11 +137,37 @@ function StoreUi.init()
 	continuePanel.Position = UDim2.fromScale(0.5, 0.55)
 	continuePanel.Parent = gui
 	local continueTimer = continuePanel:FindFirstChildOfClass("TextLabel") :: TextLabel
-	continueTimer.Size = UDim2.new(1, 0, 0, 48)
+	continueTimer.Size = UDim2.new(1, 0, 0, 56)
+	continueTimer.Position = UDim2.fromOffset(0, 8)
 	continueTimer.TextWrapped = true
 	local continueButton = continuePanel:FindFirstChildOfClass("TextButton") :: TextButton
+	continueButton.AnchorPoint = Vector2.new(0, 1)
+	continueButton.Position = UDim2.new(0, 16, 1, -14)
+	continueButton.Size = UDim2.fromOffset(204, 54)
+	continueButton.TextSize = 18
 	continueButton.Activated:Connect(function()
-		MarketplaceService:PromptProductPurchase(player, CONTINUE.Id)
+		if CONTINUE.Id ~= 0 then
+			MarketplaceService:PromptProductPurchase(player, CONTINUE.Id)
+		end
+	end)
+	-- Cancelar: no seguir (se acaba la partida cuando todos cancelan o se acaba la cuenta)
+	local cancelled = false
+	local continueCancel = Instance.new("TextButton")
+	continueCancel.AnchorPoint = Vector2.new(1, 1)
+	continueCancel.Position = UDim2.new(1, -16, 1, -14)
+	continueCancel.Size = UDim2.fromOffset(110, 54)
+	continueCancel.BackgroundColor3 = Color3.fromRGB(90, 92, 104)
+	continueCancel.Font = Enum.Font.GothamBlack
+	continueCancel.TextSize = 18
+	continueCancel.TextColor3 = Color3.new(1, 1, 1)
+	continueCancel.Text = "Cancelar"
+	continueCancel.Modal = true
+	continueCancel.Parent = continuePanel
+	corner(continueCancel, 10)
+	continueCancel.Activated:Connect(function()
+		cancelled = true
+		continuePanel.Visible = false
+		Remotes.ContinueCancel:FireServer()
 	end)
 	local gameState = ReplicatedStorage:WaitForChild("GameState")
 	local continuePrice = ""
@@ -157,12 +183,15 @@ function StoreUi.init()
 		while true do
 			local endsAt = gameState:GetAttribute("ContinueEnds") or 0
 			local left = endsAt - workspace:GetServerTimeNow()
-			local show = left > 0
+			local show = left > 0 and not cancelled
+			if left <= 0 then
+				cancelled = false
+			end
 			continuePanel.Visible = show
 			if show then
 				revivePanel.Visible = false
-				continueTimer.Text = `💀 ¡Cayeron todos! ¿Seguir la partida?  ⏳ {math.ceil(left)}`
-				continueButton.Text = `💖 Continuar{continuePrice}`
+				continueTimer.Text = `💀 ¡Cayeron todos!\n¿Seguir la partida?   ⏳ {math.ceil(left)}`
+				continueButton.Text = if CONTINUE.Id == 0 then "💖 Continuar (sin precio)" else `💖 Continuar{continuePrice}`
 			end
 			task.wait(0.2)
 		end

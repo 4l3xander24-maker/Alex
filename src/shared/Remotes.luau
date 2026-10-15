@@ -18,12 +18,15 @@ local EVENTS = {
 	"PetAttack",
 	"GameOverCinematic",
 	"ReviveOffer",
+	"DifficultyMenu",
 	-- cliente -> servidor
 	"Shoot",
 	"Reload",
 	"UsePower",
 	"EquipWeapon",
 	"Vote",
+	"SelectDifficulty",
+	"ContinueCancel",
 }
 local FUNCTIONS = { "GetSnapshot", "ShopAction" }
 

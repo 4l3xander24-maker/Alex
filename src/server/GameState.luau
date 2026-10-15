@@ -16,6 +16,7 @@ function GameState.init()
 	folder:SetAttribute("State", "Waiting")
 	folder:SetAttribute("Wave", 0)
 	folder:SetAttribute("EnemiesLeft", 0)
+	folder:SetAttribute("Difficulty", 1)
 	folder:SetAttribute("BellMaxHealth", Config.Bell.MaxHealth)
 	folder:SetAttribute("BellHealth", bellHealth)
 	folder.Parent = ReplicatedStorage

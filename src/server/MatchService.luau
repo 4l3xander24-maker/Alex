@@ -11,6 +11,7 @@ local Remotes = require(Shared.Remotes)
 local DataService = require(script.Parent.DataService)
 local Leaderboard = require(script.Parent.Leaderboard)
 local StoreService = require(script.Parent.StoreService)
+local GameState = require(script.Parent.GameState)
 
 type MatchStats = {
 	Kills: number,
@@ -48,6 +49,9 @@ end
 -- Da XP de cuenta ya mismo (con el bono VIP). Si sube de nivel, el cliente
 -- muestra el cartel de "¡SUBISTE DE NIVEL!" al instante.
 local function grantXp(player: Player, entry: MatchStats, amount: number)
+	-- Más difícil, más XP
+	local difficulty = Config.Difficulties[GameState.get("Difficulty") or 1]
+	amount *= if difficulty then difficulty.Xp else 1
 	if StoreService.hasPass(player, "Vip") then
 		amount *= 1 + Config.Monetization.VipXpBonus
 	end

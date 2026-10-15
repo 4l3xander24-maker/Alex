@@ -155,26 +155,12 @@ local function show(summary)
 	end
 	local hasPoints = summary.StatPoints > 0 or summary.TalentPoints > 0
 	if hasPoints then
-		makeLabel(panel, `Tienes {summary.StatPoints} punto(s) de mejora y {summary.TalentPoints} de talento.`, 16, nil, 24)
-		local spend = Instance.new("TextButton")
-		spend.Size = UDim2.fromOffset(300, 44)
-		spend.BackgroundColor3 = Color3.fromRGB(120, 200, 255)
-		spend.Font = Enum.Font.GothamBlack
-		spend.TextSize = 18
-		spend.TextColor3 = Color3.fromRGB(16, 26, 60)
-		spend.Text = "⭐ Repartir mis puntos"
-		spend.Modal = true
-		spend.LayoutOrder = nextOrder()
-		spend.Parent = panel
-		local spendCorner = Instance.new("UICorner")
-		spendCorner.CornerRadius = UDim.new(0, 10)
-		spendCorner.Parent = spend
-		spend.Activated:Connect(openTalents)
+		makeLabel(panel, `⭐ Tienes {summary.StatPoints} punto(s) de mejora y {summary.TalentPoints} de talento: al elegir Reintentar los repartes.`, 16, GOLD, 44)
 	end
 
-	-- Votación: Reintentar o Volver al lobby (el lobby solo si vinieron de una sala)
+	-- Dos botones: Reintentar de nuevo o Volver al lobby. No hay cuenta
+	-- regresiva: la partida sigue cuando todos eligieron.
 	local state = ReplicatedStorage:FindFirstChild("GameState")
-	local canLobby = state ~= nil and state:GetAttribute("VoteCanLobby") == true
 	local row = Instance.new("Frame")
 	row.Size = UDim2.fromOffset(440, 46)
 	row.BackgroundTransparency = 1
@@ -203,23 +189,29 @@ local function show(summary)
 		corner.CornerRadius = UDim.new(0, 10)
 		corner.Parent = button
 		button.Activated:Connect(function()
+			if myVote then
+				return -- ya eligió
+			end
 			myVote = choice
 			Remotes.Vote:FireServer(choice)
 			for name, other in buttons do
 				other.BackgroundTransparency = if name == choice then 0 else 0.55
 			end
+			-- Al reintentar con puntos nuevos, sale el panel de habilidades
+			local points = Profile.get()
+			if choice == "Retry" and (points.StatPoints > 0 or points.TalentPoints > 0) then
+				openTalents()
+			end
 		end)
 		buttons[choice] = button
 	end
-	makeButton("Retry", "🔄 Reintentar", GOLD)
-	if canLobby then
-		makeButton("Lobby", "🏰 Volver al lobby", Color3.fromRGB(150, 200, 255))
-	end
+	makeButton("Retry", "🔄 Reintentar de nuevo", GOLD)
+	makeButton("Lobby", "🏰 Volver al lobby", Color3.fromRGB(150, 200, 255))
 
 	gui.Enabled = true
 	showCount += 1
 	local thisShow = showCount
-	-- La cuenta y los votos se leen de GameState; al terminar la votación se cierra
+	-- Los votos se leen de GameState; al terminar la votación se cierra
 	task.spawn(function()
 		local seenVote = false
 		local started = os.clock()
@@ -227,19 +219,10 @@ local function show(summary)
 			local voting = state ~= nil and state:GetAttribute("Vote") == true
 			if voting then
 				seenVote = true
-				local left = math.max(0, math.ceil((state:GetAttribute("VoteEnds") or 0) - workspace:GetServerTimeNow()))
-				local counts = `🔄 {state:GetAttribute("VoteRetry") or 0}`
-				if canLobby then
-					counts ..= `   🏰 {state:GetAttribute("VoteLobby") or 0}`
-				end
-				voteLabel.Text = `{if myVote then "Votaste. " else "Elige: "}{counts}   ·   ⏳ {left} s`
+				local counts = `🔄 {state:GetAttribute("VoteRetry") or 0}   🏰 {state:GetAttribute("VoteLobby") or 0}`
+				voteLabel.Text = `{if myVote then "Elegiste. Esperando a los demás… " else "Elige: "}{counts}`
 			elseif seenVote or os.clock() - started > AUTO_CLOSE then
 				hide()
-				-- Si le quedan puntos por repartir, se abre el panel de talentos
-				local data = Profile.get()
-				if (data.StatPoints > 0 or data.TalentPoints > 0) and not ShopUI.isOpen() then
-					ShopUI.open("Trainer")
-				end
 				break
 			end
 			task.wait(0.2)

@@ -31,8 +31,9 @@ local DECK = 1.5 -- grosor de las losas (arriba en y = 0)
 
 -- Marco del puente: -Z va de From a To, X lo cruza de lado a lado. El
 -- extremo del bosque está ForestDrop más abajo: el puente es una rampa.
-local function bridgeFrame(from: Vector3, to: Vector3): (CFrame, number)
-	local drop = arena.ForestDrop or 0
+local function bridgeFrame(from: Vector3, to: Vector3, ramp: boolean): (CFrame, number)
+	-- Solo el puente de piedra baja al bosque; el de la aldea va parejo entre islas
+	local drop = if ramp then arena.ForestDrop or 0 else 0
 	-- A la altura del suelo de verdad (el terreno queda un poco más arriba)
 	local surface = Paths.surface()
 	local flatFrom, flatTo = Vector3.new(from.X, surface - drop, from.Z), Vector3.new(to.X, surface, to.Z)
@@ -75,7 +76,7 @@ function BridgeBuilder.build(map: Instance)
 	local model = Instance.new("Model")
 	model.Name = "StoneBridge"
 	local bridge, ravine = arena.Bridge, arena.Ravine
-	local frame, length = bridgeFrame(bridge.From, bridge.To)
+	local frame, length = bridgeFrame(bridge.From, bridge.To, true)
 	local width = bridge.Width
 	local half = length / 2 + 1 -- un poco más largo para apoyarse en las orillas
 	-- Punto del puente: x de lado a lado, y de altura, a hacia To
@@ -171,7 +172,7 @@ end
 -- jugador ya lo reparó. También devuelve dónde va el aviso para repararlo.
 function BridgeBuilder.buildVillageBridge(map: Instance): (Folder, BasePart)
 	local info = arena.VillageBridge
-	local frame, length = bridgeFrame(info.From, info.To)
+	local frame, length = bridgeFrame(info.From, info.To, false)
 	local width = info.Width
 	local function at(x: number, y: number, a: number): CFrame
 		return frame * CFrame.new(x, y, -a)

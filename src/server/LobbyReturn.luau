@@ -15,9 +15,8 @@ function LobbyReturn.isRoomMatch(): boolean
 	return not RunService:IsStudio() and Config.Places.Lobby ~= 0 and game.PrivateServerId ~= "" and game.PrivateServerOwnerId == 0
 end
 
--- Manda a todos al Lobby (reintenta si Roblox falla)
-function LobbyReturn.sendEveryone()
-	local players = Players:GetPlayers()
+-- Manda a estos jugadores al Lobby (reintenta si Roblox falla)
+function LobbyReturn.sendPlayers(players: { Player })
 	if #players == 0 then
 		return
 	end
@@ -31,6 +30,11 @@ function LobbyReturn.sendEveryone()
 		warn(`No se pudo volver al Lobby (intento {attempt}): {err}`)
 		task.wait(2)
 	end
+end
+
+-- Manda a todos al Lobby
+function LobbyReturn.sendEveryone()
+	LobbyReturn.sendPlayers(Players:GetPlayers())
 end
 
 return LobbyReturn

@@ -41,8 +41,33 @@ stroke.Parent = panel
 local IDLE = `Párate en una sala para jugar (1 a {Config.Rooms.MaxPlayers} jugadores).\nMás jugadores = más zombis.`
 panel.Text = IDLE
 
+-- Botón Cancelar: dentro de la sala no puedes caminar; esto te saca del círculo
+local cancelEvent = ReplicatedStorage:WaitForChild("LobbyCancel")
+local cancel = Instance.new("TextButton")
+cancel.AnchorPoint = Vector2.new(0.5, 1)
+cancel.Position = UDim2.new(0.5, 0, 1, -116)
+cancel.Size = UDim2.fromOffset(190, 46)
+cancel.BackgroundColor3 = Color3.fromRGB(200, 60, 60)
+cancel.Font = Enum.Font.GothamBlack
+cancel.TextSize = 19
+cancel.TextColor3 = Color3.new(1, 1, 1)
+cancel.Text = "✖ CANCELAR"
+cancel.Visible = false
+cancel.Parent = gui
+local cancelCorner = Instance.new("UICorner")
+cancelCorner.CornerRadius = UDim.new(0, 10)
+cancelCorner.Parent = cancel
+local cancelStroke = Instance.new("UIStroke")
+cancelStroke.Color = Color3.new(1, 1, 1)
+cancelStroke.Thickness = 2
+cancelStroke.Parent = cancel
+cancel.Activated:Connect(function()
+	cancelEvent:FireServer()
+end)
+
 local currentRoom = nil
 status.OnClientEvent:Connect(function(room, count, seconds, problem)
+	cancel.Visible = room ~= nil and not problem
 	if room and room ~= currentRoom then
 		LobbyUi.playJoin()
 	end

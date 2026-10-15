@@ -379,7 +379,7 @@ Config.Bell = {
 	Armor = {
 		MaxLevel = 8,
 		HealthPerLevel = 15, -- +15 de vida por nivel (40 -> 160 al máximo)
-		Prices = { 120, 200, 320, 450, 600, 800, 1050, 1350 },
+		Prices = { 60, 120, 220, 350, 500, 700, 950, 1250 },
 	},
 	BarHeight = 28, -- altura de la barra de vida sobre la campana (studs)
 }
@@ -583,6 +583,18 @@ Config.Enemies = {
 	},
 }
 
+-- Dificultades: al reconstruir la campana se elige una. Solo se ve la que
+-- tienes abierta y la siguiente con candado; al superar las oleadas de Goal
+-- se abre la que sigue. Count/Health/Spawn multiplican a los zombis;
+-- Coins y Xp lo que ganas.
+Config.Difficulties = {
+	{ Id = 1, Name = "Fácil", Icon = "🌱", Color = Color3.fromRGB(90, 190, 100), Count = 0.75, Health = 0.8, Spawn = 0.85, Coins = 0.8, Xp = 0.8, Goal = 8, Description = "Para empezar: menos zombis y más débiles." },
+	{ Id = 2, Name = "Normal", Icon = "⚔️", Color = Color3.fromRGB(110, 170, 240), Count = 1.0, Health = 1.0, Spawn = 1.0, Coins = 1.0, Xp = 1.0, Goal = 10, Description = "La experiencia de siempre." },
+	{ Id = 3, Name = "Difícil", Icon = "🔥", Color = Color3.fromRGB(240, 170, 70), Count = 1.25, Health = 1.35, Spawn = 1.2, Coins = 1.3, Xp = 1.3, Goal = 12, Description = "Más zombis y más duros. Mejores premios." },
+	{ Id = 4, Name = "Pesadilla", Icon = "💀", Color = Color3.fromRGB(220, 90, 90), Count = 1.55, Health = 1.8, Spawn = 1.4, Coins = 1.7, Xp = 1.7, Goal = 14, Description = "Hordas enormes y zombis resistentes." },
+	{ Id = 5, Name = "Infierno", Icon = "👹", Color = Color3.fromRGB(180, 70, 220), Count = 2.0, Health = 2.5, Spawn = 1.7, Coins = 2.4, Xp = 2.4, Goal = 16, Description = "Solo para los mejores. Premios enormes." },
+}
+
 Config.Waves = {
 	FirstIntermission = 3,
 	Intermission = 12,
@@ -690,7 +702,7 @@ Config.Rooms = {
 	Countdown = 15, -- segundos desde que entra el primero
 	FullCountdown = 5, -- si se llena, sale antes
 	ReturnDelay = 10, -- segundos del resumen antes de volver al lobby
-	VoteTime = 20, -- segundos para votar Reintentar o Volver al lobby
+	VoteMaxWait = 300, -- sin cuenta regresiva: si alguien no vota en tanto tiempo, cuenta como Reintentar
 	CinematicTime = 6, -- duración de la cinemática de derrota
 }
 
@@ -734,7 +746,7 @@ Config.Weapons = {
 	Shotgun = {
 		DisplayName = "Escopeta",
 		Icon = "💥",
-		Price = 300,
+		Price = 200,
 		Damage = 0.8,
 		FireRate = 1.4,
 		Magazine = 6,
@@ -808,7 +820,9 @@ Config.WeaponUpgrade = {
 	DamagePerLevel = 0.2,
 	MagazinePerLevel = 0.15,
 	ReloadPerLevel = 0.06,
-	BaseCost = 150, -- el costo crece con el precio del arma y el nivel
+	BaseCost = 100, -- el costo crece con el precio del arma y el nivel
+	-- Cuánto del precio base cuesta cada mejora (las primeras son baratas)
+	CostFactor = { 0.35, 0.5, 0.7, 1.0, 1.3 },
 }
 
 -- El arma cambia de color con cada mejora para que se note que es más fuerte.
@@ -826,7 +840,7 @@ Config.WeaponTiers = {
 Config.AmmoStorage = {
 	MaxLevel = 8,
 	PerLevel = 0.25,
-	Prices = { 100, 180, 280, 400, 550, 750, 1000, 1300 },
+	Prices = { 50, 100, 180, 300, 450, 650, 900, 1200 },
 }
 
 -- Trampas que vende el Intendente. Duran solo una partida.
@@ -962,6 +976,8 @@ Config.PowerOrder = { "Grenade", "Chain", "Bell" }
 Config.Progression = {
 	XpBase = 100, -- XP para pasar del nivel 1 al 2
 	XpGrowth = 1.15, -- cada nivel pide 15% más
+	-- Los primeros 5 niveles piden menos XP (sube rápido al empezar)
+	EarlyXpFactor = { 0.4, 0.5, 0.6, 0.7, 0.8 },
 	TalentEvery = 5, -- un punto de talento cada 5 niveles
 	XpPerWave = 25,
 	XpPerKill = 2,

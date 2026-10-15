@@ -23,6 +23,7 @@ export type Profile = {
 	TotalKills: number, -- zombis matados en todas las partidas (ranking del lobby)
 	Receipts: { string }, -- últimas compras con Robux ya entregadas (no dar dos veces)
 	StarterPack: boolean, -- ya recibió lo del Pack Inicial
+	Difficulty: number, -- la dificultad más alta que tiene abierta (1 a 5)
 	BellArmor: number, -- nivel del refuerzo de la campana
 }
 
@@ -59,6 +60,7 @@ function Progression.defaultProfile(): Profile
 		TotalKills = 0,
 		Receipts = {},
 		StarterPack = false,
+		Difficulty = 1,
 		BellArmor = 0,
 	}
 end
@@ -88,7 +90,8 @@ end
 
 function Progression.xpNeeded(level: number): number
 	local progression = Config.Progression
-	return math.floor(progression.XpBase * progression.XpGrowth ^ (level - 1))
+	local early = progression.EarlyXpFactor[level] or 1
+	return math.floor(progression.XpBase * progression.XpGrowth ^ (level - 1) * early)
 end
 
 -- Suma XP de cuenta y devuelve cuántos niveles se ganaron.
@@ -193,13 +196,14 @@ end
 
 -- Costo de subir un arma de `level` a `level + 1`
 function Progression.weaponUpgradeCost(weaponId: string, level: number): number
-	local price = math.max(Config.WeaponUpgrade.BaseCost, Config.Weapons[weaponId].Price)
-	return math.floor(price * 0.5 * (level + 1))
+	local upgrade = Config.WeaponUpgrade
+	local price = math.max(upgrade.BaseCost, Config.Weapons[weaponId].Price)
+	return math.floor(price * (upgrade.CostFactor[level + 1] or upgrade.CostFactor[#upgrade.CostFactor]))
 end
 
 -- Costo de subir un poder de `level` a `level + 1`
 function Progression.powerUpgradeCost(name: string, level: number): number
-	return math.floor(Config.Powers[name].Price * 0.6 * level)
+	return math.floor(Config.Powers[name].Price * 0.4 * level)
 end
 
 -- Valores de un poder según su nivel y los puntos de "Poder" del jugador

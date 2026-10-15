@@ -65,7 +65,7 @@ EnemyService.setKillHandler(function(player, enemy)
 		return
 	end
 	-- Las monedas con decimales se redondean al azar para que el bonus cuente
-	local exact = enemy.Coins * Progression.getPlayerStats(data).CoinMultiplier * PurchaseService.coinMultiplier(player)
+	local exact = enemy.Coins * Progression.getPlayerStats(data).CoinMultiplier * PurchaseService.coinMultiplier(player) * WaveService.getDifficulty().Coins
 	local coins = math.floor(exact) + (if random:NextNumber() < exact % 1 then 1 else 0)
 	DataService.addCoins(player, coins)
 	MatchService.onKill(player, enemy.IsBoss, coins)
