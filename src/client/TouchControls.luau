@@ -18,6 +18,7 @@ local TouchControls = {}
 local RADIUS = 56 -- cuánto se aleja el pulgar del centro para ir a toda velocidad
 local DEADZONE = 0.14
 local HOME = UDim2.new(0, 100, 1, -100)
+local BASE_IDLE, BASE_ACTIVE = 0.5, 0.35
 
 local function circle(parent: Instance, diameter: number): Frame
 	local frame = Instance.new("Frame")
@@ -57,14 +58,26 @@ function TouchControls.init(actions: { jump: () -> () })
 	zone.AutoButtonColor = false
 	zone.Parent = root
 
-	-- Base y pulgar
+	-- Base (disco gris translúcido con cuatro puntitas) y pulgar claro
 	local base = circle(zone, 128)
 	base.Position = HOME
-	HudIcons.styleButton(base)
-	base.BackgroundTransparency = 0.7
-	local knob = circle(base, 54)
+	base.BackgroundColor3 = Color3.fromRGB(70, 72, 76)
+	base.BackgroundTransparency = BASE_IDLE
+	for _, offset in { Vector2.new(0, -0.43), Vector2.new(0, 0.43), Vector2.new(-0.43, 0), Vector2.new(0.43, 0) } do
+		local dot = Instance.new("Frame")
+		dot.AnchorPoint = Vector2.new(0.5, 0.5)
+		dot.Position = UDim2.fromScale(0.5 + offset.X, 0.5 + offset.Y)
+		dot.Size = UDim2.fromOffset(6, 6)
+		dot.Rotation = 45
+		dot.BackgroundColor3 = Color3.new(1, 1, 1)
+		dot.BackgroundTransparency = 0.35
+		dot.BorderSizePixel = 0
+		dot.Parent = base
+	end
+	local knob = circle(base, 56)
 	knob.Position = UDim2.fromScale(0.5, 0.5)
-	knob.BackgroundTransparency = 0.35
+	knob.BackgroundColor3 = Color3.fromRGB(214, 214, 216)
+	knob.BackgroundTransparency = 0.12
 	knob.ZIndex = 3
 
 	local active: InputObject? = nil
@@ -80,7 +93,7 @@ function TouchControls.init(actions: { jump: () -> () })
 			active = input
 			origin = toLocal(input.Position)
 			base.Position = UDim2.fromOffset(origin.X, origin.Y)
-			base.BackgroundTransparency = 0.55
+			base.BackgroundTransparency = BASE_ACTIVE
 		end
 	end)
 	UserInputService.InputChanged:Connect(function(input)
@@ -99,7 +112,7 @@ function TouchControls.init(actions: { jump: () -> () })
 			active = nil
 			move = Vector2.zero
 			base.Position = HOME
-			base.BackgroundTransparency = 0.7
+			base.BackgroundTransparency = BASE_IDLE
 			knob.Position = UDim2.fromScale(0.5, 0.5)
 		end
 	end)

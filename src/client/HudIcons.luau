@@ -8,7 +8,7 @@ local UserInputService = game:GetService("UserInputService")
 local HudIcons = {}
 
 local WHITE = Color3.new(1, 1, 1)
-local DARK = Color3.fromRGB(18, 22, 28)
+
 
 -- Cuadro `w` x `h` (fracciones del tamaño) centrado en (x, y), girado `degrees`
 local function bar(parent: Instance, size: number, x: number, y: number, w: number, h: number, degrees: number?, round: boolean?, color: Color3?): Frame
@@ -75,99 +75,74 @@ local function holder(button: GuiObject, size: number): Frame
 end
 
 ----------------------------------------------------------------------
--- Botones de línea blanca
+-- Iconos blancos de la hoja (assets/hud_icons.png, hecha con
+-- assets/make_icons.py): 4 columnas de 128 px
 ----------------------------------------------------------------------
 
--- Bala blanca inclinada hacia arriba a la derecha, como el botón de disparo de
--- Call of Duty Mobile
-function HudIcons.fire(button: GuiObject, size: number): Frame
-	local icon = holder(button, size)
-	local root = Instance.new("Frame")
-	root.AnchorPoint = Vector2.new(0.5, 0.5)
-	root.Position = UDim2.fromScale(0.5, 0.5)
-	root.Size = UDim2.fromScale(1, 1)
-	root.Rotation = 40
-	root.BackgroundTransparency = 1
-	root.Parent = icon
-	local white = Color3.fromRGB(246, 248, 250)
-	local grey = Color3.fromRGB(190, 196, 204)
-	-- Punta, cuerpo, ranura de la vaina y base
-	bar(root, size, 0.5, 0.2, 0.2, 0.36, 0, true, white)
-	bar(root, size, 0.5, 0.42, 0.22, 0.2, 0, false, white)
-	bar(root, size, 0.5, 0.585, 0.27, 0.15, 0, false, grey)
-	bar(root, size, 0.5, 0.51, 0.27, 0.025, 0, false, DARK)
-	bar(root, size, 0.5, 0.7, 0.32, 0.07, 0, true, white)
-	bar(root, size, 0.5, 0.77, 0.27, 0.05, 0, false, grey)
-	return icon
+local SHEET = "rbxassetid://127873720461078"
+local CELL = 128
+local CELLS = { Bullet = 0, Jump = 1, Reload = 2, Swap = 3, Scope = 4, Sprint = 5, Dash = 6, Crouch = 7 }
+
+local function glyph(button: GuiObject, name: string, size: number): ImageLabel
+	local index = CELLS[name]
+	local image = Instance.new("ImageLabel")
+	image.Name = "Icon"
+	image.AnchorPoint = Vector2.new(0.5, 0.5)
+	image.Position = UDim2.fromScale(0.5, 0.5)
+	image.Size = UDim2.fromOffset(size, size)
+	image.BackgroundTransparency = 1
+	image.Image = SHEET
+	image.ImageRectSize = Vector2.new(CELL, CELL)
+	image.ImageRectOffset = Vector2.new((index % 4) * CELL, (index // 4) * CELL)
+	image.ImageColor3 = WHITE
+	image.ImageTransparency = 0.04
+	image.ZIndex = 2
+	image.Parent = button
+	return image
 end
 
--- Flecha circular (recargar)
-function HudIcons.reload(button: GuiObject, size: number): Frame
-	local icon = holder(button, size)
-	local circle = ring(icon, size, 0.5, 0.52, 0.6, 0.06)
-	-- Abre un hueco arriba a la derecha: el trazo se desvanece en esa esquina
-	local stroke = circle:FindFirstChildOfClass("UIStroke") :: UIStroke
-	local gradient = Instance.new("UIGradient")
-	gradient.Rotation = 135
-	gradient.Transparency = NumberSequence.new({
-		NumberSequenceKeypoint.new(0, 0),
-		NumberSequenceKeypoint.new(0.62, 0),
-		NumberSequenceKeypoint.new(0.64, 1),
-		NumberSequenceKeypoint.new(1, 1),
-	})
-	gradient.Parent = stroke
-	local angle = math.rad(70)
-	arrowHead(icon, size, 0.5 + math.cos(angle) * 0.3, 0.52 - math.sin(angle) * 0.3, 25, 0.2, 0.06)
-	return icon
+-- Disparar: disco grande con un aro fino por dentro y la bala inclinada
+function HudIcons.fire(button: GuiObject, size: number): ImageLabel
+	local innerRing = Instance.new("Frame")
+	innerRing.Name = "InnerRing"
+	innerRing.AnchorPoint = Vector2.new(0.5, 0.5)
+	innerRing.Position = UDim2.fromScale(0.5, 0.5)
+	innerRing.Size = UDim2.fromScale(0.74, 0.74)
+	innerRing.BackgroundTransparency = 1
+	innerRing.Parent = button
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(1, 0)
+	corner.Parent = innerRing
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = WHITE
+	stroke.Transparency = 0.55
+	stroke.Thickness = 1.5
+	stroke.Parent = innerRing
+	return glyph(button, "Bullet", size)
 end
 
--- Dos flechas que se cruzan (cambiar de arma)
-function HudIcons.swap(button: GuiObject, size: number): Frame
-	local icon = holder(button, size)
-	bar(icon, size, 0.46, 0.36, 0.52, 0.06, 0, true)
-	arrowHead(icon, size, 0.8, 0.36, 0, 0.2, 0.06)
-	bar(icon, size, 0.54, 0.64, 0.52, 0.06, 0, true)
-	arrowHead(icon, size, 0.2, 0.64, 180, 0.2, 0.06)
-	return icon
+function HudIcons.reload(button: GuiObject, size: number): ImageLabel
+	return glyph(button, "Reload", size)
 end
 
--- Dos flechas hacia arriba (saltar)
-function HudIcons.jump(button: GuiObject, size: number): Frame
-	local icon = holder(button, size)
-	arrowHead(icon, size, 0.5, 0.24, 270, 0.36, 0.07)
-	arrowHead(icon, size, 0.5, 0.52, 270, 0.36, 0.07)
-	bar(icon, size, 0.5, 0.7, 0.07, 0.2, 0, true)
-	return icon
+function HudIcons.swap(button: GuiObject, size: number): ImageLabel
+	return glyph(button, "Swap", size)
 end
 
--- Mirilla de francotirador (apuntar)
-function HudIcons.scope(button: GuiObject, size: number): Frame
-	local icon = holder(button, size)
-	ring(icon, size, 0.5, 0.5, 0.56, 0.07)
-	bar(icon, size, 0.5, 0.13, 0.07, 0.22)
-	bar(icon, size, 0.5, 0.87, 0.07, 0.22)
-	bar(icon, size, 0.13, 0.5, 0.22, 0.07)
-	bar(icon, size, 0.87, 0.5, 0.22, 0.07)
-	disc(icon, size, 0.5, 0.5, 0.1, WHITE)
-	return icon
+function HudIcons.jump(button: GuiObject, size: number): ImageLabel
+	return glyph(button, "Jump", size)
 end
 
--- Dos flechas hacia adelante (correr)
-function HudIcons.sprint(button: GuiObject, size: number): Frame
-	local icon = holder(button, size)
-	arrowHead(icon, size, 0.52, 0.5, 0, 0.3, 0.07)
-	arrowHead(icon, size, 0.8, 0.5, 0, 0.3, 0.07)
-	return icon
+function HudIcons.scope(button: GuiObject, size: number): ImageLabel
+	return glyph(button, "Scope", size)
 end
 
--- Líneas de velocidad (esquivar)
-function HudIcons.dash(button: GuiObject, size: number): Frame
-	local icon = holder(button, size)
-	bar(icon, size, 0.46, 0.3, 0.5, 0.08, 0, true)
-	bar(icon, size, 0.56, 0.5, 0.6, 0.08, 0, true)
-	bar(icon, size, 0.42, 0.7, 0.4, 0.08, 0, true)
-	arrowHead(icon, size, 0.9, 0.5, 0, 0.22, 0.08)
-	return icon
+function HudIcons.sprint(button: GuiObject, size: number): ImageLabel
+	return glyph(button, "Sprint", size)
+end
+
+function HudIcons.dash(button: GuiObject, size: number): ImageLabel
+	return glyph(button, "Dash", size)
 end
 
 ----------------------------------------------------------------------
@@ -253,14 +228,14 @@ end
 -- Estilo de botones
 ----------------------------------------------------------------------
 
--- Círculo plano de vidrio oscuro con borde blanco fino (como Call of Duty Mobile)
+-- Disco translúcido oscuro con un borde casi invisible (como Call of Duty Mobile)
 function HudIcons.styleButton(button: GuiObject, strokeThickness: number?)
-	button.BackgroundColor3 = Color3.fromRGB(24, 26, 30)
-	button.BackgroundTransparency = 0.5
+	button.BackgroundColor3 = Color3.fromRGB(26, 28, 32)
+	button.BackgroundTransparency = 0.42
 	local stroke = button:FindFirstChildOfClass("UIStroke") or Instance.new("UIStroke")
 	stroke.Color = WHITE
-	stroke.Transparency = 0.25
-	stroke.Thickness = strokeThickness or 1.5
+	stroke.Transparency = 0.72
+	stroke.Thickness = strokeThickness or 1.2
 	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	stroke.Parent = button
 end
