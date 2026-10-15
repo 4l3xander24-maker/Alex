@@ -56,7 +56,8 @@ function BoostUi.init()
 
 	holder = Instance.new("Frame")
 	holder.AnchorPoint = Vector2.new(1, 0)
-	holder.Position = UDim2.new(1, -16, 0, if UserInputService.TouchEnabled then 76 else 92)
+	-- Debajo del botón de la Tienda
+	holder.Position = UDim2.new(1, -16, 0, if UserInputService.TouchEnabled then 112 else 124)
 	holder.Size = UDim2.fromOffset(132, 120)
 	holder.BackgroundTransparency = 1
 	holder.Parent = gui
