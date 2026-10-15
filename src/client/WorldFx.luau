@@ -82,11 +82,7 @@ local function applyQuality()
 		ambientEmitter = emitter
 		emitter.Enabled = not low
 	end
-	for _, leaves in leafEmitters do
-		if leaves.Parent then
-			leaves.Enabled = not low
-		end
-	end
+	-- Las hojas se ajustan solas en el bucle (updateLeaves)
 	SkyFx.setReduced(low)
 end
 
@@ -104,7 +100,7 @@ end
 local function trackSway(instance: Instance)
 	if instance:IsA("ParticleEmitter") and instance.Name == "LeafEmitter" then
 		table.insert(leafEmitters, instance)
-		instance.Enabled = not lowQuality
+		instance.Enabled = false -- updateLeaves lo prende si está cerca
 		return
 	end
 	if instance:IsA("BasePart") then
@@ -129,9 +125,40 @@ local function updateWind(clock: number)
 end
 
 -- Cada pieza gira un poquito alrededor de su base hacia donde sopla el viento
+-- Hojas que caen: solo cerca de la cámara (hay cientos de árboles) y con más
+-- fuerza en las ráfagas. En calidad baja, apagadas.
+local LEAF_DISTANCE = 170
+local function updateLeaves()
+	local camera = workspace.CurrentCamera.CFrame.Position
+	local index = 1
+	while index <= #leafEmitters do
+		local emitter = leafEmitters[index]
+		local box = emitter.Parent
+		if not box then
+			leafEmitters[index] = leafEmitters[#leafEmitters]
+			leafEmitters[#leafEmitters] = nil
+			continue
+		end
+		-- En calidad baja (celulares) caen solo las de los árboles más cercanos
+		local range = if lowQuality then LEAF_DISTANCE * 0.45 else LEAF_DISTANCE
+		local near = box:IsA("BasePart") and (box.Position - camera).Magnitude < range
+		if emitter.Enabled ~= near then
+			emitter.Enabled = near
+		end
+		if near then
+			local base = emitter:GetAttribute("BaseRate") or emitter.Rate
+			emitter.Rate = base * math.clamp(gustLevel * gustLevel, 0.4, 2.5) * (if lowQuality then 0.6 else 1)
+		end
+		index += 1
+	end
+end
+
 local function updateSway(clock: number)
 	local camera = workspace.CurrentCamera.CFrame.Position
+	-- En calidad baja (celulares) igual se mecen, pero solo los cercanos
+	local swayRange = if lowQuality then SWAY_DISTANCE * 0.5 else SWAY_DISTANCE
 	local direction = Vector3.new(baseWind.X, 0, baseWind.Z).Unit
+	local windward = direction
 	local axis = UP:Cross(direction) -- girar sobre este eje inclina la punta a favor del viento
 	local parts, cframes = {}, {}
 	local index = 1
@@ -146,11 +173,11 @@ local function updateSway(clock: number)
 		end
 		local pivot = swayer.Pivot
 		local offset = pivot - camera
-		if offset.X * offset.X + offset.Z * offset.Z < SWAY_DISTANCE * SWAY_DISTANCE then
+		if offset.X * offset.X + offset.Z * offset.Z < swayRange * swayRange then
 			local wave = math.sin(clock * SWAY_SPEED + swayer.Seed) * 0.5 + math.noise(clock * 0.6, swayer.Seed) * 0.5
 			local lean = swayer.Amount * gustLevel * (0.55 + wave)
 			table.insert(parts, part)
-			table.insert(cframes, CFrame.new(pivot) * CFrame.fromAxisAngle(axis, lean) * CFrame.new(-pivot) * swayer.Base)
+			table.insert(cframes, CFrame.new(pivot) * CFrame.fromAxisAngle(axis, lean) * CFrame.fromAxisAngle(windward, math.sin(clock * SWAY_SPEED * 2.3 + swayer.Seed * 1.7) * swayer.Amount * 0.35 * gustLevel) * CFrame.new(-pivot) * swayer.Base)
 		end
 		index += 1
 	end
@@ -251,10 +278,19 @@ function WorldFx.init()
 			flicker(clock)
 			danceFlames(clock)
 			updateSway(clock)
-		elseif lowQuality and clock - lastDayDim > 1 then
-			lastDayDim = clock
-			flicker(clock)
-			updateAmbient()
+		elseif lowQuality then
+			-- Celular: los árboles se mecen igual, cada 3 cuadros
+			if frame % 3 == 0 then
+				updateSway(clock)
+			end
+			if clock - lastDayDim > 1 then
+				lastDayDim = clock
+				flicker(clock)
+				updateAmbient()
+			end
+		end
+		if frame % 20 == 0 then
+			updateLeaves()
 		end
 		if frame % 30 == 0 then
 			updateAmbient()

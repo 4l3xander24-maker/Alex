@@ -75,7 +75,9 @@ function Props.leafFall(parent: Instance, center: Vector3, size: number, palette
 	emitter.Name = "LeafEmitter"
 	emitter.Shape = Enum.ParticleEmitterShape.Box
 	emitter.ShapeStyle = Enum.ParticleEmitterShapeStyle.Volume
-	emitter.Rate = leafRandom:NextNumber(0.6, 1.4)
+	emitter.Rate = leafRandom:NextNumber(0.8, 1.6)
+	-- WorldFx lo multiplica por las ráfagas y lo apaga lejos de la cámara
+	emitter:SetAttribute("BaseRate", emitter.Rate)
 	emitter.Lifetime = NumberRange.new(5, 8)
 	emitter.Speed = NumberRange.new(0.2, 0.8)
 	emitter.SpreadAngle = Vector2.new(180, 180)
@@ -89,6 +91,32 @@ function Props.leafFall(parent: Instance, center: Vector3, size: number, palette
 	emitter.Color = ColorSequence.new(palette[leafRandom:NextInteger(1, #palette)], palette[leafRandom:NextInteger(1, #palette)])
 	emitter.Parent = box
 	return box
+end
+
+-- Árbol que se mece: el tronco apenas desde la base y la copa (hojas, ramas)
+-- bastante más desde lo alto del tronco, así las hojas se ven sacudirse
+local FOLIAGE_NAMES = { "leaves", "eaves", "leaf", "branch", "torso", "cap", "foliage" }
+local function isFoliage(part: BasePart): boolean
+	local name = string.lower(part.Name)
+	for _, word in FOLIAGE_NAMES do
+		if string.find(name, word, 1, true) then
+			return true
+		end
+	end
+	return false
+end
+function Props.swayTree(tree: Instance, base: Vector3, height: number, strength: number?)
+	local power = strength or 1
+	local crown = base + Vector3.new(0, height * 0.45, 0)
+	for _, part in tree:GetDescendants() do
+		if part:IsA("BasePart") then
+			if isFoliage(part) then
+				Props.sway(part, crown, 0.055 * power)
+			else
+				Props.sway(part, base, 0.014 * power)
+			end
+		end
+	end
 end
 
 function Props.vary(color: Color3, amount: number, random: Random): Color3

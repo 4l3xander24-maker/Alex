@@ -250,20 +250,16 @@ local function buildTree(map: Instance, position: Vector3)
 	local name = if random:NextNumber() < 0.7 then "TreeB" else "TreeA"
 	local model = ModelLibrary.place(name, CFrame.new(position) * CFrame.Angles(0, random:NextNumber(0, math.pi * 2), 0), { Height = height }, false, map)
 	if model then
-		for _, part in model:GetDescendants() do
-			if part:IsA("BasePart") then
-				Props.sway(part, position, 0.02)
-			end
-		end
+		Props.swayTree(model, position, height)
 	else
 		makePart({ Name = "Trunk", Size = Vector3.new(1.4, height * 0.6, 1.4), Position = position + Vector3.new(0, height * 0.3, 0), Material = Enum.Material.Wood, Color = Props.Colors.DarkWood, Parent = map })
 		for _ = 1, 3 do
 			local leaves = makeProp({ Name = "Leaves", Shape = Enum.PartType.Ball, Size = Vector3.one * height * random:NextNumber(0.35, 0.5), Position = position + Vector3.new(random:NextNumber(-2, 2), height * random:NextNumber(0.6, 0.8), random:NextNumber(-2, 2)), Material = Enum.Material.Grass, Color = FOLIAGE[random:NextInteger(1, #FOLIAGE)], Parent = map })
-			Props.sway(leaves, position, 0.02)
+			Props.sway(leaves, position + Vector3.new(0, height * 0.5, 0), 0.06)
 		end
 	end
-	-- Algunos sueltan hojas que caen girando con el viento
-	if random:NextNumber() < 0.4 then
+	-- Todos sueltan hojas que caen girando con el viento
+	do
 		Props.leafFall(map, position + Vector3.new(0, height * 0.65, 0), height * 0.6, FOLIAGE)
 	end
 end
@@ -273,7 +269,7 @@ local function buildScenery(map: Instance)
 	scenery.Name = "Scenery"
 	-- Bosque alrededor de la plaza (deja libre el castillo y el camino de entrada)
 	local placed = 0
-	while placed < 80 do
+	while placed < 120 do
 		local angle = random:NextNumber(0, math.pi * 2)
 		local radius = random:NextNumber(PLAZA_RADIUS + 12, 150)
 		local position = Vector3.new(math.cos(angle) * radius, 0, math.sin(angle) * radius)

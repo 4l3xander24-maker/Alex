@@ -187,9 +187,15 @@ local function buildPine(map: Instance, position: Vector3, scale: number)
 			Parent = tree,
 		})
 		-- Las capas de arriba se mecen más
-		Props.sway(leaves, position, 0.012 * index)
+		Props.sway(leaves, position, 0.016 * index)
 		y += layerHeight * 0.8
 	end
+	-- Agujas que caen (pocas)
+	local needles = Props.leafFall(tree, position + Vector3.new(0, y * 0.6, 0), 6 * scale, { color, color:Lerp(Color3.fromRGB(120, 90, 50), 0.5) })
+	local emitter = needles:FindFirstChildOfClass("ParticleEmitter") :: ParticleEmitter
+	emitter.Rate *= 0.4
+	emitter:SetAttribute("BaseRate", emitter.Rate)
+	emitter.Size = NumberSequence.new(0.2)
 	tree.Parent = map
 end
 
@@ -208,14 +214,9 @@ local function buildAutumnTree(map: Instance, position: Vector3, scale: number)
 	local height = 14 * scale * random:NextNumber(0.9, 1.1)
 	local model = ModelLibrary.place(name, CFrame.new(position) * rotation, { Height = height }, false, map)
 	if model then
-		-- Todo el árbol se mece con el viento desde la base del tronco
-		for _, part in model:GetDescendants() do
-			if part:IsA("BasePart") then
-				Props.sway(part, position, 0.02)
-			end
-		end
-		-- Uno de cada tres suelta hojas que caen girando
-		if theme.Foliage and random:NextNumber() < 0.35 then
+		-- El tronco se mece poco y la copa mucho; todos sueltan hojas
+		Props.swayTree(model, position, height)
+		if theme.Foliage then
 			Props.leafFall(map, position + Vector3.new(0, height * 0.65, 0), height * 0.6, theme.Foliage)
 		end
 		return
@@ -246,7 +247,10 @@ local function buildAutumnTree(map: Instance, position: Vector3, scale: number)
 			Color = Props.vary(base, 0.06, random),
 			Parent = tree,
 		})
-		Props.sway(leaves, position, 0.035)
+		Props.sway(leaves, position + Vector3.new(0, height * 0.6, 0), 0.06)
+	end
+	if theme.Foliage then
+		Props.leafFall(tree, position + Vector3.new(0, height, 0), 7 * scale, theme.Foliage)
 	end
 	tree.Parent = map
 end
@@ -270,9 +274,14 @@ local function buildDeadTree(map: Instance, position: Vector3, scale: number)
 		local twig = makeProp({ Name = "Twig", Size = Vector3.new(0.25 * scale, length * 0.45, 0.25 * scale), CFrame = branch * CFrame.new(0, length, 0) * CFrame.Angles(0, 0, -0.8) * CFrame.new(0, length * 0.2, 0), Material = Enum.Material.Wood, Color = bark, Parent = tree })
 		-- Las ramas secas crujen con el viento desde donde salen del tronco
 		local joint = (base * CFrame.new(0, y, 0)).Position
-		Props.sway(limb, joint, 0.04)
-		Props.sway(twig, joint, 0.06)
+		Props.sway(limb, joint, 0.05)
+		Props.sway(twig, joint, 0.08)
 	end
+	-- Hojas secas que se desprenden de vez en cuando
+	local dry = Props.leafFall(tree, position + Vector3.new(0, height * 0.75, 0), 6 * scale, { Color3.fromRGB(110, 80, 50), Color3.fromRGB(80, 62, 44) })
+	local emitter = dry:FindFirstChildOfClass("ParticleEmitter") :: ParticleEmitter
+	emitter.Rate *= 0.35
+	emitter:SetAttribute("BaseRate", emitter.Rate)
 	tree.Parent = map
 end
 
@@ -569,28 +578,28 @@ local function buildScenery(map: Instance)
 	end
 
 	-- Bosque alrededor del claro
-	for _ = 1, 170 do
+	for _ = 1, 240 do
 		local position = randomRingPoint(225, 430)
 		if onLand(position, 8) and MedievalBuilder.isClear(position, 6) then
 			buildTree(map, position, random:NextNumber(1, 1.8))
 		end
 	end
 	-- Muro de bosque alrededor del claro
-	for _ = 1, 190 do
+	for _ = 1, 260 do
 		local position = randomRingPoint(200, 280)
 		if onLand(position, 6) and MedievalBuilder.isClear(position, 5) then
 			buildTree(map, position, random:NextNumber(1.1, 1.9))
 		end
 	end
 	-- El bosque del norte, tupido: de entre estos árboles salen los zombis
-	for _ = 1, 280 do
+	for _ = 1, 400 do
 		local position = Vector3.new(random:NextNumber(-430, 430), 0, random:NextNumber(-360, -135))
 		if onLand(position, 8) and MedievalBuilder.isClear(position, 5) then
 			buildTree(map, position, random:NextNumber(1, 1.8))
 		end
 	end
 	-- Algunos pinos sueltos a los lados y detrás del campamento
-	for _ = 1, 40 do
+	for _ = 1, 70 do
 		local position = randomRingPoint(95, 210)
 		if (position.Z > 0 or math.abs(position.X) > 120) and onLand(position, 8) and MedievalBuilder.isClear(position, 6) then
 			buildTree(map, position, random:NextNumber(0.9, 1.5))
@@ -598,7 +607,7 @@ local function buildScenery(map: Instance)
 	end
 
 	-- Más árboles: bosquecitos en el campo y en la isla del campamento
-	for _ = 1, 14 do
+	for _ = 1, 24 do
 		local center = randomRingPoint(70, 220)
 		if not onLand(center, 12) or (center - Config.Arena.CampCenter).Magnitude < 55 then
 			continue

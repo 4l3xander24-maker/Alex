@@ -24,7 +24,7 @@ local AREAS = {
 	{
 		Center = Config.Arena.CampCenter,
 		Hills = { Count = 14, Inner = 36, Outer = 58 },
-		Trees = { Count = 7, Inner = 38, Outer = 56 },
+		Trees = { Count = 11, Inner = 38, Outer = 58 },
 		Bushes = { Count = 12, Inner = 30, Outer = 54 },
 		Flowers = { Count = 16, Inner = 20, Outer = 52 },
 		Clutter = { Count = 5, Inner = 20, Outer = 44 },
@@ -32,7 +32,7 @@ local AREAS = {
 	{
 		Center = Vector3.new(village.Center.X, 0, village.Center.Y),
 		Hills = { Count = 11, Inner = 20, Outer = 48 },
-		Trees = { Count = 9, Inner = 16, Outer = 46 },
+		Trees = { Count = 14, Inner = 16, Outer = 48 },
 		Bushes = { Count = 12, Inner = 12, Outer = 46 },
 		Flowers = { Count = 18, Inner = 8, Outer = 44 },
 		Clutter = { Count = 6, Inner = 10, Outer = 38 },
@@ -111,14 +111,8 @@ local function tree(map: Instance, position: Vector3)
 	if not model then
 		return
 	end
-	for _, part in model:GetDescendants() do
-		if part:IsA("BasePart") then
-			Props.sway(part, position, 0.015)
-		end
-	end
-	if random:NextNumber() < 0.7 then
-		Props.leafFall(map, position + Vector3.new(0, height * 0.6, 0), height * 0.6, LEAVES)
-	end
+	Props.swayTree(model, position, height, 0.8)
+	Props.leafFall(map, position + Vector3.new(0, height * 0.6, 0), height * 0.6, LEAVES)
 end
 
 local function swayingModel(map: Instance, name: string, position: Vector3, size: { Height: number?, Footprint: number? }, amount: number)
