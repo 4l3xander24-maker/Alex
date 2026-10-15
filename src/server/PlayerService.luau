@@ -77,6 +77,9 @@ function PlayerService.damagePlayer(player: Player, amount: number)
 	if now < state.InvulnerableUntil then
 		return
 	end
+	if (player:GetAttribute("ShieldUntil") or 0) > workspace:GetServerTimeNow() then
+		return
+	end
 	state.LastDamaged = now
 
 	if humanoid.Health - amount <= 0 and not state.LastStandUsed and hasTalent(player, "LastStand") then

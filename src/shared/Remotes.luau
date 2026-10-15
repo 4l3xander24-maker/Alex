@@ -19,6 +19,7 @@ local EVENTS = {
 	"GameOverCinematic",
 	"ReviveOffer",
 	"DifficultyMenu",
+	"Boost",
 	-- cliente -> servidor
 	"Shoot",
 	"Reload",

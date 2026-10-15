@@ -81,7 +81,7 @@ end
 
 -- Barra con esquinas redondas, borde oscuro, brillo en el relleno y un
 -- ícono a la izquierda (corazón de la vida, estrella de la XP)
-local function polishBar(back: Frame, fill: Frame, icon: string)
+local function polishBar(back: Frame, fill: Frame, drawIcon: (GuiObject, number) -> ())
 	back.BackgroundTransparency = 0.3
 	round(back, UDim.new(0, 8))
 	round(fill, UDim.new(0, 8))
@@ -95,7 +95,13 @@ local function polishBar(back: Frame, fill: Frame, icon: string)
 	shine.Rotation = 90
 	shine.Color = ColorSequence.new(Color3.new(1, 1, 1), Color3.fromRGB(170, 170, 170))
 	shine.Parent = fill
-	makeLabel({ AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(0, -6, 0.5, 0), Size = UDim2.fromOffset(24, 24), TextSize = 20, Text = icon, Parent = back })
+	local slot = Instance.new("Frame")
+	slot.AnchorPoint = Vector2.new(1, 0.5)
+	slot.Position = UDim2.new(0, -6, 0.5, 0)
+	slot.Size = UDim2.fromOffset(24, 24)
+	slot.BackgroundTransparency = 1
+	slot.Parent = back
+	drawIcon(slot, 24)
 end
 
 -- Píldora oscura detrás de un texto que crece con él (monedas, hora, munición)
@@ -418,16 +424,30 @@ function Hud.init(actions: Actions)
 	-- Hora del día (ciclo de día y noche)
 	local clockLabel = makeLabel({ AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -16, 0, 50), Size = UDim2.fromOffset(320, 18), TextSize = 14, Font = Enum.Font.GothamBold, TextXAlignment = Enum.TextXAlignment.Right, Visible = DayCycle.isEnabled(), Parent = gui })
 	pill(coinsLabel, 34)
+	-- Moneda dibujada a la izquierda del número
+	do
+		local padding = coinsLabel:FindFirstChildOfClass("UIPadding") :: UIPadding
+		padding.PaddingLeft = UDim.new(0, 40)
+		local slot = Instance.new("Frame")
+		slot.AnchorPoint = Vector2.new(0, 0.5)
+		slot.Position = UDim2.new(0, -32, 0.5, 0)
+		slot.Size = UDim2.fromOffset(24, 24)
+		slot.BackgroundTransparency = 1
+		slot.Parent = coinsLabel
+		HudIcons.coin(slot, 24)
+	end
 	pill(clockLabel, 24)
 
 	-- Abajo a la izquierda: vida del jugador y poderes
 	local healthBack, healthFill, healthText = makeBar(gui, UDim2.new(0, 44, 1, -110), UDim2.fromOffset(230, 18))
-	polishBar(healthBack, healthFill, "❤️")
+	polishBar(healthBack, healthFill, HudIcons.heart)
 	-- Barra de experiencia debajo de la vida (sin números: solo se va llenando)
 	local xpBack, xpFill, xpText = makeBar(gui, UDim2.new(0, 44, 1, -86), UDim2.fromOffset(230, 9))
 	xpFill.BackgroundColor3 = XP_COLOR
 	xpText.Visible = false
-	polishBar(xpBack, xpFill, "⭐")
+	polishBar(xpBack, xpFill, function(parent, size)
+		HudIcons.star(parent, size)
+	end)
 	-- Ya no se muestran el nivel ni la XP en números
 	levelLabel.Visible = false
 	matchLabel.Visible = false
@@ -435,7 +455,10 @@ function Hud.init(actions: Actions)
 	local powerSlots: { [string]: Slot } = {}
 	for order, name in Config.PowerOrder do
 		local power = Config.Powers[name]
-		local slot = makeSlot(powerRow, order, power.Icon, power.Key.Name)
+		local slot = makeSlot(powerRow, order, "", power.Key.Name)
+		if not HudIcons.power(name, slot.Frame, 40) then
+			slot.Frame.Text = power.Icon
+		end
 		slot.Frame.Activated:Connect(function()
 			actions.usePower(name)
 		end)
@@ -528,19 +551,23 @@ function Hud.init(actions: Actions)
 		-- Iconos de línea blancos sobre círculos oscuros, como Call of Duty Mobile
 		local fire = makeRoundButton(gui, "", UDim2.new(1, -118, 1, -26), 92, PANEL_COLOR)
 		HudIcons.styleButton(fire, 3)
-		HudIcons.fire(fire, 56)
+		HudIcons.fire(fire, 62)
+		HudIcons.bindPress(fire)
 		bindHoldButton(fire, actions.setTrigger)
 		local reload = makeRoundButton(gui, "", UDim2.new(1, -28, 1, -128), 64, PANEL_COLOR)
 		HudIcons.styleButton(reload)
 		HudIcons.reload(reload, 38)
+		HudIcons.bindPress(reload)
 		reload.Activated:Connect(actions.reload)
 		local swap = makeRoundButton(gui, "", UDim2.new(1, -218, 1, -36), 56, PANEL_COLOR)
 		HudIcons.styleButton(swap)
 		HudIcons.swap(swap, 34)
+		HudIcons.bindPress(swap)
 		swap.Activated:Connect(actions.cycleWeapon)
 		aimButton = makeRoundButton(gui, "", UDim2.new(1, -112, 1, -128), 56, PANEL_COLOR)
 		HudIcons.styleButton(aimButton)
 		HudIcons.scope(aimButton, 34)
+		HudIcons.bindPress(aimButton)
 		local aiming = false
 		aimButton.Activated:Connect(function()
 			aiming = not aiming
@@ -575,6 +602,7 @@ function Hud.init(actions: Actions)
 		sprintButton = makeRoundButton(gui, "", UDim2.new(0, 16, 0, 150), 50, PANEL_COLOR)
 		HudIcons.styleButton(sprintButton)
 		HudIcons.sprint(sprintButton, 30)
+		HudIcons.bindPress(sprintButton)
 		sprintButton.AnchorPoint = Vector2.new(0, 0)
 		bindHoldButton(sprintButton, actions.setSprint)
 		-- Arriba a la derecha queda más compacto (monedas y hora)
@@ -645,7 +673,7 @@ function Hud.init(actions: Actions)
 
 	local function refreshProfile()
 		local data = Profile.get()
-		coinsLabel.Text = `💰 {Profile.coins()}`
+		coinsLabel.Text = tostring(Profile.coins())
 		local points = data.StatPoints + data.TalentPoints
 		levelLabel.Text = `⭐ Nivel {data.Level} · {data.Xp}/{Progression.xpNeeded(data.Level)} XP{if points > 0 then "  (¡puntos!)" else ""}`
 		xpFill.Size = UDim2.fromScale(math.clamp(data.Xp / math.max(Progression.xpNeeded(data.Level), 1), 0, 1), 1)

@@ -112,6 +112,25 @@ function CombatService.restockAll()
 	end
 end
 
+-- Potenciador de munición: todas las armas de fuego llenas
+function CombatService.refillAmmo(player: Player)
+	local data = DataService.get(player)
+	if not data then
+		return
+	end
+	local state = getState(player)
+	state.ReloadEnd = nil
+	state.ReloadWeapon = nil
+	for weaponId in data.Weapons do
+		local stats = Progression.getWeaponStats(data, weaponId, false)
+		if not stats.Melee then
+			state.Reserve[weaponId] = stats.MaxReserve
+			state.Ammo[weaponId] = stats.Magazine
+		end
+	end
+	Remotes.AmmoSync:FireClient(player, state.Ammo, state.Reserve)
+end
+
 function CombatService.resetAll()
 	for _, player in Players:GetPlayers() do
 		CombatService.resetAmmo(player)
@@ -161,8 +180,9 @@ local function applySpread(direction: Vector3, spread: number): Vector3
 	return (CFrame.lookAt(Vector3.zero, direction) * rotation).LookVector
 end
 
-local function rollDamage(damage: number, critChance: number): number
-	return if random:NextNumber() < critChance then damage * Config.CritMultiplier else damage
+local function rollDamage(player: Player, damage: number, critChance: number): number
+	local boosted = if (player:GetAttribute("DamageBoostUntil") or 0) > workspace:GetServerTimeNow() then Config.Powerups.Types.Damage.Multiplier else 1
+	return (if random:NextNumber() < critChance then damage * Config.CritMultiplier else damage) * boosted
 end
 
 -- Talento Balas explosivas: daña a los zombis alrededor del impacto
@@ -204,7 +224,7 @@ local function onShoot(player: Player, origin: any, direction: any, shotTime: an
 		end
 		state.LastShot = now
 		for _, enemyId in EnemyService.getInCone(origin, aim, stats.Range, stats.Arc, time, stats.MaxTargets) do
-			EnemyService.damage(enemyId, rollDamage(stats.Damage, stats.CritChance), player)
+			EnemyService.damage(enemyId, rollDamage(player, stats.Damage, stats.CritChance), player)
 		end
 		return
 	end
@@ -236,7 +256,7 @@ local function onShoot(player: Player, origin: any, direction: any, shotTime: an
 	for _ = 1, stats.Pellets do
 		local pelletDirection = applySpread(aim, stats.Spread)
 		for _, enemyId in EnemyService.raycast(origin, pelletDirection, stats.Range, time, stats.Pierce + 1) do
-			local damage = rollDamage(stats.Damage, stats.CritChance)
+			local damage = rollDamage(player, stats.Damage, stats.CritChance)
 			if explosive and random:NextNumber() < talents.ExplosiveChance then
 				explode(player, enemyId, damage, time)
 			end

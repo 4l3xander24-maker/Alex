@@ -588,11 +588,24 @@ Config.Enemies = {
 -- se abre la que sigue. Count/Health/Spawn multiplican a los zombis;
 -- Coins y Xp lo que ganas.
 Config.Difficulties = {
-	{ Id = 1, Name = "Fácil", Icon = "🌱", Color = Color3.fromRGB(90, 190, 100), Count = 0.75, Health = 0.8, Spawn = 0.85, Coins = 0.8, Xp = 0.8, Goal = 8, Description = "Para empezar: menos zombis y más débiles." },
-	{ Id = 2, Name = "Normal", Icon = "⚔️", Color = Color3.fromRGB(110, 170, 240), Count = 1.0, Health = 1.0, Spawn = 1.0, Coins = 1.0, Xp = 1.0, Goal = 10, Description = "La experiencia de siempre." },
-	{ Id = 3, Name = "Difícil", Icon = "🔥", Color = Color3.fromRGB(240, 170, 70), Count = 1.25, Health = 1.35, Spawn = 1.2, Coins = 1.3, Xp = 1.3, Goal = 12, Description = "Más zombis y más duros. Mejores premios." },
+	{ Id = 1, Name = "Normal", Icon = "⚔️", Color = Color3.fromRGB(110, 190, 120), Count = 0.85, Health = 0.9, Spawn = 0.9, Coins = 1.0, Xp = 1.0, Goal = 8, Description = "Una partida pareja y agradable para empezar." },
+	{ Id = 2, Name = "Difícil", Icon = "🔥", Color = Color3.fromRGB(240, 170, 70), Count = 1.1, Health = 1.15, Spawn = 1.1, Coins = 1.2, Xp = 1.2, Goal = 10, Description = "Más zombis y más duros. Mejores premios." },
+	{ Id = 3, Name = "Experto", Icon = "🎯", Color = Color3.fromRGB(110, 170, 240), Count = 1.3, Health = 1.45, Spawn = 1.25, Coins = 1.45, Xp = 1.45, Goal = 12, Description = "Para quien ya domina el campamento." },
 	{ Id = 4, Name = "Pesadilla", Icon = "💀", Color = Color3.fromRGB(220, 90, 90), Count = 1.55, Health = 1.8, Spawn = 1.4, Coins = 1.7, Xp = 1.7, Goal = 14, Description = "Hordas enormes y zombis resistentes." },
 	{ Id = 5, Name = "Infierno", Icon = "👹", Color = Color3.fromRGB(180, 70, 220), Count = 2.0, Health = 2.5, Spawn = 1.7, Coins = 2.4, Xp = 2.4, Goal = 16, Description = "Solo para los mejores. Premios enormes." },
+}
+
+-- Potenciadores: los zombis a veces los sueltan y se aplican a todo el equipo
+Config.Powerups = {
+	DropChance = 0.06,
+	BossDropChance = 1,
+	Types = {
+		Ammo = { Name = "Munición llena", Icon = "🔫", Color = Color3.fromRGB(255, 200, 80), Weight = 3 },
+		Heal = { Name = "Curación total", Icon = "💚", Color = Color3.fromRGB(110, 230, 120), Weight = 3 },
+		Damage = { Name = "Daño x2", Icon = "💥", Color = Color3.fromRGB(255, 110, 90), Weight = 3, Duration = 15, Multiplier = 2 },
+		Shield = { Name = "Escudo", Icon = "🛡️", Color = Color3.fromRGB(110, 190, 255), Weight = 2, Duration = 8 },
+		Coins = { Name = "Lluvia de monedas", Icon = "💰", Color = Color3.fromRGB(255, 215, 90), Weight = 2, Base = 30, PerWave = 8 },
+	},
 }
 
 Config.Waves = {

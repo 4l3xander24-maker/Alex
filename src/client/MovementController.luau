@@ -110,7 +110,24 @@ function MovementController.init()
 		end
 	end)
 
-	-- Doble salto: un segundo salto mientras está en el aire
+	-- Botón de saltar del celular (TouchControls): salto normal, o el doble salto
+-- si ya está en el aire y tiene el talento
+function MovementController.jump()
+	local humanoid = getHumanoid()
+	if not humanoid then
+		return
+	end
+	if humanoid:GetState() == Enum.HumanoidStateType.Freefall then
+		if not doubleJumpUsed and Profile.hasTalent("DoubleJump") then
+			doubleJumpUsed = true
+			humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+		end
+	else
+		humanoid.Jump = true
+	end
+end
+
+-- Doble salto: un segundo salto mientras está en el aire
 	UserInputService.JumpRequest:Connect(function()
 		local humanoid = getHumanoid()
 		if humanoid and not doubleJumpUsed and Profile.hasTalent("DoubleJump") and humanoid:GetState() == Enum.HumanoidStateType.Freefall then
