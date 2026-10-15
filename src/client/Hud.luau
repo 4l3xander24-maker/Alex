@@ -551,6 +551,8 @@ function Hud.init(actions: Actions)
 		-- Iconos de línea blancos sobre círculos oscuros, como Call of Duty Mobile
 		local fire = makeRoundButton(gui, "", UDim2.new(1, -50, 1, -112), 100, PANEL_COLOR)
 		HudIcons.styleButton(fire, 2)
+		fire.BackgroundColor3 = Color3.fromRGB(40, 42, 46)
+		fire.BackgroundTransparency = 0.5
 		HudIcons.fire(fire, 76)
 		HudIcons.bindPress(fire)
 		bindHoldButton(fire, actions.setTrigger)

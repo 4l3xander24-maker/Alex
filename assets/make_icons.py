@@ -38,65 +38,83 @@ def bullet():
 
 def jump():
     im = cell(); d = ImageDraw.Draw(im)
-    # tres barras inclinadas y un pie curvo
-    line(d, [(44, 92), (74, 22)], 11)
-    line(d, [(62, 96), (92, 30)], 11)
-    line(d, [(80, 98), (106, 40)], 11)
-    line(d, [(16, 102), (36, 96), (52, 100)], 9)
+    # cuatro barras finas y pegadas, inclinadas, con un gancho en cada punta
+    for i in range(4):
+        x = 40 + i * 11
+        line(d, [(x, 26 + i * 4), (x + 30, 88 + i * 4)], 6)
+    line(d, [(36, 90), (22, 98), (26, 108), (44, 108), (62, 102)], 6)
+    line(d, [(60, 22), (82, 20), (98, 28), (100, 44)], 6)
     return im
 
 def reload_icon():
     im = cell(); d = ImageDraw.Draw(im)
-    r = 38
+    r = 42
     box = [(64 - r) * S, (64 - r) * S, (64 + r) * S, (64 + r) * S]
-    d.arc(box, start=-70, end=240, fill=W, width=10 * S)
-    # punta de flecha al final del arco (arriba a la derecha)
-    a = math.radians(-70)
-    x, y = 64 + r * math.cos(a), 64 + r * math.sin(a)
-    tang = a + math.pi / 2
-    pts = [(x + 20 * math.cos(tang - 0.0) , y + 20 * math.sin(tang)), (x + 15 * math.cos(a), y + 15 * math.sin(a)), (x - 15 * math.cos(a), y - 15 * math.sin(a))]
-    d.polygon([(px * S, py * S) for px, py in [(x - 2, y - 24), (x + 24, y + 2), (x - 12, y + 14)]], fill=W)
+    end = 250
+    d.arc(box, start=-60, end=end, fill=W, width=7 * S)
+    a = math.radians(end)
+    px, py = 64 + r * math.cos(a), 64 + r * math.sin(a)
+    tx, ty = -math.sin(a), math.cos(a)
+    rx, ry = math.cos(a), math.sin(a)
+    d.polygon([(qx * S, qy * S) for qx, qy in [(px + 20 * tx, py + 20 * ty), (px + 13 * rx, py + 13 * ry), (px - 13 * rx, py - 13 * ry)]], fill=W)
+    d.rounded_rectangle([54 * S, 52 * S, 74 * S, 86 * S], radius=4 * S, fill=W)
+    d.pieslice([54 * S, 38 * S, 74 * S, 66 * S], 180, 360, fill=W)
+    d.rectangle([54 * S, 78 * S, 74 * S, 81 * S], fill=D)
     return im
 
 def swap():
     im = cell(); d = ImageDraw.Draw(im)
-    line(d, [(18, 44), (100, 44)], 9)
-    d.polygon([(x * S, y * S) for x, y in [(112, 44), (90, 26), (90, 62)]], fill=W)
-    line(d, [(110, 86), (28, 86)], 9)
-    d.polygon([(x * S, y * S) for x, y in [(16, 86), (38, 68), (38, 104)]], fill=W)
+    r = 40
+    box = [(64 - r) * S, (64 - r) * S, (64 + r) * S, (64 + r) * S]
+    d.arc(box, start=200, end=335, fill=W, width=7 * S)
+    d.arc(box, start=20, end=155, fill=W, width=7 * S)
+    for ang, sign in ((335, 1), (155, 1)):
+        a = math.radians(ang)
+        x, y = 64 + r * math.cos(a), 64 + r * math.sin(a)
+        t = a + math.pi / 2
+        tip = (x + 16 * math.cos(t), y + 16 * math.sin(t))
+        b1 = (x + 14 * math.cos(a), y + 14 * math.sin(a))
+        b2 = (x - 14 * math.cos(a), y - 14 * math.sin(a))
+        d.polygon([(px * S, py * S) for px, py in [tip, b1, b2]], fill=W)
     return im
 
 def scope():
     im = cell(); d = ImageDraw.Draw(im)
-    r = 34
-    d.ellipse([(64 - r) * S, (64 - r) * S, (64 + r) * S, (64 + r) * S], outline=W, width=7 * S)
+    r = 26
+    d.ellipse([(64 - r) * S, (64 - r) * S, (64 + r) * S, (64 + r) * S], outline=W, width=5 * S)
     for a in range(4):
         x, y = math.cos(a * math.pi / 2), math.sin(a * math.pi / 2)
-        line(d, [(64 + x * 20, 64 + y * 20), (64 + x * 58, 64 + y * 58)], 7)
-    d.ellipse([60 * S, 60 * S, 68 * S, 68 * S], fill=W)
+        line(d, [(64 + x * 14, 64 + y * 14), (64 + x * 60, 64 + y * 60)], 5)
+    d.ellipse([59 * S, 59 * S, 69 * S, 69 * S], fill=W)
+    return im
+
+def soldier(running):
+    im = cell(); d = ImageDraw.Draw(im)
+    d.ellipse([66 * S, 18 * S, 90 * S, 42 * S], fill=W)           # cabeza (con casco)
+    d.rectangle([64 * S, 28 * S, 92 * S, 34 * S], fill=W)
+    line(d, [(78, 46), (74, 76)], 17)                                # torso
+    if running:
+        line(d, [(74, 76), (96, 84), (112, 98)], 10)                 # pierna adelante
+        line(d, [(74, 76), (54, 96), (36, 108)], 10)                 # pierna atrás
+    else:
+        line(d, [(74, 76), (92, 90), (90, 108)], 10)                 # rodilla
+        line(d, [(74, 76), (54, 104), (74, 110)], 10)
+    line(d, [(80, 54), (54, 60), (22, 46)], 7)                       # brazo con fusil
+    line(d, [(14, 42), (40, 54)], 5)
     return im
 
 def sprint():
-    im = cell(); d = ImageDraw.Draw(im)
-    for dx in (0, 34):
-        line(d, [(30 + dx, 28), (62 + dx, 64), (30 + dx, 100)], 12)
-    return im
+    return soldier(True)
+
+def crouch():
+    return soldier(False)
 
 def dash():
     im = cell(); d = ImageDraw.Draw(im)
-    line(d, [(14, 38), (70, 38)], 9)
-    line(d, [(30, 64), (100, 64)], 9)
-    line(d, [(14, 90), (70, 90)], 9)
+    line(d, [(14, 38), (70, 38)], 7)
+    line(d, [(30, 64), (100, 64)], 7)
+    line(d, [(14, 90), (70, 90)], 7)
     d.polygon([(x * S, y * S) for x, y in [(118, 64), (96, 42), (96, 86)]], fill=W)
-    return im
-
-def crouch():
-    im = cell(); d = ImageDraw.Draw(im)
-    d.ellipse([58 * S, 22 * S, 82 * S, 46 * S], fill=W)
-    line(d, [(70, 48), (66, 80)], 16)
-    line(d, [(66, 80), (88, 90), (86, 108)], 11)
-    line(d, [(66, 80), (50, 104), (70, 108)], 11)
-    line(d, [(72, 56), (44, 62), (18, 54)], 8)
     return im
 
 ICONS = [bullet, jump, reload_icon, swap, scope, sprint, dash, crouch]

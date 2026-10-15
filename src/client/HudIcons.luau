@@ -79,7 +79,7 @@ end
 -- assets/make_icons.py): 4 columnas de 128 px
 ----------------------------------------------------------------------
 
-local SHEET = "rbxassetid://127873720461078"
+local SHEET = "rbxassetid://126142220066447"
 local CELL = 128
 local CELLS = { Bullet = 0, Jump = 1, Reload = 2, Swap = 3, Scope = 4, Sprint = 5, Dash = 6, Crouch = 7 }
 
@@ -230,8 +230,8 @@ end
 
 -- Disco translúcido oscuro con un borde casi invisible (como Call of Duty Mobile)
 function HudIcons.styleButton(button: GuiObject, strokeThickness: number?)
-	button.BackgroundColor3 = Color3.fromRGB(26, 28, 32)
-	button.BackgroundTransparency = 0.42
+	button.BackgroundColor3 = Color3.fromRGB(48, 64, 96)
+	button.BackgroundTransparency = 0.28
 	local stroke = button:FindFirstChildOfClass("UIStroke") or Instance.new("UIStroke")
 	stroke.Color = WHITE
 	stroke.Transparency = 0.72
