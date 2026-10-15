@@ -27,6 +27,7 @@ export type Actions = {
 	setAiming: (boolean) -> (),
 	reload: () -> (),
 	cycleWeapon: () -> (),
+	equipWeapon: (string) -> (),
 	usePower: (string) -> (),
 	setSprint: (boolean) -> (),
 	dash: () -> (),
@@ -76,6 +77,38 @@ local function makeBar(parent: Instance, position: UDim2, size: UDim2): (Frame, 
 
 	local text = makeLabel({ Size = UDim2.fromScale(1, 1), TextSize = 13, ZIndex = 2, Parent = back })
 	return back, fill, text
+end
+
+-- Barra con esquinas redondas, borde oscuro, brillo en el relleno y un
+-- ícono a la izquierda (corazón de la vida, estrella de la XP)
+local function polishBar(back: Frame, fill: Frame, icon: string)
+	back.BackgroundTransparency = 0.3
+	round(back, UDim.new(0, 8))
+	round(fill, UDim.new(0, 8))
+	local border = Instance.new("UIStroke")
+	border.Color = Color3.new(0, 0, 0)
+	border.Transparency = 0.35
+	border.Thickness = 2
+	border.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	border.Parent = back
+	local shine = Instance.new("UIGradient")
+	shine.Rotation = 90
+	shine.Color = ColorSequence.new(Color3.new(1, 1, 1), Color3.fromRGB(170, 170, 170))
+	shine.Parent = fill
+	makeLabel({ AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(0, -6, 0.5, 0), Size = UDim2.fromOffset(24, 24), TextSize = 20, Text = icon, Parent = back })
+end
+
+-- Píldora oscura detrás de un texto que crece con él (monedas, hora, munición)
+local function pill(label: TextLabel, height: number)
+	label.AutomaticSize = Enum.AutomaticSize.X
+	label.Size = UDim2.fromOffset(0, height)
+	label.BackgroundColor3 = PANEL_COLOR
+	label.BackgroundTransparency = 0.4
+	round(label, UDim.new(0, height / 2))
+	local padding = Instance.new("UIPadding")
+	padding.PaddingLeft = UDim.new(0, 12)
+	padding.PaddingRight = UDim.new(0, 12)
+	padding.Parent = label
 end
 
 -- Silueta pixelada del cuchillo (hoja a la izquierda, mango a la derecha)
@@ -333,12 +366,22 @@ function Hud.init(actions: Actions)
 	local top = Instance.new("Frame")
 	top.AnchorPoint = Vector2.new(0.5, 0)
 	top.Position = UDim2.new(0.5, 0, 0, 12)
-	top.Size = UDim2.fromOffset(380, 76)
-	top.BackgroundTransparency = 1
+	top.Size = UDim2.fromOffset(380, 60)
+	top.BackgroundColor3 = PANEL_COLOR
+	top.BackgroundTransparency = 0.35
 	top.Parent = gui
-	local waveLabel = makeLabel({ Size = UDim2.new(1, 0, 0, 30), TextSize = 28, Font = Config.PixelFont, Parent = top })
-	local statusLabel = makeLabel({ AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 30), Size = UDim2.fromOffset(640, 22), TextSize = 17, Font = Enum.Font.GothamBold, Parent = top })
-	local trapLabel = makeLabel({ Position = UDim2.fromOffset(0, 56), Size = UDim2.new(1, 0, 0, 18), TextSize = 13, Font = Enum.Font.GothamBold, Parent = top })
+	round(top, UDim.new(0, 14))
+	local topStroke = Instance.new("UIStroke")
+	topStroke.Color = GOLD
+	topStroke.Transparency = 0.5
+	topStroke.Thickness = 1.5
+	topStroke.Parent = top
+	local waveLabel = makeLabel({ Position = UDim2.fromOffset(0, 3), Size = UDim2.new(1, 0, 0, 30), TextSize = 28, Font = Config.PixelFont, Parent = top })
+	local statusLabel = makeLabel({ AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 34), Size = UDim2.new(1, -24, 0, 20), TextSize = 16, TextScaled = true, Font = Enum.Font.GothamBold, Parent = top })
+	local statusLimit = Instance.new("UITextSizeConstraint")
+	statusLimit.MaxTextSize = 16
+	statusLimit.Parent = statusLabel
+	local trapLabel = makeLabel({ Position = UDim2.fromOffset(0, 66), Size = UDim2.new(1, 0, 0, 18), TextSize = 13, Font = Enum.Font.GothamBold, Parent = top })
 	-- Vida de la campana: flota sobre la campana (solo cuando está armada)
 	local bellBillboard = Instance.new("BillboardGui")
 	bellBillboard.Name = "BellHealth"
@@ -363,7 +406,7 @@ function Hud.init(actions: Actions)
 		bellBillboard.Adornee = prompt.Parent :: BasePart
 	end)
 	-- Vida del jefe (solo cuando hay uno vivo)
-	local bossBack, bossFill, bossText = makeBar(top, UDim2.fromOffset(-60, 100), UDim2.new(1, 120, 0, 20))
+	local bossBack, bossFill, bossText = makeBar(top, UDim2.fromOffset(-60, 90), UDim2.new(1, 120, 0, 20))
 	bossFill.BackgroundColor3 = Color3.fromRGB(170, 40, 60)
 	bossText.TextSize = 14
 	bossBack.Visible = false
@@ -373,16 +416,18 @@ function Hud.init(actions: Actions)
 	local levelLabel = makeLabel({ AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -16, 0, 40), Size = UDim2.fromOffset(240, 20), TextSize = 15, TextColor3 = XP_COLOR, TextXAlignment = Enum.TextXAlignment.Right, Parent = gui })
 	local matchLabel = makeLabel({ AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -16, 0, 60), Size = UDim2.fromOffset(240, 18), TextSize = 13, Font = Enum.Font.GothamBold, TextXAlignment = Enum.TextXAlignment.Right, Parent = gui })
 	-- Hora del día (ciclo de día y noche)
-	local clockLabel = makeLabel({ AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -16, 0, 80), Size = UDim2.fromOffset(320, 18), TextSize = 14, Font = Enum.Font.GothamBold, TextXAlignment = Enum.TextXAlignment.Right, Visible = DayCycle.isEnabled(), Parent = gui })
+	local clockLabel = makeLabel({ AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -16, 0, 50), Size = UDim2.fromOffset(320, 18), TextSize = 14, Font = Enum.Font.GothamBold, TextXAlignment = Enum.TextXAlignment.Right, Visible = DayCycle.isEnabled(), Parent = gui })
+	pill(coinsLabel, 34)
+	pill(clockLabel, 24)
 
 	-- Abajo a la izquierda: vida del jugador y poderes
-	local healthBack, healthFill, healthText = makeBar(gui, UDim2.new(0, 16, 1, -100), UDim2.fromOffset(220, 16))
+	local healthBack, healthFill, healthText = makeBar(gui, UDim2.new(0, 44, 1, -110), UDim2.fromOffset(230, 18))
+	polishBar(healthBack, healthFill, "❤️")
 	-- Barra de experiencia debajo de la vida (sin números: solo se va llenando)
-	local xpBack, xpFill, xpText = makeBar(gui, UDim2.new(0, 16, 1, -80), UDim2.fromOffset(220, 6))
+	local xpBack, xpFill, xpText = makeBar(gui, UDim2.new(0, 44, 1, -86), UDim2.fromOffset(230, 9))
 	xpFill.BackgroundColor3 = XP_COLOR
 	xpText.Visible = false
-	round(xpBack, UDim.new(0, 3))
-	round(xpFill, UDim.new(0, 3))
+	polishBar(xpBack, xpFill, "⭐")
 	-- Ya no se muestran el nivel ni la XP en números
 	levelLabel.Visible = false
 	matchLabel.Visible = false
@@ -402,21 +447,27 @@ function Hud.init(actions: Actions)
 	-- Abajo a la derecha: armas y munición. Cada casilla muestra el modelo 3D
 	-- del arma (ReplicatedStorage.WeaponModels); sin modelo, su emoji.
 	local weaponRow = makeRow(gui, Vector2.new(1, 1), UDim2.new(1, -16, 1, -82), Vector2.new(470, 44))
-	local weaponSlots: { [string]: TextLabel } = {}
+	local weaponSlots: { [string]: TextButton } = {}
 	local weaponModels = ReplicatedStorage:FindFirstChild("WeaponModels")
 	for slotIndex, id in Config.WeaponOrder do
 		local source = weaponModels and weaponModels:FindFirstChild(id)
 		local showModel = source ~= nil and source:IsA("Model") and Config.UseStoreModels and not Config.Style.Blocky
-		local slot = makeLabel({
-			LayoutOrder = slotIndex,
-			Size = UDim2.fromOffset(72, 44),
-			BackgroundTransparency = 0.3,
-			BackgroundColor3 = PANEL_COLOR,
-			Text = if showModel then "" elseif touch then Config.Weapons[id].Icon else `{slotIndex} {Config.Weapons[id].Icon}`,
-			TextSize = 16,
-			Visible = false,
-			Parent = weaponRow,
-		})
+		-- Casilla que también se toca para cambiar de arma (celular)
+		local slot = Instance.new("TextButton")
+		slot.LayoutOrder = slotIndex
+		slot.Size = UDim2.fromOffset(76, 46)
+		slot.BackgroundTransparency = 0.3
+		slot.BackgroundColor3 = PANEL_COLOR
+		slot.Font = Enum.Font.GothamBlack
+		slot.TextColor3 = Color3.new(1, 1, 1)
+		slot.Text = if showModel then "" elseif touch then Config.Weapons[id].Icon else `{slotIndex} {Config.Weapons[id].Icon}`
+		slot.TextSize = 16
+		slot.AutoButtonColor = false
+		slot.Visible = false
+		slot.Parent = weaponRow
+		slot.Activated:Connect(function()
+			actions.equipWeapon(id)
+		end)
 		if showModel then
 			WeaponIcon.build(slot, source :: Model, id)
 			if not touch then
@@ -432,6 +483,7 @@ function Hud.init(actions: Actions)
 	end
 	local weaponName = makeLabel({ AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -20, 1, -54), Size = UDim2.fromOffset(260, 22), TextSize = 16, Font = Enum.Font.GothamBold, TextXAlignment = Enum.TextXAlignment.Right, Parent = gui })
 	local ammoLabel = makeLabel({ AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -20, 1, -12), Size = UDim2.fromOffset(300, 42), TextSize = 38, Font = Config.PixelFont, TextXAlignment = Enum.TextXAlignment.Right, RichText = true, Parent = gui })
+	pill(ammoLabel, 42)
 	local reloadBack, reloadFill = makeBar(gui, UDim2.new(1, -140, 1, -8), UDim2.fromOffset(120, 5))
 	reloadFill.BackgroundColor3 = GOLD
 
@@ -498,19 +550,19 @@ function Hud.init(actions: Actions)
 		weaponRow.Position = UDim2.new(1, -16, 1, -202)
 		weaponRow.Size = UDim2.fromOffset(400, 34)
 		for _, slot in weaponSlots do
-			slot.Size = UDim2.fromOffset(54, 34)
+			slot.Size = UDim2.fromOffset(58, 38)
 		end
 		weaponName.Visible = false
 		ammoLabel.Position = UDim2.new(1, -20, 1, -238)
-		ammoLabel.Size = UDim2.fromOffset(220, 32)
+		ammoLabel.Size = UDim2.fromOffset(0, 32)
 		ammoLabel.TextSize = 28
 		melee.Position = UDim2.new(1, -20, 1, -238)
 		reloadBack.Position = UDim2.new(1, -140, 1, -198)
 		-- Vida, XP, poderes y correr arriba a la izquierda, debajo de los botones de Roblox
-		healthBack.Position = UDim2.new(0, 16, 0, 64)
-		healthBack.Size = UDim2.fromOffset(190, 14)
-		xpBack.Position = UDim2.new(0, 16, 0, 82)
-		xpBack.Size = UDim2.fromOffset(190, 5)
+		healthBack.Position = UDim2.new(0, 44, 0, 62)
+		healthBack.Size = UDim2.fromOffset(180, 16)
+		xpBack.Position = UDim2.new(0, 44, 0, 84)
+		xpBack.Size = UDim2.fromOffset(180, 8)
 		powerRow.AnchorPoint = Vector2.new(0, 0)
 		powerRow.Position = UDim2.new(0, 16, 0, 94)
 		for _, slot in powerSlots do
@@ -527,8 +579,11 @@ function Hud.init(actions: Actions)
 		bindHoldButton(sprintButton, actions.setSprint)
 		-- Arriba a la derecha queda más compacto (monedas y hora)
 		coinsLabel.TextSize = 20
-		coinsLabel.Size = UDim2.fromOffset(160, 24)
-		clockLabel.Position = UDim2.new(1, -16, 0, 34)
+		coinsLabel.Size = UDim2.fromOffset(0, 28)
+		clockLabel.Position = UDim2.new(1, -16, 0, 42)
+		top.Size = UDim2.fromOffset(330, 54)
+		waveLabel.Position = UDim2.fromOffset(0, 2)
+		statusLabel.Position = UDim2.new(0.5, 0, 0, 30)
 		-- El cartel de la oleada, un poco más chico
 		waveLabel.TextSize = 22
 		statusLabel.TextSize = 14
@@ -539,6 +594,8 @@ function Hud.init(actions: Actions)
 		local wave = gameState:GetAttribute("Wave") or 0
 		local isBossWave = wave > 0 and wave % Config.Waves.BossEvery == 0
 		waveLabel.Text = if wave > 0 then `OLEADA {wave}{if isBossWave then " 💀" else ""}` else "PREPÁRATE"
+		topStroke.Color = if isBossWave then Color3.fromRGB(255, 80, 70) else GOLD
+		topStroke.Transparency = if isBossWave then 0.1 else 0.5
 
 		if state == "Lobby" then
 			waveLabel.Text = "PREPARACIÓN"
@@ -662,7 +719,9 @@ function Hud.init(actions: Actions)
 			local stroke = slot:FindFirstChildOfClass("UIStroke")
 			if stroke then
 				stroke.Enabled = id == equipped
+				stroke.Thickness = 3
 			end
+			slot.BackgroundTransparency = if id == equipped then 0.08 else 0.5
 		end
 
 		for name, slot in powerSlots do

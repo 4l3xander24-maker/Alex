@@ -192,7 +192,7 @@ local function buildPanel()
 	panel = Instance.new("Frame")
 	-- Arriba a la derecha, debajo del nivel y el reloj: no tapa los avisos del centro
 	panel.AnchorPoint = Vector2.new(1, 0)
-	panel.Position = UDim2.new(1, -12, 0, 100)
+	panel.Position = UDim2.new(1, -12, 0, 128)
 	panel.Size = UDim2.fromOffset(380, 104)
 	panel.BackgroundColor3 = Color3.fromRGB(20, 24, 26)
 	panel.BackgroundTransparency = 0.15
@@ -203,8 +203,8 @@ local function buildPanel()
 		-- derecha están los botones de disparar y recargar
 		gui.ScreenInsets = Enum.ScreenInsets.DeviceSafeInsets
 		panel.AnchorPoint = Vector2.new(0.5, 0)
-		panel.Position = UDim2.new(0.5, 0, 0, 66)
-		panel.Size = UDim2.fromOffset(340, 92)
+		panel.Position = UDim2.new(0.5, 0, 0, 74)
+		panel.Size = UDim2.fromOffset(340, 112)
 	end
 	local corner = Instance.new("UICorner")
 	corner.CornerRadius = UDim.new(0, 10)

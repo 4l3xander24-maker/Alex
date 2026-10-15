@@ -63,7 +63,7 @@ function StoreUi.init()
 	local button = Instance.new("TextButton")
 	button.Name = "ShopButton"
 	button.AnchorPoint = Vector2.new(1, 0)
-	button.Position = UDim2.new(1, -16, 0, 104)
+	button.Position = UDim2.new(1, -16, 0, 84)
 	button.Size = UDim2.fromOffset(130, 32)
 	button.BackgroundColor3 = Color3.fromRGB(46, 140, 80)
 	button.Font = Enum.Font.GothamBlack
@@ -74,7 +74,7 @@ function StoreUi.init()
 		-- En celular, justo debajo de las monedas y la hora (más abajo van la
 		-- munición y los botones de disparo), dentro del área segura del teléfono
 		gui.ScreenInsets = Enum.ScreenInsets.DeviceSafeInsets
-		button.Position = UDim2.new(1, -16, 0, 58)
+		button.Position = UDim2.new(1, -16, 0, 76)
 		button.Size = UDim2.fromOffset(110, 30)
 		button.TextSize = 14
 	end

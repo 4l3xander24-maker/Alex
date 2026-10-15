@@ -57,6 +57,7 @@ Hud.init({
 	setAiming = WeaponController.setAiming,
 	reload = WeaponController.reload,
 	cycleWeapon = WeaponController.cycle,
+	equipWeapon = WeaponController.equip,
 	usePower = PowerController.use,
 	setSprint = MovementController.setSprint,
 	dash = MovementController.dash,
