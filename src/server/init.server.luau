@@ -59,7 +59,7 @@ if startPrompt then
 end
 
 EnemyService.setPlayerDamageHandler(function(player, amount)
-	PlayerService.damagePlayer(player, amount * Config.Player.DamageScale)
+	PlayerService.damagePlayer(player, amount * Config.Player.DamageScale * (WaveService.getDifficulty().Damage or 1))
 end)
 EnemyService.setKillHandler(function(player, enemy)
 	local data = player.Parent and DataService.get(player)

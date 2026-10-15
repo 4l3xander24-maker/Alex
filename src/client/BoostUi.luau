@@ -1,47 +1,49 @@
--- Potenciadores: aviso al conseguir uno y una ficha con cuenta regresiva en
--- el centro de la pantalla mientras dura (Daño x2, Escudo).
+-- Potenciadores: fichas pequeñas en la esquina de arriba a la derecha, debajo de
+-- la hora, para no tapar la vista. Los de duración (Daño x2, Escudo) muestran
+-- la cuenta regresiva; los instantáneos (munición, curación, monedas) salen unos
+-- segundos y se van.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
 local Remotes = require(Shared.Remotes)
-local Notify = require(script.Parent.Notify)
 
 local BoostUi = {}
 
+local INSTANT_TIME = 3
+
+type Chip = { Frame: Frame, Label: TextLabel, EndTime: number, Timed: boolean }
+
 local player = Players.LocalPlayer
-local chips: { [string]: { Frame: Frame, Label: TextLabel, EndTime: number } } = {}
+local chips: { [string]: Chip } = {}
 local holder: Frame
 
-local function addChip(name: string, info, duration: number)
-	local chip = chips[name]
-	if chip then
-		chip.EndTime = workspace:GetServerTimeNow() + duration
-		return
-	end
+local function makeChip(name: string, info, endTime: number, timed: boolean)
 	local frame = Instance.new("Frame")
-	frame.Size = UDim2.fromOffset(112, 34)
+	frame.Size = UDim2.fromOffset(132, 24)
 	frame.BackgroundColor3 = Color3.fromRGB(20, 22, 28)
-	frame.BackgroundTransparency = 0.2
+	frame.BackgroundTransparency = 0.3
 	frame.Parent = holder
 	local corner = Instance.new("UICorner")
 	corner.CornerRadius = UDim.new(1, 0)
 	corner.Parent = frame
 	local stroke = Instance.new("UIStroke")
 	stroke.Color = info.Color
-	stroke.Thickness = 2
+	stroke.Thickness = 1.2
+	stroke.Transparency = 0.2
+	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	stroke.Parent = frame
 	local label = Instance.new("TextLabel")
 	label.Size = UDim2.fromScale(1, 1)
 	label.BackgroundTransparency = 1
-	label.Font = Enum.Font.GothamBlack
-	label.TextSize = 16
-	label.TextColor3 = info.Color
+	label.Font = Enum.Font.GothamBold
+	label.TextSize = 13
+	label.TextColor3 = Color3.new(1, 1, 1)
 	label.Parent = frame
-	chips[name] = { Frame = frame, Label = label, EndTime = workspace:GetServerTimeNow() + duration }
-	
+	chips[name] = { Frame = frame, Label = label, EndTime = endTime, Timed = timed }
 end
 
 function BoostUi.init()
@@ -52,15 +54,14 @@ function BoostUi.init()
 	gui.Parent = player:WaitForChild("PlayerGui")
 
 	holder = Instance.new("Frame")
-	holder.AnchorPoint = Vector2.new(0.5, 1)
-	holder.Position = UDim2.new(0.5, 0, 1, -150)
-	holder.Size = UDim2.fromOffset(260, 34)
+	holder.AnchorPoint = Vector2.new(1, 0)
+	holder.Position = UDim2.new(1, -16, 0, if UserInputService.TouchEnabled then 76 else 92)
+	holder.Size = UDim2.fromOffset(132, 120)
 	holder.BackgroundTransparency = 1
 	holder.Parent = gui
 	local layout = Instance.new("UIListLayout")
-	layout.FillDirection = Enum.FillDirection.Horizontal
-	layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-	layout.Padding = UDim.new(0, 8)
+	layout.HorizontalAlignment = Enum.HorizontalAlignment.Right
+	layout.Padding = UDim.new(0, 4)
 	layout.Parent = holder
 
 	Remotes.Boost.OnClientEvent:Connect(function(name: string, duration: number)
@@ -68,9 +69,13 @@ function BoostUi.init()
 		if not info then
 			return
 		end
-		Notify.show(`{info.Icon} ¡{info.Name}!`, info.Color)
-		if duration > 0 then
-			addChip(name, info, duration)
+		local timed = duration > 0
+		local endTime = workspace:GetServerTimeNow() + (if timed then duration else INSTANT_TIME)
+		local chip = chips[name]
+		if chip then
+			chip.EndTime = endTime
+		else
+			makeChip(name, info, endTime, timed)
 		end
 	end)
 
@@ -78,11 +83,14 @@ function BoostUi.init()
 		local now = workspace:GetServerTimeNow()
 		for name, chip in chips do
 			local left = chip.EndTime - now
+			local info = Config.Powerups.Types[name]
 			if left <= 0 then
 				chip.Frame:Destroy()
 				chips[name] = nil
+			elseif chip.Timed then
+				chip.Label.Text = `{info.Icon} {info.Name} {math.ceil(left)}s`
 			else
-				chip.Label.Text = `{Config.Powerups.Types[name].Icon} {math.ceil(left)}s`
+				chip.Label.Text = `{info.Icon} {info.Name}`
 			end
 		end
 	end)

@@ -137,8 +137,25 @@ function StoreUi.init()
 	continuePanel.Position = UDim2.fromScale(0.5, 0.55)
 	continuePanel.Parent = gui
 	local continueTimer = continuePanel:FindFirstChildOfClass("TextLabel") :: TextLabel
-	continueTimer.Size = UDim2.new(1, 0, 0, 56)
-	continueTimer.Position = UDim2.fromOffset(0, 8)
+	continueTimer.Size = UDim2.new(1, -84, 0, 56)
+	continueTimer.Position = UDim2.fromOffset(8, 8)
+	-- Cuenta regresiva grande de 10 a 0
+	local countdown = Instance.new("TextLabel")
+	countdown.AnchorPoint = Vector2.new(1, 0)
+	countdown.Position = UDim2.new(1, -14, 0, 4)
+	countdown.Size = UDim2.fromOffset(64, 64)
+	countdown.BackgroundColor3 = Color3.fromRGB(34, 20, 26)
+	countdown.Font = Enum.Font.GothamBlack
+	countdown.TextSize = 40
+	countdown.TextColor3 = Color3.fromRGB(255, 215, 100)
+	countdown.Text = "10"
+	countdown.Parent = continuePanel
+	corner(countdown, 32)
+	local countStroke = Instance.new("UIStroke")
+	countStroke.Color = Color3.fromRGB(255, 215, 100)
+	countStroke.Thickness = 2
+	countStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	countStroke.Parent = countdown
 	continueTimer.TextWrapped = true
 	local continueButton = continuePanel:FindFirstChildOfClass("TextButton") :: TextButton
 	continueButton.AnchorPoint = Vector2.new(0, 1)
@@ -197,7 +214,8 @@ function StoreUi.init()
 				local team = #Players:GetPlayers() > 1
 				local bell = gameState:GetAttribute("ContinueReason") == "Bell"
 				local title = if bell then "🔔 ¡Cayó la campana!\n¿Revivirla y seguir?" elseif team then "💀 ¡Cayó todo tu equipo!\n¿Revivir a todos?" else "💀 ¡Caíste!\n¿Revivir y seguir?"
-				continueTimer.Text = `{title}   ⏳ {math.ceil(left)}`
+				continueTimer.Text = title
+				countdown.Text = tostring(math.ceil(left))
 				local action = if bell then "Seguir" elseif team then "Revivir a todos" else "Revivirme"
 				continueButton.Text = if CONTINUE.Id == 0 then `💖 {action} (sin precio)` else `💖 {action}{continuePrice}`
 			end
