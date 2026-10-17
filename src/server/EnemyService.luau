@@ -44,6 +44,7 @@ export type Enemy = {
 	Coins: number,
 	IsBoss: boolean,
 	HealthMultiplier: number,
+	SummonAt: number?, -- cuándo vuelve a llamar zombis (jefes con Summon)
 }
 
 local EnemyService = {}
@@ -294,6 +295,7 @@ local function create(typeName: string, healthMultiplier: number, start: Vector3
 		PlayerDamage = info.PlayerDamage,
 		Coins = info.Coins,
 		IsBoss = info.IsBoss == true,
+		SummonAt = if info.Summon then spawnTime + info.Summon.Every else nil,
 	}
 	enemies[nextId] = enemy
 	aliveCount += 1
@@ -353,7 +355,18 @@ function EnemyService.damage(enemyId: number, amount: number, player: Player)
 	if killHandler then
 		killHandler(player, enemy)
 	end
-	spawnChildren(enemy, EnemyMath.getPosition(enemy.Path, workspace:GetServerTimeNow()))
+	local deathPosition = EnemyMath.getPosition(enemy.Path, workspace:GetServerTimeNow())
+	spawnChildren(enemy, deathPosition)
+	-- Explosivo: revienta y daña a los jugadores cercanos
+	local blast = Config.Enemies[enemy.Type].ExplodeOnDeath
+	if blast and playerDamageHandler then
+		for _, other in Players:GetPlayers() do
+			local root = other.Character and other.Character:FindFirstChild("HumanoidRootPart")
+			if root and flatDistance((root :: BasePart).Position, deathPosition) <= blast.Radius then
+				playerDamageHandler(other, blast.PlayerDamage)
+			end
+		end
+	end
 	if enemy.IsBoss then
 		publishBoss()
 	end
@@ -472,6 +485,16 @@ function EnemyService.think(now: number, dt: number)
 
 	for _, enemy in enemies do
 		local position = EnemyMath.getPosition(enemy.Path, now)
+		-- Jefes que llaman refuerzos cada cierto tiempo (Reina Necromante)
+		local summon = Config.Enemies[enemy.Type].Summon
+		if summon and enemy.SummonAt and now >= enemy.SummonAt then
+			enemy.SummonAt = now + summon.Every
+			for index = 1, summon.Count do
+				local angle = index / summon.Count * math.pi * 2
+				local offset = Vector3.new(math.cos(angle), 0, math.sin(angle)) * (enemy.Radius + 3)
+				create(summon.Type, 1, Paths.lastWalkable(position, position + offset), enemy.Route)
+			end
+		end
 		local target = enemy.Chasing
 		local targetPosition = target and players[target]
 

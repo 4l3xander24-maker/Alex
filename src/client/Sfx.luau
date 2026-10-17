@@ -166,6 +166,16 @@ function Sfx.onEnemyRemoved(typeName: string, position: Vector3?, killed: boolea
 	end
 	if killed and position then
 		Sfx.playAt("ZombieDeath", position)
+		-- Explosivo: estallido que se ve y se oye
+		if info and info.ExplodeOnDeath then
+			Sfx.playAt("SmallExplosion", position)
+			local blast = Instance.new("Explosion")
+			blast.BlastPressure = 0
+			blast.DestroyJointRadiusPercent = 0
+			blast.BlastRadius = info.ExplodeOnDeath.Radius
+			blast.Position = position
+			blast.Parent = workspace
+		end
 	end
 end
 

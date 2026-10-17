@@ -521,6 +521,63 @@ Config.Enemies = {
 		Eyes = Color3.fromRGB(255, 40, 30),
 		Buff = true,
 	},
+	-- Explosivo: rápido y frágil; al morir revienta y daña a los jugadores cercanos
+	-- (hay que matarlo de lejos)
+	Bomber = {
+		DisplayName = "Explosivo",
+		MaxHealth = 3,
+		Speed = 11,
+		DamagePerSecond = 1,
+		PlayerDamage = 6,
+		Coins = 3,
+		Size = Vector2.new(3.4, 4.8),
+		HitRadius = 1.7,
+		Sprite = "",
+		Model = "Zombie",
+		ExplodeOnDeath = { Radius = 12, PlayerDamage = 30 },
+		Skin = Color3.fromRGB(190, 150, 70),
+		Shirt = Color3.fromRGB(190, 60, 36),
+		Pants = Color3.fromRGB(60, 40, 30),
+		Eyes = Color3.fromRGB(255, 170, 40),
+	},
+	-- Parásito: al morir suelta tres corredores
+	Parasite = {
+		DisplayName = "Parásito",
+		MaxHealth = 6,
+		Speed = 5.5,
+		DamagePerSecond = 3,
+		PlayerDamage = 14,
+		Coins = 3,
+		Size = Vector2.new(4, 5.2),
+		HitRadius = 2,
+		Sprite = "",
+		Model = "Zombie",
+		Tentacles = true,
+		SpawnOnDeath = { Type = "Runner", Count = 3 },
+		Skin = Color3.fromRGB(150, 90, 170),
+		Shirt = Color3.fromRGB(80, 50, 100),
+		Pants = Color3.fromRGB(40, 30, 54),
+		Eyes = Color3.fromRGB(255, 120, 255),
+	},
+	-- Coloso: lento, enorme y con muchísima vida
+	Colossus = {
+		DisplayName = "Coloso",
+		MaxHealth = 28,
+		Speed = 3.6,
+		DamagePerSecond = 9,
+		PlayerDamage = 40,
+		Coins = 8,
+		Size = Vector2.new(8.5, 9.5),
+		HitRadius = 4,
+		Sprite = "",
+		Model = "Zombie",
+		Armor = true,
+		Buff = true,
+		Skin = Color3.fromRGB(104, 124, 110),
+		Shirt = Color3.fromRGB(80, 84, 92),
+		Pants = Color3.fromRGB(40, 42, 48),
+		Eyes = Color3.fromRGB(255, 80, 40),
+	},
 	-- Jefes (6 veces más grandes que un zombi común)
 	-- Mutante: tentáculos de enredadera en la espalda y ojos verdes que brillan
 	Mutant = {
@@ -581,6 +638,29 @@ Config.Enemies = {
 		Shirt = Color3.fromRGB(96, 40, 120), -- túnica real
 		Pants = Color3.fromRGB(44, 36, 54),
 		Eyes = Color3.fromRGB(255, 200, 60),
+	},
+	-- Reina Necromante: cada pocos segundos llama a un grupo de zombis
+	Queen = {
+		DisplayName = "Reina Necromante",
+		Icon = "🧙",
+		MaxHealth = 240,
+		Speed = 3.2,
+		DamagePerSecond = 28,
+		PlayerDamage = 70,
+		Coins = 50,
+		IsBoss = true,
+		Size = Vector2.new(18, 28),
+		SpriteSize = Vector2.new(17, 28),
+		HitRadius = 7.5,
+		Sprite = "",
+		Model = "Zombie",
+		Hat = "Crown",
+		Cape = true,
+		Summon = { Type = "Walker", Count = 4, Every = 9 },
+		Skin = Color3.fromRGB(150, 190, 170),
+		Shirt = Color3.fromRGB(70, 30, 110),
+		Pants = Color3.fromRGB(34, 24, 50),
+		Eyes = Color3.fromRGB(190, 90, 255),
 	},
 	Dragon = {
 		DisplayName = "Dragón Zombi",
@@ -676,7 +756,7 @@ Config.Waves = {
 	BossEvery = 5, -- jefes cada 5 oleadas
 	-- Orden de los jefes: oleada 5 el Gordo, 10 el Rey, 15 el Dragón... y en
 	-- las siguientes vienen varios juntos (uno más cada 5 oleadas)
-	Bosses = { "Fatso", "King", "Dragon" },
+	Bosses = { "Fatso", "King", "Dragon", "Queen" },
 	BossSpacing = 6, -- segundos entre un jefe y el siguiente
 	GameOverDelay = 12,
 	-- Desde qué oleada aparece cada tipo y qué tan seguido
@@ -688,13 +768,13 @@ Config.Waves = {
 		{ "Walker", "Cone" },
 		{ "Brute" },
 		{ "Walker", "Runner" }, -- + el Gordo
-		{ "Mutant" },
-		{ "Cone", "Knight" },
-		{ "Runner", "Brute" },
-		{ "Mutant", "Knight" },
+		{ "Mutant", "Bomber" },
+		{ "Cone", "Knight", "Parasite" },
+		{ "Runner", "Brute", "Bomber" },
+		{ "Mutant", "Knight", "Colossus" },
 		{ "Walker", "Runner", "Cone" }, -- + el Rey
 	},
-	Random = { "Walker", "Runner", "Cone", "Knight", "Brute", "Mutant" },
+	Random = { "Walker", "Runner", "Cone", "Knight", "Brute", "Mutant", "Bomber", "Parasite", "Colossus" },
 	-- Dificultad según cuántos jugadores hay en la partida: por cada jugador
 	-- extra, estos porcentajes de más
 	PerExtraPlayer = {
