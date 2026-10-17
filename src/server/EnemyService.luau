@@ -372,6 +372,12 @@ function EnemyService.damage(enemyId: number, amount: number, player: Player)
 	end
 end
 
+-- Tipo de un zombi vivo ("Walker", "Queen"...) o nil
+function EnemyService.getType(enemyId: number): string?
+	local enemy = enemies[enemyId]
+	return if enemy then enemy.Type else nil
+end
+
 function EnemyService.getPosition(enemyId: number, time: number): Vector3?
 	local enemy = enemies[enemyId]
 	return enemy and EnemyMath.getPosition(enemy.Path, time)

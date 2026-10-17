@@ -333,6 +333,9 @@ end
 local function runIntermission(seconds: number): boolean
 	GameState.set("State", "Intermission")
 	CombatService.restockAll()
+	if TrapService.healGates(Config.Traps.Gate.RepairPerWave) > 0 then
+		Remotes.Notify:FireAllClients("🚧 Las rejas se reparan un poco")
+	end
 	local finish = os.clock() + seconds
 	while os.clock() < finish do
 		if everyoneDown() then

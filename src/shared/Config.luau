@@ -1001,6 +1001,9 @@ Config.Traps = {
 		Damage = 12, -- crece con la oleada igual que la vida de los zombis
 		Radius = 10,
 		TriggerRadius = 3,
+		-- La mina espera a un grupo (o a un zombi duro) para no gastarse con uno solo
+		MinTargets = 3, -- zombis dentro de Radius
+		HeavyHealth = 10, -- vida base desde la que un zombi suelto ya la activa (jefes siempre)
 		-- Lugares donde se entierran: camino y distancia a la campana por el camino
 		Spots = {
 			-- (distancia a la campana por el camino: la campana está en Arena.Bell)
@@ -1013,6 +1016,7 @@ Config.Traps = {
 		Icon = "🚧",
 		Price = 150,
 		Health = 800,
+		RepairPerWave = 0.35, -- entre oleadas la reja recupera este % de su vida
 		-- Rejas de metal en los dos extremos del puente; solo aparecen si las
 		-- compras. At: distancia a la campana por el camino
 		Slots = {

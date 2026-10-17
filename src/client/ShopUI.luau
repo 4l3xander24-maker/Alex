@@ -210,7 +210,7 @@ local function renderQuartermaster(data: Progression.Profile, coins: number)
 	sectionHeader("Trampas  ·  solo duran la próxima partida")
 	local placed = gameState:GetAttribute("Mines") or 0
 	local maxMines = gameState:GetAttribute("MinesMax") or #mine.Spots
-	row(mine.Icon, `{mine.DisplayName}  ·  {placed}/{maxMines} enterradas`, `Explota cuando pasa un zombi: {mine.Damage} de daño en {mine.Radius} studs (más fuerte en oleadas altas).`, {
+	row(mine.Icon, `{mine.DisplayName}  ·  {placed}/{maxMines} enterradas`, `Explota cuando pasa un grupo de {mine.MinTargets} zombis, o uno duro o un jefe: {mine.Damage} de daño en {mine.Radius} studs (más fuerte en oleadas altas).`, {
 		{ Text = `Comprar 💰{mine.Price}`, Enabled = placed < maxMines and coins >= mine.Price, OnClick = function()
 			runAction("BuyMine", "")
 		end },

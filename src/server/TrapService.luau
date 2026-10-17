@@ -222,7 +222,19 @@ end
 -- Revisa si algún zombi pisó una mina
 function TrapService.think(now: number, wave: number)
 	for index, mine in mines do
-		if #EnemyService.getInRadius(mine.Position, mineConfig.TriggerRadius, now) > 0 then
+		local touching = EnemyService.getInRadius(mine.Position, mineConfig.TriggerRadius, now)
+		local armed = false
+		if #touching > 0 then
+			-- Salta con un grupo cerca, o con un zombi duro o un jefe pisándola
+			armed = #EnemyService.getInRadius(mine.Position, mineConfig.Radius, now) >= mineConfig.MinTargets
+			for _, enemyId in touching do
+				local info = Config.Enemies[EnemyService.getType(enemyId) or ""]
+				if info and (info.IsBoss or info.MaxHealth >= mineConfig.HeavyHealth) then
+					armed = true
+				end
+			end
+		end
+		if armed then
 			mines[index] = nil
 			mine.Model:Destroy()
 			Remotes.PowerFx:FireAllClients("Mine", mine.Position, mineConfig.Radius)
@@ -233,6 +245,22 @@ function TrapService.think(now: number, wave: number)
 			publish()
 		end
 	end
+end
+
+-- Entre oleadas las rejas en pie se reparan un poco. Devuelve cuántas.
+function TrapService.healGates(fraction: number): number
+	local healed = 0
+	for id, gate in gates do
+		if gate.Health < gateConfig.Health then
+			gate.Health = math.min(gateConfig.Health, gate.Health + gateConfig.Health * fraction)
+			gate.Fill.Size = UDim2.fromScale(math.clamp(gate.Health / gateConfig.Health, 0, 1), 1)
+			healed += 1
+		end
+	end
+	if healed > 0 then
+		publish()
+	end
+	return healed
 end
 
 -- Quita todas las trampas (al volver a la preparación)
