@@ -756,7 +756,96 @@ local function buildMarket(map: Instance)
 	end
 end
 
+-- Plaza empedrada alrededor de la fogata, caminos de piedra a cada puesto,
+-- guirnaldas de luces entre postes, un tablón de misiones y el cartel de
+-- bienvenida en la entrada.
+local function buildPlaza(map: Instance)
+	local stone = Props.Colors.Stone
+	local upright = CFrame.Angles(0, 0, math.pi / 2)
+	-- Disco de adoquines con un aro de piedra clara en el borde
+	local function disc(name: string, radius: number, height: number, color: Color3, lift: number)
+		makePart({ Name = name, Shape = Enum.PartType.Cylinder, Size = Vector3.new(height, radius * 2, radius * 2), CFrame = CFrame.new(camp + Vector3.new(0, lift + height / 2, 0)) * upright, Material = Enum.Material.Cobblestone, Color = color, Parent = map })
+	end
+	disc("PlazaRim", 12.4, 0.35, Color3.fromRGB(150, 146, 136), 0)
+	disc("PlazaStone", 11.4, 0.45, Color3.fromRGB(106, 102, 98), 0)
+	disc("PlazaCenter", 6.5, 0.55, Color3.fromRGB(120, 114, 106), 0)
+
+	-- Caminos de adoquines desde la plaza hasta el frente de cada puesto
+	local targets = {
+		Vector3.new(-20, 0, 7), -- armería
+		Vector3.new(20, 0, 7), -- sastrería
+		Vector3.new(-19, 0, -12), -- intendencia
+		Vector3.new(0, 0, 22), -- veterano
+		Vector3.new(0, 0, -26), -- hacia la campana
+	}
+	for _, target in targets do
+		local start = target.Unit * 11.5
+		local length = (target - start).Magnitude
+		local middle = camp + (start + target) / 2
+		local frame = CFrame.lookAt(middle + Vector3.new(0, 0.12, 0), camp + target + Vector3.new(0, 0.12, 0))
+		makePart({ Name = "CampPath", Size = Vector3.new(3.4, 0.24, length), CFrame = frame, Material = Enum.Material.Cobblestone, Color = Color3.fromRGB(112, 106, 98), Parent = map })
+		-- Bordillos de piedra a cada lado
+		for _, side in { -1, 1 } do
+			makeProp({ Name = "PathEdge", Size = Vector3.new(0.5, 0.45, length), CFrame = frame * CFrame.new(side * 1.85, 0.12, 0), Material = Enum.Material.Slate, Color = stone, Parent = map })
+		end
+	end
+
+	-- Guirnalda de luces: 8 postes en círculo y bombillas colgando entre ellos
+	local radius = 15.5
+	local count = 8
+	local poles = {}
+	for index = 1, count do
+		local angle = (index - 0.5) / count * math.pi * 2
+		local base = camp + Vector3.new(math.cos(angle) * radius, 0, math.sin(angle) * radius)
+		makePart({ Name = "LightPole", Size = Vector3.new(0.5, 6.5, 0.5), Position = base + Vector3.new(0, 3.25, 0), Material = Enum.Material.Wood, Color = DARK_WOOD, Parent = map })
+		makeProp({ Name = "PoleFoot", Size = Vector3.new(1.1, 0.5, 1.1), Position = base + Vector3.new(0, 0.25, 0), Material = Enum.Material.Slate, Color = stone, Parent = map })
+		poles[index] = base + Vector3.new(0, 6.3, 0)
+	end
+	local bulbColor = Color3.fromRGB(255, 214, 140)
+	for index = 1, count do
+		local from, to = poles[index], poles[index % count + 1]
+		local steps = 9
+		for step = 1, steps - 1 do
+			local alpha = step / steps
+			local sag = math.sin(alpha * math.pi) * 1.4
+			local position = from:Lerp(to, alpha) - Vector3.new(0, sag, 0)
+			local bulb = makeProp({ Name = "StringBulb", Shape = Enum.PartType.Ball, Size = Vector3.one * 0.45, Position = position, Material = Enum.Material.Neon, Color = bulbColor, CastShadow = false, Parent = map })
+			if step % 4 == 0 then
+				Props.light(bulb, bulbColor, 16, 0.9)
+			end
+		end
+	end
+
+	-- Tablón de misiones junto al camino de la campana
+	local board = CFrame.lookAt(camp + Vector3.new(6.5, 0, -17), camp + Vector3.new(0, 0, -10))
+	for _, side in { -1, 1 } do
+		makePart({ Name = "BoardPost", Size = Vector3.new(0.5, 5.2, 0.5), CFrame = board * CFrame.new(side * 2.2, 2.6, 0), Material = Enum.Material.Wood, Color = DARK_WOOD, Parent = map })
+	end
+	makePart({ Name = "BoardRoof", Size = Vector3.new(5.6, 0.3, 1.8), CFrame = board * CFrame.new(0, 5.3, 0) * CFrame.Angles(-0.12, 0, 0), Material = Enum.Material.WoodPlanks, Color = Color3.fromRGB(110, 64, 44), Parent = map })
+	Props.sign(map, board * CFrame.new(0, 3.2, 0.1), "MISIONES", Color3.fromRGB(255, 215, 100))
+	for index = -1, 1 do
+		makeProp({ Name = "Note", Size = Vector3.new(0.9, 1.1, 0.06), CFrame = board * CFrame.new(index * 1.3, 1.5, -0.05) * CFrame.Angles(0, 0, index * 0.08), Material = Enum.Material.Fabric, Color = Color3.fromRGB(232, 220, 184), Parent = map })
+	end
+
+	-- Cartel de bienvenida en la entrada, entre dos estandartes
+	local gate = camp + Vector3.new(0, 0, -37)
+	for _, side in { -1, 1 } do
+		makePart({ Name = "GatePost", Size = Vector3.new(0.8, 8, 0.8), Position = gate + Vector3.new(side * 11, 4, 0), Material = Enum.Material.Wood, Color = DARK_WOOD, Parent = map })
+		Props.banner(map, gate + Vector3.new(side * 11, 0, 0.8), 0, if side < 0 then Color3.fromRGB(150, 50, 46) else Color3.fromRGB(40, 70, 170))
+		Props.lantern(map, gate + Vector3.new(side * 13, 0, 0))
+	end
+	makePart({ Name = "GateBeam", Size = Vector3.new(23, 0.7, 0.8), Position = gate + Vector3.new(0, 8, 0), Material = Enum.Material.Wood, Color = DARK_WOOD, Parent = map })
+	Props.sign(map, CFrame.new(gate + Vector3.new(0, 6.6, -0.5)), "CAMPAMENTO", Color3.fromRGB(255, 225, 150))
+	Props.sign(map, CFrame.new(gate + Vector3.new(0, 6.6, 0.5)) * CFrame.Angles(0, math.pi, 0), "CAMPAMENTO", Color3.fromRGB(255, 225, 150))
+
+	-- Alfombras de tela frente a los puestos
+	for _, spot in { { Vector3.new(-20, 0, 7), Color3.fromRGB(150, 50, 46) }, { Vector3.new(20, 0, 7), Color3.fromRGB(90, 50, 130) }, { Vector3.new(0, 0, 22), Color3.fromRGB(50, 80, 130) } } do
+		makeProp({ Name = "Rug", Size = Vector3.new(6, 0.1, 4), CFrame = CFrame.lookAt(camp + spot[1] + Vector3.new(0, 0.3, 0), camp + Vector3.new(0, 0.3, 0)), Material = Enum.Material.Fabric, Color = spot[2], Parent = map })
+	end
+end
+
 function CampBuilder.build(map: Instance)
+	buildPlaza(map)
 	buildMarket(map)
 	buildCampfire(map)
 	buildShelter(map)
