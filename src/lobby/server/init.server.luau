@@ -815,16 +815,20 @@ end
 
 local reconnecting: { [Player]: boolean } = {}
 reconnectGo.OnServerEvent:Connect(function(player)
+	-- Un toque cada 10 segundos (cada uno gasta consultas al MemoryStore)
 	if reconnecting[player] then
 		return
 	end
+	reconnecting[player] = true
+	task.delay(10, function()
+		reconnecting[player] = nil
+	end)
 	local record = MatchRegistry.lookup(player.UserId)
 	if not record or not MatchRegistry.isAlive(record.Id) then
 		MatchRegistry.clear(player.UserId)
 		reconnectOffer:FireClient(player, false)
 		return
 	end
-	reconnecting[player] = true
 	local ok, err = pcall(function()
 		local options = Instance.new("TeleportOptions")
 		options.ReservedServerAccessCode = record.Code
@@ -834,9 +838,6 @@ reconnectGo.OnServerEvent:Connect(function(player)
 		warn(`Reconexión de {player.Name}: {err}`)
 		reconnectOffer:FireClient(player, false)
 	end
-	task.delay(10, function()
-		reconnecting[player] = nil
-	end)
 end)
 
 -- Lo que trae el lugar vacío de Studio (piso y punto de aparición) sobra
