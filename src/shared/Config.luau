@@ -1075,6 +1075,7 @@ Config.Traps = {
 		MaxLevel = 3,
 		UpgradePrice = { 120, 240 },
 		HealthPerLevel = 0.6, -- +60% de vida por nivel (queda llena al mejorar)
+		FireDamage = 1.5, -- nivel 3 (puerta de fuego): daño cada 0.5 s a los zombis pegados
 		-- Rejas de metal en los dos extremos del puente; solo aparecen si las
 		-- compras. At: distancia a la campana por el camino
 		Slots = {

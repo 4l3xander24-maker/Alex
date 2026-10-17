@@ -31,6 +31,11 @@ type Gate = {
 	Level: number,
 	Model: Model,
 	Fill: Frame,
+	Portcullis: Model,
+	Open: number, -- 0 = cerrada, 1 = rastrillo arriba
+	Lift: number,
+	Base: CFrame,
+	Burn: number, -- cuenta para el daño del fuego (nivel 3)
 }
 
 -- Lugar fijo donde se puede poner una trampa: aparece como un fantasma celeste
@@ -43,6 +48,7 @@ local mines: { [number]: Mine } = {}
 local gates: { [string]: Gate } = {}
 local folder: Folder
 local slots: { [string]: Slot } = {}
+local lastThink = 0
 local preparing = true -- hay preparación (se puede colocar y mejorar)
 local CYAN = Color3.fromRGB(110, 225, 255)
 -- Lista de rejas en pie, guardada para no crearla en cada consulta de los zombis
@@ -180,8 +186,8 @@ function TrapService.buildGate(id: string): boolean
 	local lift = Vector3.new(0, Paths.walkHeight((a + b) / 2), 0)
 	local frame = CFrame.lookAt(a + lift, b + lift) -- -Z va de A hacia B; X atraviesa el muro
 	local thickness = 3
-	local wallHeight = 9
-	local opening = 6.5 -- alto del hueco del rastrillo
+	local wallHeight = 15
+	local opening = 11 -- alto del hueco del rastrillo
 
 	-- Torres a los lados y dintel arriba (ladrillo de castillo)
 	for _, along in { 0, length } do
@@ -193,16 +199,19 @@ function TrapService.buildGate(id: string): boolean
 	end
 
 	-- Rastrillo: barrotes verticales con punta y travesaños
+	local portcullis = Instance.new("Model")
+	portcullis.Name = "Portcullis"
 	local inner = length - 6
 	local bars = math.max(2, math.floor(inner / 1.1))
 	for index = 0, bars do
 		local along = 3 + index * inner / bars
-		Props.makePart({ Name = "Bar", Size = Vector3.new(0.3, opening, 0.3), CFrame = frame * CFrame.new(0, opening / 2, -along), Material = Enum.Material.Metal, Color = IRON, CanQuery = false, Parent = model })
-		makeProp({ Name = "Spike", Size = Vector3.new(0.35, 0.5, 0.35), CFrame = frame * CFrame.new(0, 0.1, -along) * CFrame.Angles(0, 0, math.rad(45)), Material = Enum.Material.Metal, Color = IRON, Parent = model })
+		Props.makePart({ Name = "Bar", Size = Vector3.new(0.3, opening, 0.3), CFrame = frame * CFrame.new(0, opening / 2, -along), Material = Enum.Material.Metal, Color = IRON, CanQuery = false, Parent = portcullis })
+		makeProp({ Name = "Spike", Size = Vector3.new(0.35, 0.5, 0.35), CFrame = frame * CFrame.new(0, 0.1, -along) * CFrame.Angles(0, 0, math.rad(45)), Material = Enum.Material.Metal, Color = IRON, Parent = portcullis })
 	end
-	for _, y in { 1.4, 2.9, 4.4, 5.9 } do
-		Props.makePart({ Name = "Rail", Size = Vector3.new(0.3, 0.3, inner), CFrame = frame * CFrame.new(0, y, -length / 2), Material = Enum.Material.Metal, Color = IRON, CanQuery = false, Parent = model })
+	for _, y in { 1.6, 3.8, 6, 8.2, 10.4 } do
+		Props.makePart({ Name = "Rail", Size = Vector3.new(0.3, 0.3, inner), CFrame = frame * CFrame.new(0, y, -length / 2), Material = Enum.Material.Metal, Color = IRON, CanQuery = false, Parent = portcullis })
 	end
+	portcullis.Parent = model
 
 	-- Escalera apoyada en la torre de la izquierda
 	local ladder = frame * CFrame.new(-thickness / 2 - 0.8, 0, -1.5) * CFrame.Angles(0, 0, math.rad(-12))
@@ -226,7 +235,7 @@ function TrapService.buildGate(id: string): boolean
 	Props.hangingLantern(model, (frame * CFrame.new(-thickness - 1.5, 0, -length - 1.5)).Position, frame.RightVector * -1)
 
 	-- Barra de vida flotando sobre la reja
-	local anchor = Props.makeProp({ Name = "HealthAnchor", Size = Vector3.one * 0.2, Position = a:Lerp(b, 0.5) + lift + Vector3.new(0, 12.5, 0), Transparency = 1, Parent = model })
+	local anchor = Props.makeProp({ Name = "HealthAnchor", Size = Vector3.one * 0.2, Position = a:Lerp(b, 0.5) + lift + Vector3.new(0, 19, 0), Transparency = 1, Parent = model })
 	local billboard = Instance.new("BillboardGui")
 	billboard.Size = UDim2.fromOffset(120, 12)
 	billboard.MaxDistance = 120
@@ -244,7 +253,7 @@ function TrapService.buildGate(id: string): boolean
 
 	local upgradeAnchor = Props.makeProp({ Name = "UpgradeAnchor", Size = Vector3.one * 0.4, Position = a:Lerp(b, 0.5) + lift + Vector3.new(0, 2, 0), Transparency = 1, Parent = model })
 	model.Parent = folder
-	gates[id] = { Id = id, A = a, B = b, Health = gateConfig.Health, MaxHealth = gateConfig.Health, Level = 1, Model = model, Fill = fill }
+	gates[id] = { Id = id, A = a, B = b, Health = gateConfig.Health, MaxHealth = gateConfig.Health, Level = 1, Model = model, Fill = fill, Portcullis = portcullis, Open = 0, Lift = opening - 0.3, Base = portcullis:GetPivot(), Burn = 0 }
 	refreshBarriers()
 	attachUpgrade("Gate", id, model, upgradeAnchor, 16)
 	publish()
@@ -267,8 +276,20 @@ function TrapService.upgradeGate(id: string): boolean
 	local length = (gate.B - gate.A).Magnitude
 	for _, along in { 0, length } do
 		for stud = 1, gate.Level do
-			makeProp({ Name = "LevelStud", Shape = Enum.PartType.Ball, Size = Vector3.one * 0.7, CFrame = frame * CFrame.new(0, 1.2 + stud * 1.4, -along + (if along == 0 then 1.5 else -1.5)), Material = Enum.Material.Neon, Color = Color3.fromRGB(255, 205, 80), Parent = gate.Model })
+			makeProp({ Name = "LevelStud", Shape = Enum.PartType.Ball, Size = Vector3.one * 0.7, CFrame = frame * CFrame.new(0, 2 + stud * 2, -along + (if along == 0 then 1.5 else -1.5)), Material = Enum.Material.Neon, Color = Color3.fromRGB(255, 205, 80), Parent = gate.Model })
 		end
+	end
+	-- Nivel 3: puerta de fuego. Llamas sobre los barrotes y quema a los zombis que la golpean
+	if gate.Level >= 3 then
+		for _, part in gate.Portcullis:GetChildren() do
+			if part.Name == "Rail" and part:IsA("BasePart") and not part:FindFirstChildOfClass("Fire") then
+				local fire = Instance.new("Fire")
+				fire.Size = 5
+				fire.Heat = 6
+				fire.Parent = part
+			end
+		end
+		Props.light(gate.Portcullis:FindFirstChildWhichIsA("BasePart") :: BasePart, Color3.fromRGB(255, 140, 50), 22, 2)
 	end
 	publish()
 	return true
@@ -302,6 +323,49 @@ end
 
 -- Revisa si algún zombi pisó una mina
 function TrapService.think(now: number, wave: number)
+	-- Rejas: el rastrillo sube cuando un jugador se acerca y baja solo al irse
+	local dt = now - lastThink
+	lastThink = now
+	for _, gate in gates do
+		local middle = (gate.A + gate.B) / 2
+		local near = false
+		for _, other in Players:GetPlayers() do
+			local root = other.Character and other.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+			if root then
+				local offset = root.Position - middle
+				if Vector3.new(offset.X, 0, offset.Z).Magnitude < 13 then
+					near = true
+					break
+				end
+			end
+		end
+		local target = if near then 1 else 0
+		local before = gate.Open
+		gate.Open = if target > before then math.min(1, before + dt * 1.6) else math.max(0, before - dt * 0.9)
+		if gate.Open ~= before then
+			gate.Portcullis:PivotTo(CFrame.new(0, gate.Open * gate.Lift, 0) * gate.Base)
+			local solid = gate.Open < 0.5
+			for _, part in gate.Portcullis:GetChildren() do
+				if part:IsA("BasePart") then
+					part.CanCollide = solid
+				end
+			end
+		end
+		-- Puerta de fuego (nivel 3): quema a los zombis pegados
+		local owner = Players:GetPlayers()[1]
+		if gate.Level >= 3 and owner then
+			gate.Burn += dt
+			if gate.Burn >= 0.5 then
+				gate.Burn = 0
+				for step = -gateConfig.Slots[gate.Id].Width / 2, gateConfig.Slots[gate.Id].Width / 2, 5 do
+					local direction = (gate.B - gate.A).Unit
+					for _, enemyId in EnemyService.getInRadius(middle + direction * step, 5, now) do
+						EnemyService.damage(enemyId, gateConfig.FireDamage, owner)
+					end
+				end
+			end
+		end
+	end
 	for index, mine in mines do
 		local touching = EnemyService.getInRadius(mine.Position, mineConfig.TriggerRadius, now)
 		local armed = false
@@ -378,7 +442,7 @@ local function buildGhost(name: string, parts: { { Size: Vector3, Frame: CFrame,
 	local billboard = Instance.new("BillboardGui")
 	billboard.Name = "GhostLabel"
 	billboard.Size = UDim2.fromOffset(190, 34)
-	billboard.StudsOffset = Vector3.new(0, 4, 0)
+	billboard.StudsOffset = Vector3.new(0, 6, 0)
 	billboard.MaxDistance = 40
 	billboard.AlwaysOnTop = true
 	billboard.Adornee = model.PrimaryPart
@@ -512,9 +576,9 @@ local function setupSlots()
 		local length = (b - a).Magnitude
 		local frame = CFrame.lookAt(middle + lift, b + lift)
 		local ghost = buildGhost(`GateSlot{id}`, {
-			{ Size = Vector3.new(3, 9, 3), Frame = frame * CFrame.new(0, 4.5, length / 2 - 1.5) },
-			{ Size = Vector3.new(3, 9, 3), Frame = frame * CFrame.new(0, 4.5, -length / 2 + 1.5) },
-			{ Size = Vector3.new(3, 2.5, length), Frame = frame * CFrame.new(0, 7.75, 0) },
+			{ Size = Vector3.new(3, 15, 3), Frame = frame * CFrame.new(0, 7.5, length / 2 - 1.5) },
+			{ Size = Vector3.new(3, 15, 3), Frame = frame * CFrame.new(0, 7.5, -length / 2 + 1.5) },
+			{ Size = Vector3.new(3, 4, length), Frame = frame * CFrame.new(0, 13, 0) },
 		}, `Reja: {gateConfig.Slots[id].Short} · {gateConfig.Price} monedas`)
 		ghost.Parent = folder
 		local prompt = Instance.new("ProximityPrompt")
