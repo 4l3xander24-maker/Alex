@@ -2,6 +2,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 
 local Remotes = require(ReplicatedStorage:WaitForChild("Shared").Remotes)
 
@@ -10,15 +11,20 @@ local MAX_VISIBLE = 4
 
 local Notify = {}
 
+-- En celular los avisos van abajo al centro (entre el joystick y los botones):
+-- arriba al centro están el aviso de la oleada y el tutorial
+local TOUCH = UserInputService.TouchEnabled
+
 local holder: Frame
 
 function Notify.show(text: string, color: Color3?)
 	local label = Instance.new("TextLabel")
-	label.Size = UDim2.fromOffset(520, 30)
+	label.Size = if TOUCH then UDim2.fromOffset(300, 26) else UDim2.fromOffset(520, 30)
 	label.BackgroundColor3 = Color3.fromRGB(20, 24, 26)
 	label.BackgroundTransparency = 0.25
 	label.Font = Enum.Font.GothamBold
-	label.TextSize = 17
+	label.TextSize = if TOUCH then 14 else 17
+	label.TextWrapped = true
 	label.TextColor3 = color or Color3.new(1, 1, 1)
 	label.Text = text
 	label.LayoutOrder = math.floor(os.clock() * 1000)
@@ -59,13 +65,14 @@ function Notify.init()
 	gui.DisplayOrder = 20
 
 	holder = Instance.new("Frame")
-	holder.AnchorPoint = Vector2.new(0.5, 0)
-	holder.Position = UDim2.new(0.5, 0, 0, 122)
-	holder.Size = UDim2.fromOffset(520, 160)
+	holder.AnchorPoint = if TOUCH then Vector2.new(0.5, 1) else Vector2.new(0.5, 0)
+	holder.Position = if TOUCH then UDim2.new(0.5, 0, 1, -20) else UDim2.new(0.5, 0, 0, 122)
+	holder.Size = if TOUCH then UDim2.fromOffset(300, 120) else UDim2.fromOffset(520, 160)
 	holder.BackgroundTransparency = 1
 	holder.Parent = gui
 	local layout = Instance.new("UIListLayout")
 	layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	layout.VerticalAlignment = if TOUCH then Enum.VerticalAlignment.Bottom else Enum.VerticalAlignment.Top
 	layout.Padding = UDim.new(0, 6)
 	layout.SortOrder = Enum.SortOrder.LayoutOrder
 	layout.Parent = holder
