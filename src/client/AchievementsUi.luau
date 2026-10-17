@@ -204,6 +204,12 @@ function AchievementsUi.init()
 	layout.Parent = list
 
 	button.Activated:Connect(AchievementsUi.toggle)
+	-- Tablón de misiones del campamento: lo abre con E (o tocando el aviso)
+	game:GetService("ProximityPromptService").PromptTriggered:Connect(function(prompt)
+		if prompt:GetAttribute("Board") and not panel.Visible then
+			AchievementsUi.toggle()
+		end
+	end)
 	Profile.Changed:Connect(function()
 		if panel.Visible then
 			render()

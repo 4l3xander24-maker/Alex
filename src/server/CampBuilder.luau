@@ -823,6 +823,15 @@ local function buildPlaza(map: Instance)
 	end
 	makePart({ Name = "BoardRoof", Size = Vector3.new(5.6, 0.3, 1.8), CFrame = board * CFrame.new(0, 5.3, 0) * CFrame.Angles(-0.12, 0, 0), Material = Enum.Material.WoodPlanks, Color = Color3.fromRGB(110, 64, 44), Parent = map })
 	Props.sign(map, board * CFrame.new(0, 3.2, 0.1), "MISIONES", Color3.fromRGB(255, 215, 100))
+	-- Aviso para abrir las misiones del día y los logros (lo escucha AchievementsUi)
+	local boardPrompt = Instance.new("ProximityPrompt")
+	boardPrompt.ActionText = "Ver misiones y logros"
+	boardPrompt.ObjectText = "Tablón de misiones"
+	boardPrompt.MaxActivationDistance = 12
+	boardPrompt.RequiresLineOfSight = false
+	boardPrompt:SetAttribute("Board", true)
+	local boardAnchor = makeProp({ Name = "BoardAnchor", Size = Vector3.new(1, 1, 1), CFrame = board * CFrame.new(0, 2, -1), Transparency = 1, Parent = map })
+	boardPrompt.Parent = boardAnchor
 	for index = -1, 1 do
 		makeProp({ Name = "Note", Size = Vector3.new(0.9, 1.1, 0.06), CFrame = board * CFrame.new(index * 1.3, 1.5, -0.05) * CFrame.Angles(0, 0, index * 0.08), Material = Enum.Material.Fabric, Color = Color3.fromRGB(232, 220, 184), Parent = map })
 	end
@@ -830,13 +839,18 @@ local function buildPlaza(map: Instance)
 	-- Cartel de bienvenida en la entrada, entre dos estandartes
 	local gate = camp + Vector3.new(0, 0, -37)
 	for _, side in { -1, 1 } do
-		makePart({ Name = "GatePost", Size = Vector3.new(0.8, 8, 0.8), Position = gate + Vector3.new(side * 11, 4, 0), Material = Enum.Material.Wood, Color = DARK_WOOD, Parent = map })
+		makePart({ Name = "GatePost", Size = Vector3.new(1.2, 18, 1.2), Position = gate + Vector3.new(side * 11, 9, 0), Material = Enum.Material.Wood, Color = DARK_WOOD, Parent = map })
 		Props.banner(map, gate + Vector3.new(side * 11, 0, 0.8), 0, if side < 0 then Color3.fromRGB(150, 50, 46) else Color3.fromRGB(40, 70, 170))
 		Props.lantern(map, gate + Vector3.new(side * 13, 0, 0))
 	end
-	makePart({ Name = "GateBeam", Size = Vector3.new(23, 0.7, 0.8), Position = gate + Vector3.new(0, 8, 0), Material = Enum.Material.Wood, Color = DARK_WOOD, Parent = map })
-	Props.sign(map, CFrame.new(gate + Vector3.new(0, 6.6, -0.5)), "CAMPAMENTO", Color3.fromRGB(255, 225, 150))
-	Props.sign(map, CFrame.new(gate + Vector3.new(0, 6.6, 0.5)) * CFrame.Angles(0, math.pi, 0), "CAMPAMENTO", Color3.fromRGB(255, 225, 150))
+	makePart({ Name = "GateBeam", Size = Vector3.new(24, 1.2, 1.2), Position = gate + Vector3.new(0, 17.4, 0), Material = Enum.Material.Wood, Color = DARK_WOOD, Parent = map })
+	-- Luz cálida bajo el travesaño para que el cartel se lea siempre
+	for _, side in { -1, 1 } do
+		local lamp = makeProp({ Name = "SignLamp", Size = Vector3.new(0.6, 0.6, 0.6), Position = gate + Vector3.new(side * 5, 15.8, side * 0 + (if side < 0 then -2 else 2)), Material = Enum.Material.Neon, Color = Color3.fromRGB(255, 214, 140), Parent = map })
+		Props.light(lamp, Color3.fromRGB(255, 214, 140), 26, 2)
+	end
+	Props.sign(map, CFrame.new(gate + Vector3.new(0, 14.4, -0.8)) * CFrame.Angles(0, 0, 0), "CAMPAMENTO", Color3.fromRGB(255, 225, 150))
+	Props.sign(map, CFrame.new(gate + Vector3.new(0, 14.4, 0.8)) * CFrame.Angles(0, math.pi, 0), "CAMPAMENTO", Color3.fromRGB(255, 225, 150))
 
 	-- Alfombras de tela frente a los puestos
 	for _, spot in { { Vector3.new(-20, 0, 7), Color3.fromRGB(150, 50, 46) }, { Vector3.new(20, 0, 7), Color3.fromRGB(90, 50, 130) }, { Vector3.new(0, 0, 22), Color3.fromRGB(50, 80, 130) } } do
