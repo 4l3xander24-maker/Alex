@@ -812,15 +812,15 @@ Config.Monetization = {
 	PassOrder = { "StarterPack", "DoubleCoins", "Vip" },
 	-- Productos: se compran las veces que quieras (solo dentro de la partida)
 	Products = {
-		Revive = { Id = 0, Name = "Revivir", Icon = "💖", Description = "Vuelves a la partida con la vida llena." },
-		Continue = { Id = 0, Name = "Continuar partida", Icon = "💖", Description = "Cuando caen todos: el equipo entero vuelve y la partida sigue." },
-		PetGolem = { Id = 0, Name = "Gólem de piedra", Icon = "🗿", Description = "Compañero que aplasta zombis en área.", Pet = "Golem" },
-		PetPhoenix = { Id = 0, Name = "Fénix", Icon = "🔥", Description = "Compañero que lanza fuego desde el aire.", Pet = "Phoenix" },
-		SkinBlood = { Id = 0, Name = "Skin Sangrienta", Icon = "🟥", Description = "Skin de arma roja brillante.", WeaponSkin = "Blood" },
-		SkinGalaxy = { Id = 0, Name = "Skin Galaxia", Icon = "🟪", Description = "Skin de arma morada brillante.", WeaponSkin = "Galaxy" },
-		SkinGold = { Id = 0, Name = "Skin Oro Macizo", Icon = "🟨", Description = "Skin de arma dorada brillante.", WeaponSkin = "Gold" },
-		CoinsSmall = { Id = 0, Name = "Bolsa de monedas", Icon = "💰", Description = "+500 monedas.", Coins = 500 },
-		CoinsBig = { Id = 0, Name = "Cofre de monedas", Icon = "💎", Description = "+2000 monedas.", Coins = 2000 },
+		Revive = { Id = 3719236041, Name = "Revivir", Icon = "💖", Description = "Vuelves a la partida con la vida llena." },
+		Continue = { Id = 3719236225, Name = "Continuar partida", Icon = "💖", Description = "Cuando caen todos: el equipo entero vuelve y la partida sigue." },
+		PetGolem = { Id = 3719236383, Name = "Gólem de piedra", Icon = "🗿", Description = "Compañero que aplasta zombis en área.", Pet = "Golem" },
+		PetPhoenix = { Id = 3719236411, Name = "Fénix", Icon = "🔥", Description = "Compañero que lanza fuego desde el aire.", Pet = "Phoenix" },
+		SkinBlood = { Id = 3719236493, Name = "Skin Sangrienta", Icon = "🟥", Description = "Skin de arma roja brillante.", WeaponSkin = "Blood" },
+		SkinGalaxy = { Id = 3719236685, Name = "Skin Galaxia", Icon = "🟪", Description = "Skin de arma morada brillante.", WeaponSkin = "Galaxy" },
+		SkinGold = { Id = 3719236545, Name = "Skin Oro Macizo", Icon = "🟨", Description = "Skin de arma dorada brillante.", WeaponSkin = "Gold" },
+		CoinsSmall = { Id = 3719236258, Name = "Bolsa de monedas", Icon = "💰", Description = "+500 monedas.", Coins = 500 },
+		CoinsBig = { Id = 3719236344, Name = "Cofre de monedas", Icon = "💎", Description = "+2000 monedas.", Coins = 2000 },
 	},
 	ReviveWindow = 10, -- segundos para comprar Revivir después de caer
 	ContinueWindow = 10, -- cuenta cuando caen todos, para comprar Continuar

@@ -32,3 +32,7 @@ Sugerido: 99 R$ las comunes (Crimson, Royal), 149 R$ Emerald y Shadow, 249–349
 - Los precios en Robux se leen de Roblox: la tienda del juego los muestra sola.
 - Hasta que un id sea distinto de 0, ese producto sale como "Pronto" y no se puede comprar.
 - Con los ids puestos hay que volver a publicar la Partida y el Lobby.
+
+## Estado
+- Los 9 productos (Revivir, Continuar, 2 bolsas, Gólem, Fénix, 3 skins de arma) ya están creados y sus ids puestos en Config (precios: 25, 49, 49, 149, 299, 399, 99, 129, 199 R$; Precios administrados desactivados).
+- Faltan los 3 pases (Pack Inicial, Monedas x2, VIP) y los pases de las 6 skins de traje: se crean en Monetización → Pases.
