@@ -997,7 +997,7 @@ Config.Traps = {
 	Mine = {
 		DisplayName = "Mina",
 		Icon = "🪤",
-		Price = 40,
+		Price = 30, -- se gasta en una partida: barata frente a lo permanente (arma 700)
 		MaxPerMatch = 8,
 		Damage = 12, -- crece con la oleada igual que la vida de los zombis
 		Radius = 10,
@@ -1015,8 +1015,8 @@ Config.Traps = {
 	Gate = {
 		DisplayName = "Reja",
 		Icon = "🚧",
-		Price = 150,
-		Health = 800,
+		Price = 120,
+		Health = 1500, -- con 800 una horda grande la rompía en ~8 segundos
 		RepairPerWave = 0.35, -- entre oleadas la reja recupera este % de su vida
 		-- Rejas de metal en los dos extremos del puente; solo aparecen si las
 		-- compras. At: distancia a la campana por el camino
