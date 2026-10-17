@@ -205,26 +205,8 @@ local function renderQuartermaster(data: Progression.Profile, coins: number)
 			else { Text = "Máximo", Enabled = false },
 	})
 
-	local mine = Config.Traps.Mine
-	local gate = Config.Traps.Gate
-	sectionHeader("Trampas  ·  solo duran la próxima partida")
-	local placed = gameState:GetAttribute("Mines") or 0
-	local maxMines = gameState:GetAttribute("MinesMax") or #mine.Spots
-	row(mine.Icon, `{mine.DisplayName}  ·  {placed}/{maxMines} enterradas`, `Explota cuando pasa un grupo de {mine.MinTargets} zombis, o uno duro o un jefe: {mine.Damage} de daño en {mine.Radius} studs (más fuerte en oleadas altas).`, {
-		{ Text = `Comprar 💰{mine.Price}`, Enabled = placed < maxMines and coins >= mine.Price, OnClick = function()
-			runAction("BuyMine", "")
-		end },
-	})
-	for _, id in gate.SlotOrder do
-		local slot = gate.Slots[id]
-		local health = gameState:GetAttribute("Gate" .. id) or 0
-		local built = health > 0
-		row(gate.Icon, slot.Name, `Cierra ese camino: los zombis se detienen a romperla ({gate.Health} de vida). Los dragones pasan volando.{if built then `\nVida: {health}/{gate.Health}` else ""}`, {
-			{ Text = if built then "Construida" else `Construir 💰{gate.Price}`, Enabled = not built and coins >= gate.Price, OnClick = function()
-				runAction("BuyGate", id)
-			end },
-		})
-	end
+	sectionHeader("Trampas  ·  se colocan en el terreno")
+	row("🪤", "Minas y rejas", `En la preparación, camina por el camino de los zombis: aparecen lugares celestes. Acércate y pulsa E para colocar una mina (💰{Config.Traps.Mine.Price}) o una reja (💰{Config.Traps.Gate.Price}). Acércate a las ya puestas para mejorarlas. Solo duran una partida.`, {})
 end
 
 local function renderMystic(data: Progression.Profile, coins: number)

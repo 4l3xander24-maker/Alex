@@ -1052,6 +1052,11 @@ Config.Traps = {
 		TriggerRadius = 3,
 		-- La mina espera a un grupo (o a un zombi duro) para no gastarse con uno solo
 		MinTargets = 3, -- zombis dentro de Radius
+		-- Mejoras (se compran acercándote a la mina, en la preparación)
+		MaxLevel = 3,
+		UpgradePrice = { 50, 100 }, -- de nivel 1 a 2 y de 2 a 3
+		DamagePerLevel = 0.5, -- +50% de daño por nivel
+		RadiusPerLevel = 0.15,
 		HeavyHealth = 10, -- vida base desde la que un zombi suelto ya la activa (jefes siempre)
 		-- Lugares donde se entierran: camino y distancia a la campana por el camino
 		Spots = {
@@ -1066,6 +1071,10 @@ Config.Traps = {
 		Price = 120,
 		Health = 1500, -- con 800 una horda grande la rompía en ~8 segundos
 		RepairPerWave = 0.35, -- entre oleadas la reja recupera este % de su vida
+		-- Mejoras (se compran acercándote a la reja, en la preparación)
+		MaxLevel = 3,
+		UpgradePrice = { 120, 240 },
+		HealthPerLevel = 0.6, -- +60% de vida por nivel (queda llena al mejorar)
 		-- Rejas de metal en los dos extremos del puente; solo aparecen si las
 		-- compras. At: distancia a la campana por el camino
 		Slots = {

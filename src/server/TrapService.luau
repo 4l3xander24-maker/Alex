@@ -10,6 +10,7 @@ local Shared = ReplicatedStorage.Shared
 local Config = require(Shared.Config)
 local Paths = require(Shared.Paths)
 local Remotes = require(Shared.Remotes)
+local DataService = require(script.Parent.DataService)
 local EnemyService = require(script.Parent.EnemyService)
 local GameState = require(script.Parent.GameState)
 local Props = require(script.Parent.Props)
@@ -20,21 +21,30 @@ local IRON = Color3.fromRGB(60, 62, 68)
 local STONE = Props.Colors.Stone
 local makePart, makeProp = Props.makePart, Props.makeProp
 
-type Mine = { Position: Vector3, Owner: Player, Model: Model }
+type Mine = { Position: Vector3, Owner: Player, Model: Model, Level: number }
 type Gate = {
 	Id: string,
 	A: Vector3,
 	B: Vector3,
 	Health: number,
+	MaxHealth: number,
+	Level: number,
 	Model: Model,
 	Fill: Frame,
 }
+
+-- Lugar fijo donde se puede poner una trampa: aparece como un fantasma celeste
+-- cuando te acercas (solo en la preparación). Al comprarla toma su lugar la real.
+type Slot = { Kind: string, Key: string, Ghost: Model, Prompt: ProximityPrompt }
 
 local TrapService = {}
 
 local mines: { [number]: Mine } = {}
 local gates: { [string]: Gate } = {}
 local folder: Folder
+local slots: { [string]: Slot } = {}
+local preparing = true -- hay preparación (se puede colocar y mejorar)
+local CYAN = Color3.fromRGB(110, 225, 255)
 -- Lista de rejas en pie, guardada para no crearla en cada consulta de los zombis
 local barriers: { EnemyService.Barrier } = {}
 
@@ -79,31 +89,77 @@ function TrapService.getBarriers(): { EnemyService.Barrier }
 	return barriers
 end
 
-function TrapService.canPlaceMine(): boolean
-	for index = 1, #mineConfig.Spots do
-		if not mines[index] then
-			return true
-		end
+local refreshSlots: () -> () = function() end
+local onUpgrade: ((Player, string, string) -> ())? = nil
+
+-- Aviso "Mejorar" sobre el objeto ya colocado (solo se usa en la preparación)
+local function attachUpgrade(kind: string, key: string, model: Model, anchor: BasePart?, distance: number)
+	if not anchor then
+		return
 	end
-	return false
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.Name = "UpgradePrompt"
+	prompt.HoldDuration = 0.4
+	prompt.MaxActivationDistance = distance
+	prompt.RequiresLineOfSight = false
+	prompt.Parent = anchor
+	prompt.Triggered:Connect(function(player)
+		if onUpgrade then
+			onUpgrade(player, kind, key)
+		end
+	end)
+	refreshSlots()
 end
 
-function TrapService.placeMine(owner: Player): boolean
-	for index in mineConfig.Spots do
-		if not mines[index] then
-			local position = TrapService.getMineSpot(index)
-			local model = Instance.new("Model")
-			model.Name = "Mine"
-			Props.makeProp({ Name = "Plate", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.4, 2.4, 2.4), CFrame = CFrame.new(position + Vector3.new(0, 0.15, 0)) * CFrame.Angles(0, 0, math.pi / 2), Material = Enum.Material.Metal, Color = Color3.fromRGB(50, 54, 46), Parent = model })
-			local light = Props.makeProp({ Name = "Light", Size = Vector3.new(0.3, 0.3, 0.3), Position = position + Vector3.new(0, 0.45, 0), Material = Enum.Material.Neon, Color = Color3.fromRGB(255, 60, 50), Parent = model })
-			Props.light(light, Color3.fromRGB(255, 60, 50), 6, 1)
-			model.Parent = folder
-			mines[index] = { Position = position, Owner = owner, Model = model }
-			publish()
-			return true
-		end
+-- Mina con relieve: base de metal, anillo de púas y luz de color según el nivel
+local LEVEL_COLORS = { Color3.fromRGB(255, 60, 50), Color3.fromRGB(255, 160, 40), Color3.fromRGB(190, 90, 255) }
+
+local function buildMineModel(position: Vector3, level: number): Model
+	local model = Instance.new("Model")
+	model.Name = "Mine"
+	local color = LEVEL_COLORS[math.min(level, #LEVEL_COLORS)]
+	Props.makeProp({ Name = "Plate", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.5, 2.8, 2.8), CFrame = CFrame.new(position + Vector3.new(0, 0.25, 0)) * CFrame.Angles(0, 0, math.pi / 2), Material = Enum.Material.Metal, Color = Color3.fromRGB(46, 50, 44), Parent = model })
+	Props.makeProp({ Name = "Dome", Shape = Enum.PartType.Ball, Size = Vector3.new(1.6, 0.9, 1.6), Position = position + Vector3.new(0, 0.55, 0), Material = Enum.Material.Metal, Color = Color3.fromRGB(70, 76, 66), Parent = model })
+	for index = 1, 6 + level * 2 do
+		local angle = index / (6 + level * 2) * math.pi * 2
+		Props.makeProp({ Name = "Spike", Size = Vector3.new(0.18, 0.7, 0.18), CFrame = CFrame.new(position + Vector3.new(math.cos(angle) * 1.2, 0.7, math.sin(angle) * 1.2)) * CFrame.Angles(math.sin(angle) * 0.4, 0, -math.cos(angle) * 0.4), Material = Enum.Material.Metal, Color = Color3.fromRGB(120, 124, 128), Parent = model })
 	end
-	return false
+	local light = Props.makeProp({ Name = "Light", Size = Vector3.new(0.4, 0.4, 0.4), Position = position + Vector3.new(0, 1.05, 0), Material = Enum.Material.Neon, Color = color, Parent = model })
+	Props.light(light, color, 7 + level * 2, 1.2)
+	return model
+end
+
+function TrapService.getMineLevel(index: number): number
+	local mine = mines[index]
+	return if mine then mine.Level else 0
+end
+
+function TrapService.placeMine(owner: Player, index: number): boolean
+	if mines[index] or not mineConfig.Spots[index] then
+		return false
+	end
+	local position = TrapService.getMineSpot(index)
+	local model = buildMineModel(position, 1)
+	model.Parent = folder
+	mines[index] = { Position = position, Owner = owner, Model = model, Level = 1 }
+	attachUpgrade("Mine", tostring(index), model, model:FindFirstChild("Plate") :: BasePart?, 9)
+	publish()
+	return true
+end
+
+-- Mejora una mina: más daño y más radio (la rehace con más púas y otro color)
+function TrapService.upgradeMine(index: number): boolean
+	local mine = mines[index]
+	if not mine or mine.Level >= mineConfig.MaxLevel then
+		return false
+	end
+	mine.Level += 1
+	mine.Model:Destroy()
+	mine.Model = buildMineModel(mine.Position, mine.Level)
+	mine.Model.Parent = folder
+	attachUpgrade("Mine", tostring(index), mine.Model, mine.Model:FindFirstChild("Plate") :: BasePart?, 9)
+	publish()
+	return true
 end
 
 function TrapService.hasGate(id: string): boolean
@@ -186,9 +242,34 @@ function TrapService.buildGate(id: string): boolean
 	fill.BorderSizePixel = 0
 	fill.Parent = back
 
+	local upgradeAnchor = Props.makeProp({ Name = "UpgradeAnchor", Size = Vector3.one * 0.4, Position = a:Lerp(b, 0.5) + lift + Vector3.new(0, 2, 0), Transparency = 1, Parent = model })
 	model.Parent = folder
-	gates[id] = { Id = id, A = a, B = b, Health = gateConfig.Health, Model = model, Fill = fill }
+	gates[id] = { Id = id, A = a, B = b, Health = gateConfig.Health, MaxHealth = gateConfig.Health, Level = 1, Model = model, Fill = fill }
 	refreshBarriers()
+	attachUpgrade("Gate", id, model, upgradeAnchor, 16)
+	publish()
+	return true
+end
+
+-- Mejora una reja: más vida (queda llena) y tachones dorados en las torres
+function TrapService.upgradeGate(id: string): boolean
+	local gate = gates[id]
+	if not gate or gate.Level >= gateConfig.MaxLevel then
+		return false
+	end
+	gate.Level += 1
+	gate.MaxHealth = gateConfig.Health * (1 + gateConfig.HealthPerLevel * (gate.Level - 1))
+	gate.Health = gate.MaxHealth
+	gate.Fill.Size = UDim2.fromScale(1, 1)
+	local middle = gate.A:Lerp(gate.B, 0.5)
+	local lift = Vector3.new(0, Paths.walkHeight(middle), 0)
+	local frame = CFrame.lookAt(gate.A + lift, gate.B + lift)
+	local length = (gate.B - gate.A).Magnitude
+	for _, along in { 0, length } do
+		for stud = 1, gate.Level do
+			makeProp({ Name = "LevelStud", Shape = Enum.PartType.Ball, Size = Vector3.one * 0.7, CFrame = frame * CFrame.new(0, 1.2 + stud * 1.4, -along + (if along == 0 then 1.5 else -1.5)), Material = Enum.Material.Neon, Color = Color3.fromRGB(255, 205, 80), Parent = gate.Model })
+		end
+	end
 	publish()
 	return true
 end
@@ -200,7 +281,7 @@ function TrapService.damageGate(id: string, amount: number)
 	end
 	local before = math.ceil(gate.Health)
 	gate.Health -= amount
-	gate.Fill.Size = UDim2.fromScale(math.clamp(gate.Health / gateConfig.Health, 0, 1), 1)
+	gate.Fill.Size = UDim2.fromScale(math.clamp(gate.Health / gate.MaxHealth, 0, 1), 1)
 	if gate.Health > 0 then
 		if math.ceil(gate.Health) ~= before then
 			GameState.set("Gate" .. id, math.ceil(gate.Health))
@@ -237,9 +318,10 @@ function TrapService.think(now: number, wave: number)
 		if armed then
 			mines[index] = nil
 			mine.Model:Destroy()
-			Remotes.PowerFx:FireAllClients("Mine", mine.Position, mineConfig.Radius)
-			local damage = mineConfig.Damage * (1 + Config.Waves.HealthGrowth * math.max(wave - 1, 0))
-			for _, enemyId in EnemyService.getInRadius(mine.Position, mineConfig.Radius, now) do
+			Remotes.PowerFx:FireAllClients("Mine", mine.Position, mineConfig.Radius * (1 + mineConfig.RadiusPerLevel * (mine.Level - 1)))
+			local damage = mineConfig.Damage * (1 + mineConfig.DamagePerLevel * (mine.Level - 1)) * (1 + Config.Waves.HealthGrowth * math.max(wave - 1, 0))
+			local blast = mineConfig.Radius * (1 + mineConfig.RadiusPerLevel * (mine.Level - 1))
+			for _, enemyId in EnemyService.getInRadius(mine.Position, blast, now) do
 				EnemyService.damage(enemyId, damage, mine.Owner)
 			end
 			publish()
@@ -251,9 +333,9 @@ end
 function TrapService.healGates(fraction: number): number
 	local healed = 0
 	for id, gate in gates do
-		if gate.Health < gateConfig.Health then
-			gate.Health = math.min(gateConfig.Health, gate.Health + gateConfig.Health * fraction)
-			gate.Fill.Size = UDim2.fromScale(math.clamp(gate.Health / gateConfig.Health, 0, 1), 1)
+		if gate.Health < gate.MaxHealth then
+			gate.Health = math.min(gate.MaxHealth, gate.Health + gate.MaxHealth * fraction)
+			gate.Fill.Size = UDim2.fromScale(math.clamp(gate.Health / gate.MaxHealth, 0, 1), 1)
 			healed += 1
 		end
 	end
@@ -275,6 +357,180 @@ function TrapService.reset()
 	table.clear(gates)
 	refreshBarriers()
 	publish()
+	refreshSlots()
+end
+
+-- Fantasma celeste de un lugar libre. Se ve solo cerca y en la preparación
+-- (TrapGhosts, en el cliente); el aviso del servidor lo compra y coloca.
+local function buildGhost(name: string, parts: { { Size: Vector3, Frame: CFrame, Shape: Enum.PartType? } }, label: string): Model
+	local model = Instance.new("Model")
+	model.Name = name
+	model:SetAttribute("Ghost", true)
+	model:SetAttribute("Empty", true)
+	for _, spec in parts do
+		local ghost = Props.makeProp({ Name = "GhostPart", Shape = spec.Shape or Enum.PartType.Block, Size = spec.Size, CFrame = spec.Frame, Material = Enum.Material.SmoothPlastic, Color = CYAN, Transparency = 0.55, CastShadow = false, Parent = model })
+		ghost.CanQuery = false
+		ghost.CanTouch = false
+		if not model.PrimaryPart then
+			model.PrimaryPart = ghost
+		end
+	end
+	local billboard = Instance.new("BillboardGui")
+	billboard.Name = "GhostLabel"
+	billboard.Size = UDim2.fromOffset(190, 34)
+	billboard.StudsOffset = Vector3.new(0, 4, 0)
+	billboard.MaxDistance = 40
+	billboard.AlwaysOnTop = true
+	billboard.Adornee = model.PrimaryPart
+	billboard.Parent = model
+	local text = Instance.new("TextLabel")
+	text.Size = UDim2.fromScale(1, 1)
+	text.BackgroundTransparency = 1
+	text.Font = Enum.Font.GothamBold
+	text.TextSize = 15
+	text.TextColor3 = CYAN
+	text.TextStrokeTransparency = 0.5
+	text.Text = label
+	text.Parent = billboard
+	return model
+end
+
+local function buyAtSlot(player: Player, slot: Slot)
+	if not preparing then
+		return
+	end
+	if slot.Kind == "Mine" then
+		local index = tonumber(slot.Key) :: number
+		if mines[index] then
+			return
+		end
+		if not DataService.spendCoins(player, mineConfig.Price) then
+			Remotes.Notify:FireClient(player, `Te faltan monedas: la mina cuesta {mineConfig.Price} 💰`)
+			return
+		end
+		DataService.changed(player, "Profile")
+		TrapService.placeMine(player, index)
+		Remotes.Notify:FireClient(player, "🪤 Mina colocada. Acércate a ella para mejorarla")
+	else
+		if gates[slot.Key] then
+			return
+		end
+		if not DataService.spendCoins(player, gateConfig.Price) then
+			Remotes.Notify:FireClient(player, `Te faltan monedas: la reja cuesta {gateConfig.Price} 💰`)
+			return
+		end
+		DataService.changed(player, "Profile")
+		TrapService.buildGate(slot.Key)
+		Remotes.Notify:FireClient(player, `🚧 {gateConfig.Slots[slot.Key].Name} construida. Acércate a ella para mejorarla`)
+	end
+end
+
+onUpgrade = function(player: Player, kind: string, key: string)
+	if not preparing then
+		return
+	end
+	if kind == "Mine" then
+		local index = tonumber(key) :: number
+		local mine = mines[index]
+		if not mine or mine.Level >= mineConfig.MaxLevel then
+			return
+		end
+		local price = mineConfig.UpgradePrice[mine.Level]
+		if not DataService.spendCoins(player, price) then
+			Remotes.Notify:FireClient(player, `Te faltan monedas: mejorar cuesta {price} 💰`)
+			return
+		end
+		DataService.changed(player, "Profile")
+		TrapService.upgradeMine(index)
+		Remotes.Notify:FireClient(player, `🪤 Mina mejorada al nivel {mines[index].Level}`)
+	else
+		local gate = gates[key]
+		if not gate or gate.Level >= gateConfig.MaxLevel then
+			return
+		end
+		local price = gateConfig.UpgradePrice[gate.Level]
+		if not DataService.spendCoins(player, price) then
+			Remotes.Notify:FireClient(player, `Te faltan monedas: mejorar cuesta {price} 💰`)
+			return
+		end
+		DataService.changed(player, "Profile")
+		TrapService.upgradeGate(key)
+		Remotes.Notify:FireClient(player, `🚧 Reja mejorada al nivel {gate.Level}`)
+	end
+end
+
+-- Qué se puede tocar ahora: en la preparación los lugares libres (comprar) y los
+-- objetos puestos (mejorar); con la partida en marcha, nada
+refreshSlots = function()
+	for _, slot in slots do
+		local filled = if slot.Kind == "Mine" then mines[tonumber(slot.Key) :: number] ~= nil else gates[slot.Key] ~= nil
+		slot.Ghost:SetAttribute("Empty", not filled)
+		slot.Prompt.Enabled = preparing and not filled
+		local model = if filled then (if slot.Kind == "Mine" then mines[tonumber(slot.Key) :: number].Model else gates[slot.Key].Model) else nil
+		local upgrade = model and model:FindFirstChild("UpgradePrompt", true)
+		if upgrade and upgrade:IsA("ProximityPrompt") then
+			local level = if slot.Kind == "Mine" then mines[tonumber(slot.Key) :: number].Level else gates[slot.Key].Level
+			local config = if slot.Kind == "Mine" then mineConfig else gateConfig
+			local name = if slot.Kind == "Mine" then "mina" else "reja"
+			if level >= config.MaxLevel then
+				upgrade.ActionText = `Nivel máximo ({level}/{config.MaxLevel})`
+				upgrade.Enabled = false
+			else
+				upgrade.ActionText = `Mejorar {name} a nivel {level + 1} (💰{config.UpgradePrice[level]})`
+				upgrade.ObjectText = if slot.Kind == "Mine" then "Mina" else "Reja"
+				upgrade.Enabled = preparing
+			end
+		end
+	end
+end
+
+local function setupSlots()
+	for index in mineConfig.Spots do
+		local position = TrapService.getMineSpot(index)
+		local ghost = buildGhost(`MineSlot{index}`, {
+			{ Size = Vector3.new(0.5, 2.8, 2.8), Frame = CFrame.new(position + Vector3.new(0, 0.25, 0)) * CFrame.Angles(0, 0, math.pi / 2), Shape = Enum.PartType.Cylinder },
+			{ Size = Vector3.new(1.6, 0.9, 1.6), Frame = CFrame.new(position + Vector3.new(0, 0.6, 0)), Shape = Enum.PartType.Ball },
+		}, `Mina · {mineConfig.Price} monedas`)
+		ghost.Parent = folder
+		local prompt = Instance.new("ProximityPrompt")
+		prompt.ActionText = `Colocar mina (💰{mineConfig.Price})`
+		prompt.ObjectText = "Trampa"
+		prompt.HoldDuration = 0.4
+		prompt.MaxActivationDistance = 9
+		prompt.RequiresLineOfSight = false
+		prompt.Parent = ghost.PrimaryPart
+		local slot: Slot = { Kind = "Mine", Key = tostring(index), Ghost = ghost, Prompt = prompt }
+		slots["Mine" .. index] = slot
+		prompt.Triggered:Connect(function(player)
+			buyAtSlot(player, slot)
+		end)
+	end
+	for _, id in gateConfig.SlotOrder do
+		local a, b = TrapService.getGateSegment(id)
+		local middle = (a + b) / 2
+		local lift = Vector3.new(0, Paths.walkHeight(middle), 0)
+		local length = (b - a).Magnitude
+		local frame = CFrame.lookAt(middle + lift, b + lift)
+		local ghost = buildGhost(`GateSlot{id}`, {
+			{ Size = Vector3.new(3, 9, 3), Frame = frame * CFrame.new(0, 4.5, length / 2 - 1.5) },
+			{ Size = Vector3.new(3, 9, 3), Frame = frame * CFrame.new(0, 4.5, -length / 2 + 1.5) },
+			{ Size = Vector3.new(3, 2.5, length), Frame = frame * CFrame.new(0, 7.75, 0) },
+		}, `Reja: {gateConfig.Slots[id].Short} · {gateConfig.Price} monedas`)
+		ghost.Parent = folder
+		local prompt = Instance.new("ProximityPrompt")
+		prompt.ActionText = `Construir reja (💰{gateConfig.Price})`
+		prompt.ObjectText = gateConfig.Slots[id].Short
+		prompt.HoldDuration = 0.5
+		prompt.MaxActivationDistance = 18
+		prompt.RequiresLineOfSight = false
+		prompt.Parent = ghost.PrimaryPart
+		local slot: Slot = { Kind = "Gate", Key = id, Ghost = ghost, Prompt = prompt }
+		slots["Gate" .. id] = slot
+		prompt.Triggered:Connect(function(player)
+			buyAtSlot(player, slot)
+		end)
+	end
+	refreshSlots()
 end
 
 function TrapService.init()
@@ -283,6 +539,16 @@ function TrapService.init()
 	folder.Parent = workspace
 	EnemyService.setBarrierProvider(TrapService.getBarriers)
 	publish()
+	setupSlots()
+	-- Solo se coloca y mejora en la preparación ("Lobby"); al empezar la partida
+	-- los fantasmas y los avisos desaparecen hasta que termine
+	local state = ReplicatedStorage:WaitForChild("GameState")
+	preparing = state:GetAttribute("State") == "Lobby"
+	refreshSlots()
+	state:GetAttributeChangedSignal("State"):Connect(function()
+		preparing = state:GetAttribute("State") == "Lobby"
+		refreshSlots()
+	end)
 end
 
 return TrapService

@@ -11,7 +11,6 @@ local Progression = require(Shared.Progression)
 local Remotes = require(Shared.Remotes)
 local DataService = require(script.Parent.DataService)
 local GameState = require(script.Parent.GameState)
-local TrapService = require(script.Parent.TrapService)
 
 local NOT_ENOUGH = "No tienes suficientes monedas"
 local CLOSED = "🔒 Las tiendas solo abren antes de la partida"
@@ -160,31 +159,7 @@ function actions.UpgradeBell(player, data)
 	return true, `🔔 Refuerzo nivel {level + 1}: la campana aguanta +{Config.Bell.Armor.HealthPerLevel} más`
 end
 
-function actions.BuyMine(player)
-	if not TrapService.canPlaceMine() then
-		return false, "Ya están todas las minas puestas"
-	end
-	if not DataService.spendCoins(player, Config.Traps.Mine.Price) then
-		return false, NOT_ENOUGH
-	end
-	TrapService.placeMine(player)
-	return true, "🪤 Mina enterrada en el camino de los zombis"
-end
-
-function actions.BuyGate(player, _data, id)
-	local slot = Config.Traps.Gate.Slots[id]
-	if not slot then
-		return false, "Reja desconocida"
-	end
-	if TrapService.hasGate(id) then
-		return false, `La {slot.Name:lower()} ya está construida`
-	end
-	if not DataService.spendCoins(player, Config.Traps.Gate.Price) then
-		return false, NOT_ENOUGH
-	end
-	TrapService.buildGate(id)
-	return true, `🚧 {slot.Name} construida`
-end
+-- Las minas y rejas ya no se compran aquí: se colocan y mejoran en el terreno (TrapService)
 
 -- Puente roto a la aldea: cada jugador lo repara una vez (queda guardado)
 function actions.RepairVillageBridge(player, data, _id)
