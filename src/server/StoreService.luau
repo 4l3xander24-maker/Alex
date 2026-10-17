@@ -242,6 +242,9 @@ local function buyWithCoins(player: Player, skinId: string): (boolean, string)
 	if StoreService.ownsSkin(player, skinId) then
 		return false, "Ya la tienes"
 	end
+	if skin.Until and os.time() > skin.Until then
+		return false, "Esa skin de temporada ya no se vende"
+	end
 	local spend, refund = spendCoins, refundCoins
 	if not spend or not refund then
 		return false, "Con monedas se compra dentro de la partida (tienda 🛒 o tecla B)"

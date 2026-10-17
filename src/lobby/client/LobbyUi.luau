@@ -209,12 +209,70 @@ local function buildToast()
 	corner(toast, 10)
 end
 
+-- Botón y panel "Mi perfil": nivel, récord, bajas y logros (lo lee el servidor)
+local function buildProfile()
+	local button = Instance.new("TextButton")
+	button.AnchorPoint = Vector2.new(1, 0)
+	button.Position = UDim2.new(1, -16, 0, 114)
+	button.Size = UDim2.fromOffset(190, 40)
+	button.BackgroundColor3 = Color3.fromRGB(70, 80, 130)
+	button.Font = Enum.Font.GothamBlack
+	button.TextSize = 16
+	button.TextColor3 = Color3.new(1, 1, 1)
+	button.Text = "Mi perfil"
+	button.Parent = gui
+	corner(button, 10)
+
+	local panel = Instance.new("TextLabel")
+	panel.AnchorPoint = Vector2.new(0.5, 0.5)
+	panel.Position = UDim2.fromScale(0.5, 0.5)
+	panel.Size = UDim2.fromOffset(330, 230)
+	panel.BackgroundColor3 = DARK
+	panel.Font = Enum.Font.GothamBold
+	panel.TextSize = 18
+	panel.TextColor3 = Color3.new(1, 1, 1)
+	panel.TextYAlignment = Enum.TextYAlignment.Top
+	panel.Visible = false
+	panel.Parent = gui
+	corner(panel, 14)
+	stroke(panel, GOLD)
+	local close = Instance.new("TextButton")
+	close.AnchorPoint = Vector2.new(0.5, 1)
+	close.Position = UDim2.new(0.5, 0, 1, -12)
+	close.Size = UDim2.fromOffset(120, 36)
+	close.BackgroundColor3 = Color3.fromRGB(90, 40, 40)
+	close.Font = Enum.Font.GothamBlack
+	close.TextSize = 16
+	close.TextColor3 = Color3.new(1, 1, 1)
+	close.Text = "Cerrar"
+	close.Parent = panel
+	corner(close, 8)
+	close.Activated:Connect(function()
+		panel.Visible = false
+	end)
+
+	button.Activated:Connect(function()
+		panel.Visible = true
+		panel.Text = "\nCargando..."
+		local remote = ReplicatedStorage:WaitForChild("LobbyProfile") :: RemoteFunction
+		local ok, data = pcall(function()
+			return remote:InvokeServer()
+		end)
+		if ok and data then
+			panel.Text = `\n{player.DisplayName}\n\nNivel {data.Level}\nMejor oleada: {data.BestWave}\nZombis eliminados: {data.TotalKills}\nLogros: {data.Achievements}\nMascotas y compañeros: {data.Pets}\nDificultad abierta: {data.Difficulty}`
+		else
+			panel.Text = "\nAún no hay perfil guardado.\nJuega una partida primero."
+		end
+	end)
+end
+
 function LobbyUi.init()
 	gui = Instance.new("ScreenGui")
 	gui.Name = "LobbyUi"
 	gui.ResetOnSpawn = false
 	gui.Parent = player:WaitForChild("PlayerGui")
 	buildInviteButton()
+	buildProfile()
 	buildDialog()
 	buildToast()
 

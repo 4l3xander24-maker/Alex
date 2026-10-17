@@ -100,6 +100,33 @@ function handlers.Bell(player: Player, stats)
 	end
 end
 
+-- Muro de fuego: una línea de llamas frente a ti que quema a los zombis que la tocan
+function handlers.Firewall(player: Player, stats, origin: Vector3, aim: Vector3, time: number)
+	local center = getGroundTarget(origin, aim, stats.Range)
+	-- El muro cruza el camino: perpendicular a la dirección en que miras
+	local flat = Vector3.new(aim.X, 0, aim.Z)
+	flat = if flat.Magnitude > 0.01 then flat.Unit else Vector3.new(0, 0, -1)
+	local along = Vector3.new(-flat.Z, 0, flat.X)
+	Remotes.PowerFx:FireAllClients("Firewall", center, along, stats.Length, stats.Width, stats.Duration)
+	task.spawn(function()
+		local pulses = math.floor(stats.Duration / 0.5)
+		for _ = 1, pulses do
+			local now = workspace:GetServerTimeNow()
+			local seen = {}
+			-- Una bola de búsqueda cada 4 studs a lo largo del muro
+			for step = -stats.Length / 2, stats.Length / 2, 4 do
+				for _, enemyId in EnemyService.getInRadius(center + along * step, stats.Width, now) do
+					if not seen[enemyId] then
+						seen[enemyId] = true
+						EnemyService.damage(enemyId, stats.Damage, player)
+					end
+				end
+			end
+			task.wait(0.5)
+		end
+	end)
+end
+
 local function onUsePower(player: Player, name: any, origin: any, direction: any, shotTime: any)
 	if typeof(name) ~= "string" or not handlers[name] then
 		return

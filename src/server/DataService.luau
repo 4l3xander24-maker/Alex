@@ -58,16 +58,42 @@ local function updateLeaderstats(player: Player, data: Progression.Profile)
 	end
 end
 
+local backupStore: DataStore? = nil
+pcall(function()
+	backupStore = DataStoreService:GetDataStore(STORE_NAME .. "_Backup")
+end)
+local lastBackup: { [Player]: number } = {}
+
 local function save(player: Player)
 	local entry = entries[player]
 	if not entry or not entry.CanSave or not store then
 		return
 	end
-	local ok, err = pcall(function()
-		store:SetAsync(keyFor(player), entry.Data, { player.UserId })
-	end)
+	-- Hasta 3 intentos: un fallo suelto de Roblox no debe costar el progreso
+	local ok, err = false, nil
+	for attempt = 1, 3 do
+		ok, err = pcall(function()
+			store:SetAsync(keyFor(player), entry.Data, { player.UserId })
+		end)
+		if ok then
+			break
+		end
+		task.wait(attempt)
+	end
 	if not ok then
 		warn(`No se pudo guardar a {player.Name}: {err}`)
+		if player.Parent then
+			Remotes.Notify:FireClient(player, "⚠️ No pudimos guardar tu progreso. Seguimos intentando; no salgas aún.")
+		end
+		return
+	end
+	-- Copia de seguridad: como mucho una cada 10 minutos por jugador
+	local backup = backupStore
+	if backup and os.clock() - (lastBackup[player] or -1e9) > 600 then
+		lastBackup[player] = os.clock()
+		pcall(function()
+			backup:SetAsync(keyFor(player), entry.Data, { player.UserId })
+		end)
 	end
 end
 

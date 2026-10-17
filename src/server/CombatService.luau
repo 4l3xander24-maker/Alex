@@ -260,6 +260,14 @@ local function onShoot(player: Player, origin: any, direction: any, shotTime: an
 			if explosive and random:NextNumber() < talents.ExplosiveChance then
 				explode(player, enemyId, damage, time)
 			end
+			-- La escopeta empuja un poco a quien le pega (los saca de encima)
+			local hitInfo = Config.Enemies[EnemyService.getType(enemyId) or ""]
+			if stats.Pellets > 1 and hitInfo and not hitInfo.IsBoss and (hitInfo.HitRadius or 0) < 3 then
+				local hitAt = EnemyService.getPosition(enemyId, time)
+				if hitAt then
+					EnemyService.knockback(hitAt, 3, 0.25, workspace:GetServerTimeNow())
+				end
+			end
 			EnemyService.damage(enemyId, damage, player)
 		end
 	end

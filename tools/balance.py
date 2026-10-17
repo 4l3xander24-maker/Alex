@@ -2,7 +2,7 @@
 # Compara la vida total de la oleada contra el daño por segundo que se supone
 # que tiene un jugador solo en esa oleada. ratio < 1 = holgado, > 2 = muro.
 # Uso: python3 tools/balance.py   (copiar aquí los números si cambia Config.luau)
-HP = {"Walker": 3, "Runner": 2, "Cone": 7, "Knight": 10, "Brute": 14, "Mutant": 9, "Bomber": 3, "Parasite": 12, "Colossus": 28}
+HP = {"Walker": 3, "Runner": 2, "Cone": 7, "Knight": 10, "Brute": 14, "Mutant": 9, "Bomber": 3, "Parasite": 12, "Colossus": 28, "Spitter": 5}
 LINEUPS = [["Walker"], ["Runner"], ["Walker", "Cone"], ["Brute"], ["Walker", "Runner"], ["Mutant", "Bomber"], ["Cone", "Knight", "Parasite"], ["Runner", "Brute", "Bomber"], ["Mutant", "Knight", "Colossus"], ["Walker", "Runner", "Cone"]]
 BOSS_HP = [150, 220, 300, 240]
 # nombre: (Count, Growth, Health, Spawn, Goal)

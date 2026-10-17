@@ -10,6 +10,7 @@ local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
+local Paths = require(Shared.Paths)
 local Remotes = require(Shared.Remotes)
 local Sfx = require(script.Parent.Sfx)
 local Progression = require(Shared.Progression)
@@ -48,6 +49,23 @@ local function newFxPart(size: Vector3, color: Color3): Part
 	part.CastShadow = false
 	part.Parent = fxFolder
 	return part
+end
+
+-- Sacudida corta de cámara (más fuerte cuanto más cerca de la explosión)
+local function shake(strength: number, duration: number)
+	local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+	if not humanoid then
+		return
+	end
+	task.spawn(function()
+		local started = os.clock()
+		while os.clock() - started < duration do
+			local fade = 1 - (os.clock() - started) / duration
+			humanoid.CameraOffset = Vector3.new((math.random() - 0.5) * strength * fade, (math.random() - 0.5) * strength * fade, 0)
+			task.wait()
+		end
+		humanoid.CameraOffset = Vector3.zero
+	end)
 end
 
 local function fadeOut(part: BasePart, duration: number, goal: { [string]: any })
@@ -162,17 +180,48 @@ local fxHandlers = {
 		Debris:AddItem(disc, delay + 0.1)
 		Debris:AddItem(fill, delay + 0.1)
 	end,
+	-- Muro de fuego: llamas a lo largo de la línea durante su duración
+	Firewall = function(center: Vector3, along: Vector3, length: number, width: number, duration: number)
+		local ground = center + Vector3.new(0, Paths.walkHeight(center), 0)
+		local count = math.floor(length / 3)
+		for index = 0, count do
+			local offset = (index / count - 0.5) * length
+			local base = ground + along * offset
+			local flame = newFxPart(Vector3.new(width, 1, 2), Color3.fromRGB(255, 120, 40))
+			flame.CFrame = CFrame.lookAt(base + Vector3.new(0, 0.5, 0), base + Vector3.new(0, 0.5, 0) + along:Cross(Vector3.yAxis))
+			flame.Transparency = 0.2
+			local fire = Instance.new("Fire")
+			fire.Size = 14
+			fire.Heat = 9
+			fire.Parent = flame
+			if index % 3 == 0 then
+				local glow = Instance.new("PointLight")
+				glow.Color = Color3.fromRGB(255, 150, 60)
+				glow.Range = 18
+				glow.Brightness = 2
+				glow.Parent = flame
+			end
+			Debris:AddItem(flame, duration)
+		end
+		Sfx.playAt("Explosion", ground)
+		shake(0.6, 0.3)
+	end,
 	Bell = function(center: Vector3, radius: number)
 		bellFx(center, radius)
 		Sfx.playAt("BellToll", center)
+		shake(0.9, 0.5)
 	end,
 	Explosion = function(position: Vector3, radius: number)
 		bulletExplosionFx(position, radius)
 		Sfx.playAt("SmallExplosion", position)
+		if (workspace.CurrentCamera.CFrame.Position - position).Magnitude < radius * 3 then
+			shake(0.35, 0.2)
+		end
 	end,
 	Mine = function(position: Vector3, radius: number)
 		explosion(position, radius)
 		Sfx.playAt("Explosion", position)
+		shake(0.5, 0.25)
 	end,
 }
 

@@ -28,6 +28,7 @@ export type Profile = {
 	WeaponSkins: { [string]: boolean }, -- skins de armas compradas al Sastre
 	WeaponSkin: string, -- skin de arma puesta ("" = ninguna)
 	Achievements: { [string]: boolean }, -- logros ya conseguidos
+	Daily: { Day: string, Kills: number, BossKills: number, Waves: number, Claimed: { [string]: boolean } }, -- misiones del día
 }
 
 local Progression = {}
@@ -68,6 +69,7 @@ function Progression.defaultProfile(): Profile
 		WeaponSkins = {},
 		WeaponSkin = "",
 		Achievements = {},
+		Daily = { Day = "", Kills = 0, BossKills = 0, Waves = 0, Claimed = {} },
 	}
 end
 
@@ -192,7 +194,8 @@ function Progression.getWeaponStats(profile: Profile, weaponId: string, aiming: 
 		ReloadTime = base.ReloadTime * math.max(0.3, 1 - upgrade.ReloadPerLevel * level - Progression.statValue(profile, "Reload")),
 		Range = base.Range,
 		Pellets = base.Pellets,
-		Pierce = base.Pierce,
+		-- El rifle al máximo de mejora atraviesa un zombi más
+		Pierce = base.Pierce + (if weaponId == "Rifle" and level >= Config.WeaponUpgrade.MaxLevel then 1 else 0),
 		Spread = base.Spread * (if aim then talents.AimSpread else 1),
 		CritChance = critChance + (if aim then talents.AimCrit else 0),
 		Zoom = base.Zoom,
@@ -223,6 +226,9 @@ function Progression.getPowerStats(profile: Profile, name: string)
 	elseif name == "Chain" then
 		stats.Targets += 2 * bonus
 		stats.Damage *= 1.3 ^ bonus
+	elseif name == "Firewall" then
+		stats.Damage *= 1.3 ^ bonus
+		stats.Duration += bonus
 	elseif name == "Bell" then
 		stats.Cooldown *= 0.8 ^ bonus
 		stats.KnockbackSeconds += bonus

@@ -93,6 +93,7 @@ local function processReceipt(info): Enum.ProductPurchaseDecision
 	local ok, err = pcall(grant, player, key)
 	if not ok then
 		warn(`Compra {key} de {player.Name}: {err}`)
+		Remotes.Notify:FireClient(player, "⚠️ No pudimos entregar tu compra ahora. Roblox la reintentará; si no llega, vuelve a entrar.")
 		return Enum.ProductPurchaseDecision.NotProcessedYet
 	end
 	table.insert(data.Receipts, info.PurchaseId)

@@ -55,14 +55,16 @@ function BoostUi.init()
 	gui.Parent = player:WaitForChild("PlayerGui")
 
 	holder = Instance.new("Frame")
-	holder.AnchorPoint = Vector2.new(1, 0)
-	-- Debajo del botón de la Tienda
-	holder.Position = UDim2.new(1, -16, 0, if UserInputService.TouchEnabled then 112 else 162)
+	-- PC: arriba a la derecha, debajo de los botones. Celular: a la izquierda,
+	-- debajo de la salud, para no tapar la munición ni los botones
+	local touchHud = UserInputService.TouchEnabled
+	holder.AnchorPoint = if touchHud then Vector2.new(0, 0) else Vector2.new(1, 0)
+	holder.Position = if touchHud then UDim2.new(0, 16, 0, 196) else UDim2.new(1, -16, 0, 162)
 	holder.Size = UDim2.fromOffset(150, 120)
 	holder.BackgroundTransparency = 1
 	holder.Parent = gui
 	local layout = Instance.new("UIListLayout")
-	layout.HorizontalAlignment = Enum.HorizontalAlignment.Right
+	layout.HorizontalAlignment = if UserInputService.TouchEnabled then Enum.HorizontalAlignment.Left else Enum.HorizontalAlignment.Right
 	layout.Padding = UDim.new(0, 4)
 	layout.Parent = holder
 

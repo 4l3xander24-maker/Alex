@@ -421,6 +421,11 @@ local function runWave(wave: number): boolean
 	local bosses = WaveService.getBosses(wave)
 	local nextBossIn = 0
 
+	-- Mini-jefe: un Coloso reforzado en las oleadas que no tienen jefe
+	if wave >= waves.MiniBossEvery and wave % waves.MiniBossEvery == 0 and wave % waves.BossEvery ~= 0 then
+		EnemyService.spawn("Colossus", healthMultiplier * waves.MiniBossHealth)
+		Remotes.Notify:FireAllClients("💪 ¡Mini-jefe! Un Coloso reforzado viene con la horda")
+	end
 	local toSpawn = WaveService.getEnemyCount(wave)
 	local spawnRate = WaveService.getSpawnRate(wave)
 	local budget = 0

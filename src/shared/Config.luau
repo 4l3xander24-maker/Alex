@@ -540,6 +540,24 @@ Config.Enemies = {
 		Pants = Color3.fromRGB(60, 40, 30),
 		Eyes = Color3.fromRGB(255, 170, 40),
 	},
+	-- Escupidor: se queda lejos y lanza ácido a los jugadores (ver Strike)
+	Spitter = {
+		DisplayName = "Escupidor",
+		MaxHealth = 5,
+		Speed = 4.5,
+		DamagePerSecond = 1,
+		PlayerDamage = 6,
+		Coins = 3,
+		Size = Vector2.new(3.6, 5),
+		HitRadius = 1.8,
+		Sprite = "",
+		Model = "Zombie",
+		Strike = { Name = "Escupitajo", Every = 6, Range = 45, Radius = 5, Damage = 12, Delay = 1.2, Color = Color3.fromRGB(150, 230, 60) },
+		Skin = Color3.fromRGB(140, 190, 60),
+		Shirt = Color3.fromRGB(90, 130, 40),
+		Pants = Color3.fromRGB(40, 54, 30),
+		Eyes = Color3.fromRGB(190, 255, 80),
+	},
 	-- Parásito: al morir suelta tres corredores
 	Parasite = {
 		DisplayName = "Parásito",
@@ -704,6 +722,14 @@ Config.Difficulties = {
 	{ Id = 5, Name = "Infierno", Icon = "👹", Color = Color3.fromRGB(180, 70, 220), Count = 2.0, Growth = 1.15, Health = 2.5, Spawn = 1.7, Coins = 2.4, Xp = 2.4, Goal = 16, Description = "Solo para los mejores. Premios enormes." },
 }
 
+-- Misiones diarias: se reinician cada día (UTC). Stat: Kills (bajas), BossKills
+-- (jefes) o Waves (oleadas superadas en una partida, la mejor del día).
+Config.DailyMissions = {
+	{ Id = "DKills", Icon = "🧟", Name = "Cazador del día", Description = "Elimina 150 zombis hoy", Stat = "Kills", Goal = 150, Reward = 250 },
+	{ Id = "DBoss", Icon = "👹", Name = "Rompe-jefes", Description = "Derrota 2 jefes hoy", Stat = "BossKills", Goal = 2, Reward = 300 },
+	{ Id = "DWaves", Icon = "🌊", Name = "Resistencia", Description = "Supera 6 oleadas en una partida", Stat = "Waves", Goal = 6, Reward = 400 },
+}
+
 -- Logros: se revisan al terminar cada partida. Reward = monedas. Stat: qué se mide
 -- (Kills = bajas en total, Wave = mejor oleada, BossKills = jefes de la partida,
 -- Level = nivel de cuenta, MatchKills = bajas en una partida).
@@ -789,9 +815,12 @@ Config.Waves = {
 		{ "Cone", "Knight", "Parasite" },
 		{ "Runner", "Brute", "Bomber" },
 		{ "Mutant", "Knight", "Colossus" },
-		{ "Walker", "Runner", "Cone" }, -- + el Rey
+		{ "Walker", "Runner", "Spitter" }, -- + el Rey
 	},
-	Random = { "Walker", "Runner", "Cone", "Knight", "Brute", "Mutant", "Bomber", "Parasite", "Colossus" },
+	Random = { "Walker", "Runner", "Cone", "Knight", "Brute", "Mutant", "Bomber", "Parasite", "Colossus", "Spitter" },
+	-- Cada MiniBossEvery oleadas (que no sean de jefe) sale un Coloso con MiniBossHealth veces su vida
+	MiniBossEvery = 3,
+	MiniBossHealth = 2.5,
 	-- Dificultad según cuántos jugadores hay en la partida: por cada jugador
 	-- extra, estos porcentajes de más
 	PerExtraPlayer = {
@@ -856,6 +885,9 @@ Config.Monetization = {
 		{ Id = "Shadow", Name = "Cazador de Sombras", PassId = 2040398833, Cape = rgb(30, 26, 40), Trim = rgb(150, 60, 220), Armor = true, Glow = true, Hat = "Hood" },
 		{ Id = "BoneKing", Name = "Rey de los Huesos", PassId = 2037591271, CoinPrice = 12000, Exclusive = true, Cape = rgb(226, 220, 200), Trim = rgb(40, 36, 36), Armor = true, Glow = true, Hat = "Crown" },
 		{ Id = "Inferno", Name = "Infernal", PassId = 2040596821, CoinPrice = 20000, Exclusive = true, Cape = rgb(110, 16, 10), Trim = rgb(255, 120, 30), Armor = true, Glow = true, Hat = "Horns" },
+		-- Temporada de Halloween: solo se compran hasta Until (hora UTC, segundos); quien las compró las conserva
+		{ Id = "Pumpkin", Name = "Calabaza maldita", CoinPrice = 2500, Until = 1794096000, Seasonal = "🎃 Halloween", Cape = rgb(230, 120, 20), Trim = rgb(40, 24, 10), Armor = true, Glow = true, Hat = "Brim" },
+		{ Id = "Ghost", Name = "Fantasma", CoinPrice = 3500, Until = 1794096000, Seasonal = "🎃 Halloween", Cape = rgb(220, 230, 255), Trim = rgb(120, 140, 220), Glow = true, Hat = "Hood" },
 		{ Id = "Pioneer", Name = "Pionero", Pass = "StarterPack", Exclusive = true, Cape = rgb(30, 110, 120), Trim = rgb(210, 214, 222), Armor = true, Hat = "Helmet" },
 		{ Id = "Golden", Name = "Dorada", Pass = "Vip", Exclusive = true, Cape = rgb(220, 170, 50), Trim = rgb(255, 240, 160), Armor = true, Glow = true, Hat = "Crown" },
 	},
@@ -1160,8 +1192,23 @@ Config.Powers = {
 		Description = "La campana empuja a los zombis cercanos",
 		LevelText = "-20% de espera y más empuje",
 	},
+	Firewall = {
+		DisplayName = "Muro de fuego",
+		Icon = "🔥",
+		Key = Enum.KeyCode.V,
+		Price = 600,
+		MaxLevel = 5,
+		Cooldown = 18,
+		Damage = 1.2, -- por cada pulso (cada 0.5 s) a todo zombi que lo toque
+		Length = 26,
+		Width = 5,
+		Duration = 6,
+		Range = 70,
+		Description = "Levanta un muro de fuego que quema a los zombis que lo cruzan",
+		LevelText = "+30% daño y +1 s de duración",
+	},
 }
-Config.PowerOrder = { "Grenade", "Chain", "Bell" }
+Config.PowerOrder = { "Grenade", "Chain", "Bell", "Firewall" }
 
 -- Nivel de cuenta: la XP se gana al terminar cada partida
 Config.Progression = {

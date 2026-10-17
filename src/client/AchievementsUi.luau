@@ -60,6 +60,27 @@ local function render()
 	end
 	local data = Profile.get()
 	local done = 0
+	-- Misiones del día arriba (si el día guardado no es hoy, el progreso vale 0)
+	local daily = data.Daily
+	local isToday = daily ~= nil and daily.Day == os.date("!%Y-%m-%d")
+	local head = label(list, { Size = UDim2.new(1, -10, 0, 24), Text = "📅 MISIONES DE HOY", TextSize = 16, Font = Enum.Font.GothamBlack, TextColor3 = GOLD, LayoutOrder = -100 })
+	head.Name = "DailyHeader"
+	for index, mission in Config.DailyMissions do
+		local claimed = isToday and daily.Claimed[mission.Id] == true
+		local progress = if isToday then math.min(daily[mission.Stat] or 0, mission.Goal) else 0
+		local row = Instance.new("Frame")
+		row.Size = UDim2.new(1, -10, 0, 44)
+		row.BackgroundColor3 = ROW
+		row.LayoutOrder = -99 + index
+		row.Parent = list
+		round(row, 10)
+		label(row, { Position = UDim2.fromOffset(8, 0), Size = UDim2.fromOffset(40, 44), Text = mission.Icon, TextSize = 22, TextXAlignment = Enum.TextXAlignment.Center })
+		label(row, { Position = UDim2.fromOffset(52, 4), Size = UDim2.new(1, -170, 0, 18), Text = mission.Name, TextSize = 14, Font = Enum.Font.GothamBlack, TextColor3 = if claimed then GREEN else Color3.new(1, 1, 1) })
+		label(row, { Position = UDim2.fromOffset(52, 22), Size = UDim2.new(1, -170, 0, 16), Text = mission.Description, TextSize = 11, TextColor3 = Color3.fromRGB(190, 200, 195) })
+		label(row, { AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -10, 0, 4), Size = UDim2.fromOffset(110, 18), Text = if claimed then "¡Cumplida!" else `{progress} / {mission.Goal}`, TextSize = 13, TextXAlignment = Enum.TextXAlignment.Right, TextColor3 = if claimed then GREEN else Color3.new(1, 1, 1) })
+		label(row, { AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -10, 0, 22), Size = UDim2.fromOffset(110, 18), Text = `💰 {mission.Reward}`, TextSize = 13, TextXAlignment = Enum.TextXAlignment.Right, TextColor3 = GOLD })
+	end
+	label(list, { Size = UDim2.new(1, -10, 0, 24), Text = "🏆 LOGROS", TextSize = 16, Font = Enum.Font.GothamBlack, TextColor3 = GOLD, LayoutOrder = -90 })
 	for index, achievement in Config.Achievements do
 		local unlocked = data.Achievements[achievement.Id] == true
 		if unlocked then

@@ -307,9 +307,18 @@ function WorldFx.init()
 	end)
 	Players.LocalPlayer:GetAttributeChangedSignal("QualityMode"):Connect(applyQuality)
 
+	-- Si la calidad está en Automática y el juego va muy lento, pasa solo a Baja
+	local slowTime = 0
 	local frame = 0
 	RunService.RenderStepped:Connect(function(dt)
 		frame += 1
+		if (Players.LocalPlayer:GetAttribute("QualityMode") or "Auto") == "Auto" and not lowQuality then
+			slowTime = if dt > 1 / 28 then slowTime + dt else math.max(0, slowTime - dt * 2)
+			if slowTime > 6 then
+				slowTime = 0
+				Players.LocalPlayer:SetAttribute("QualityMode", "Low")
+			end
+		end
 		SkyFx.step(dt)
 		local clock = os.clock()
 		-- Cada 2 cuadros alcanza para que el fuego se vea vivo. En calidad baja

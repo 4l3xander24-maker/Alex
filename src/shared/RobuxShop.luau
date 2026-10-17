@@ -151,6 +151,11 @@ local function refresh()
 	for index, skin in monetization.Skins do
 		local entry = state.Skins[index]
 		local info = skin :: any
+		-- Skin de temporada que ya pasó: solo la ve quien la compró
+		local expired = info.Until ~= nil and os.time() > info.Until
+		if expired and not entry.Owned then
+			continue
+		end
 		local parts = { "Capa" }
 		if info.Armor then
 			table.insert(parts, "hombreras")
@@ -162,6 +167,9 @@ local function refresh()
 			table.insert(parts, "brillo mágico")
 		end
 		local description = table.concat(parts, ", ")
+		if info.Seasonal then
+			description ..= `  ·  {info.Seasonal}`
+		end
 		local buttons: { Button } = {}
 		if entry.Owned then
 			local isOn = equippedId == skin.Id

@@ -788,6 +788,43 @@ end
 
 StoreService.init()
 
+-- Perfil: el Lobby solo lee tu perfil de la partida (nivel, récords, logros)
+local profileRemote = Instance.new("RemoteFunction")
+profileRemote.Name = "LobbyProfile"
+profileRemote.Parent = ReplicatedStorage
+local profileCache: { [Player]: { number } } = {}
+profileRemote.OnServerInvoke = function(player: Player)
+	local last = profileCache[player]
+	if last and os.clock() - last[1] < 5 then
+		return nil
+	end
+	profileCache[player] = { os.clock() }
+	local ok, data = pcall(function()
+		return game:GetService("DataStoreService"):GetDataStore("CampanaMaldita_v1"):GetAsync("player_" .. player.UserId)
+	end)
+	if not ok or type(data) ~= "table" then
+		return nil
+	end
+	local achievements = 0
+	for _ in data.Achievements or {} do
+		achievements += 1
+	end
+	return {
+		Level = data.Level or 1,
+		BestWave = data.BestWave or 0,
+		TotalKills = data.TotalKills or 0,
+		Achievements = achievements,
+		Difficulty = data.Difficulty or 1,
+		Pets = (function()
+			local count = 0
+			for _ in data.Pets or {} do
+				count += 1
+			end
+			return count
+		end)(),
+	}
+end
+
 -- Reconexión: si te desconectaste de una partida que sigue en curso, al volver
 -- al Lobby te sale un botón para regresar a ella
 local reconnectOffer = Instance.new("RemoteEvent")
