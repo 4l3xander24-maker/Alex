@@ -9,6 +9,7 @@
 --     en celulares apaga el desenfoque, los rayos de sol y baja las partículas.
 local CollectionService = game:GetService("CollectionService")
 local Lighting = game:GetService("Lighting")
+local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
@@ -57,6 +58,13 @@ end
 -- Nivel de calidad gráfica que eligió el jugador (1 a 10). En "Automático"
 -- Roblox no dice el nivel real, así que en celular asumimos uno bajo.
 local function getQualityLevel(): number
+	-- Ajuste manual del menú (Auto, Bajo o Alto)
+	local override = Players.LocalPlayer:GetAttribute("QualityMode")
+	if override == "Low" then
+		return 1
+	elseif override == "High" then
+		return 10
+	end
 	local ok, level = pcall(function()
 		return UserSettings():GetService("UserGameSettings").SavedQualityLevel.Value
 	end)
@@ -297,6 +305,7 @@ function WorldFx.init()
 	pcall(function()
 		UserSettings():GetService("UserGameSettings"):GetPropertyChangedSignal("SavedQualityLevel"):Connect(applyQuality)
 	end)
+	Players.LocalPlayer:GetAttributeChangedSignal("QualityMode"):Connect(applyQuality)
 
 	local frame = 0
 	RunService.RenderStepped:Connect(function(dt)

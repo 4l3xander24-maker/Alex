@@ -9,6 +9,7 @@
 local TweenService = game:GetService("TweenService")
 
 local Config = require(game:GetService("ReplicatedStorage").Shared.Config)
+local Paths = require(game:GetService("ReplicatedStorage").Shared.Paths)
 local Props = require(script.Parent.Props)
 
 local makePart, makeProp = Props.makePart, Props.makeProp
@@ -253,6 +254,42 @@ end
 function BellTower.collapse()
 	if built then
 		moveTo(false, true)
+	end
+end
+
+-- Refuerzo visible (lo compra el Intendente): cada nivel suma estacas de piedra
+-- alrededor del montículo; desde el nivel 4 un aro de luz, y al nivel 8 una
+-- corona brillante. Va aparte de la campana, así no estorba al derrumbe.
+local armorFolder: Folder? = nil
+local ARMOR_RADIUS = 11
+
+function BellTower.setArmorLevel(level: number)
+	if armorFolder then
+		armorFolder:Destroy()
+		armorFolder = nil
+	end
+	if level <= 0 then
+		return
+	end
+	local folder = Instance.new("Folder")
+	folder.Name = "BellArmor"
+	folder.Parent = workspace
+	armorFolder = folder
+	local base = Config.Arena.Bell
+	local y = Paths.walkHeight(base)
+	local stakes = math.min(4 + level * 2, 20)
+	for index = 1, stakes do
+		local angle = index / stakes * math.pi * 2
+		local position = Vector3.new(base.X + math.cos(angle) * ARMOR_RADIUS, y, base.Z + math.sin(angle) * ARMOR_RADIUS)
+		local height = 3 + level * 0.35
+		makeProp({ Name = "ArmorStake", Size = Vector3.new(1.4, height, 1.4), CFrame = CFrame.lookAt(position + Vector3.new(0, height / 2, 0), Vector3.new(base.X, y + height / 2, base.Z)), Material = Enum.Material.Slate, Color = STONE, Parent = folder })
+		if level >= 3 then
+			makeProp({ Name = "ArmorSpike", Size = Vector3.new(0.5, 1.2, 0.5), CFrame = CFrame.new(position + Vector3.new(0, height + 0.5, 0)), Material = Enum.Material.Metal, Color = IRON, Parent = folder })
+		end
+	end
+	if level >= 4 then
+		local ring = makeProp({ Name = "ArmorRing", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.3, ARMOR_RADIUS * 2, ARMOR_RADIUS * 2), CFrame = CFrame.new(base.X, y + 0.3, base.Z) * UPRIGHT, Material = Enum.Material.Neon, Color = if level >= 8 then GOLD else Color3.fromRGB(110, 200, 255), Transparency = 0.55, Parent = folder })
+		Props.light(ring, ring.Color, 22, 1.2)
 	end
 end
 

@@ -76,7 +76,8 @@ function PetService.init()
 			local wave = GameState.get("Wave") or 1
 			for _, player in Players:GetPlayers() do
 				local petId = player:GetAttribute("Pet")
-				if typeof(petId) == "string" and petId ~= "" and now >= (nextAttack[player] or 0) then
+				local stunned = (player:GetAttribute("PetStunUntil") or 0) > workspace:GetServerTimeNow()
+				if typeof(petId) == "string" and petId ~= "" and not stunned and now >= (nextAttack[player] or 0) then
 					attack(player, petId, now, wave)
 				end
 			end

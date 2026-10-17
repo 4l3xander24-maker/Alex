@@ -26,6 +26,7 @@ type Render = {
 	LungeStart: number,
 	LungeTarget: Vector3,
 	Phase: number,
+	Stunned: boolean?,
 }
 
 local CREAM = Color3.fromRGB(236, 220, 170)
@@ -306,6 +307,14 @@ local function update(dt: number)
 			end
 		end
 		workspace:BulkMoveTo(render.Parts, cframes, Enum.BulkMoveMode.FireCFrameChanged)
+		-- Aturdido: se ve apagado mientras no pelea
+		local stunned = (owner:GetAttribute("PetStunUntil") or 0) > workspace:GetServerTimeNow()
+		if stunned ~= render.Stunned then
+			render.Stunned = stunned
+			for _, part in render.Parts do
+				part.Transparency = if stunned then 0.6 else 0
+			end
+		end
 	end
 end
 

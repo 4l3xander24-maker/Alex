@@ -5,6 +5,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Config = require(Shared.Config)
 local Progression = require(Shared.Progression)
 local Remotes = require(Shared.Remotes)
 local Profile = require(script.Parent.Profile)
@@ -126,6 +127,10 @@ local function show(summary)
 	local dead = gameState ~= nil and gameState:GetAttribute("EndReason") == "Dead"
 	makeLabel(panel, if dead then "¡CAÍSTE!" else "¡LA CAMPANA CAYÓ!", 32, Color3.fromRGB(255, 90, 80))
 	makeLabel(panel, `Llegaste a la oleada {summary.Wave}`, 20)
+	-- Estrellas según qué tan cerca quedaste de la meta de la dificultad
+	local difficulty = Config.Difficulties[(gameState and gameState:GetAttribute("Difficulty")) or 1] or Config.Difficulties[1]
+	local stars = 1 + (if summary.Waves >= math.ceil(difficulty.Goal / 2) then 1 else 0) + (if summary.Waves >= difficulty.Goal then 1 else 0)
+	makeLabel(panel, string.rep("⭐", stars) .. string.rep("☆", 3 - stars) .. `   (meta: oleada {difficulty.Goal})`, 22, GOLD, 28)
 	makeLabel(panel, `🌊 Oleadas superadas: {summary.Waves}     🧟 Bajas: {summary.Kills}     💀 Jefes: {summary.BossKills}`, 17, nil, 26)
 	if summary.NewRecord then
 		local beaten = if summary.PreviousBest > 0 then ` (antes {summary.PreviousBest})` else ""
@@ -135,6 +140,17 @@ local function show(summary)
 	end
 	makeLabel(panel, `💰 +{summary.Coins} monedas     ⭐ +{summary.Xp} XP de cuenta`, 20, GOLD)
 	teamTable(summary.Team or {})
+	-- Mejor jugador del equipo (más bajas), si hay más de uno
+	local team = summary.Team or {}
+	if #team > 1 then
+		local best = team[1]
+		for _, row in team do
+			if row.Kills > best.Kills then
+				best = row
+			end
+		end
+		makeLabel(panel, `👑 Mejor del equipo: {best.Name} ({best.Kills} bajas)`, 16, Color3.fromRGB(255, 225, 140), 22)
+	end
 
 	local data = Profile.get()
 	local bar = Instance.new("Frame")

@@ -74,6 +74,7 @@ EnemyService.setKillHandler(function(player, enemy)
 	PlayerService.onKill(player)
 	CombatService.grantKillAmmo(player)
 	PowerupService.onKill(enemy.IsBoss, WaveService.getCurrentWave())
+	WaveService.onKill(enemy.Type)
 end)
 Remotes.GetSnapshot.OnServerInvoke = EnemyService.getSnapshot
 

@@ -719,6 +719,16 @@ Config.Achievements = {
 	{ Id = "Match200", Icon = "🔥", Name = "Racha", Description = "200 bajas en una sola partida", Stat = "MatchKills", Goal = 200, Reward = 500 },
 }
 
+-- Objetivos secundarios: en algunas oleadas pide matar N zombis de un tipo que
+-- venga en esa oleada, antes de que termine. Premio: monedas para todos.
+Config.Objectives = {
+	Chance = 0.4,
+	FirstWave = 2,
+	KillsBase = 8, -- cuántos pide en la primera oleada con objetivo
+	KillsPerWave = 1.2,
+	RewardPerKill = 6, -- monedas por cada zombi pedido, a cada jugador
+}
+
 -- Eventos de oleada: a veces una oleada (no de jefe, desde la 3) trae un giro.
 -- Los números multiplican la cantidad, vida y velocidad de aparición de los
 -- zombis y las monedas que dan.
@@ -1081,6 +1091,8 @@ Config.Pets = {
 		Description = "Escupe fuego que quema a varios zombis",
 	},
 }
+Config.Pets.StunDamage = 2.5 -- daño de un golpe que aturde al compañero
+Config.Pets.StunTime = 3.5
 Config.PetOrder = { "Bat", "Wolf", "Owl", "Dragonling" }
 
 -- Compañeros del Capitán (isla del Mercado): pelean a tu lado igual que las

@@ -15,6 +15,7 @@ local Sounds = require(Shared.Sounds)
 -- horda no se vuelva ruido
 local MIN_GAP = {
 	ZombieDeath = 0.08,
+	ZombieGrowl = 0.9,
 	HitMarker = 0.05,
 	BellHit = 0.4,
 	PlayerHurt = 0.25,
@@ -41,7 +42,18 @@ local function pickId(spec): number
 	return spec.Id
 end
 
-local function newSound(spec, parent: Instance): Sound
+-- Grupos de volumen que controla el menú de ajustes
+local function getGroup(name: string): SoundGroup
+	local group = SoundService:FindFirstChild(name)
+	if not group then
+		group = Instance.new("SoundGroup")
+		group.Name = name
+		group.Parent = SoundService
+	end
+	return group :: SoundGroup
+end
+
+local function newSound(spec, parent: Instance, music: boolean?): Sound
 	local sound = Instance.new("Sound")
 	sound.SoundId = `rbxassetid://{pickId(spec)}`
 	sound.Volume = spec.Volume or 0.5
@@ -53,6 +65,7 @@ local function newSound(spec, parent: Instance): Sound
 		sound.RollOffMinDistance = MIN_DISTANCE
 		sound.RollOffMaxDistance = spec.Distance
 	end
+	sound.SoundGroup = getGroup(if music then "MusicGroup" else "SfxGroup")
 	sound.Parent = parent
 	return sound
 end
@@ -123,7 +136,7 @@ local function setMusic(track: string)
 		Debris:AddItem(old, Sounds.MusicFade)
 	end
 	local spec = Sounds.Music[track]
-	local sound = newSound(spec, SoundService)
+	local sound = newSound(spec, SoundService, true)
 	sound.Looped = true
 	sound.Volume = 0
 	sound:Play()
@@ -202,7 +215,7 @@ local function bellPosition(): Vector3?
 end
 
 function Sfx.init()
-	local ambience = newSound(Sounds.Ambience, SoundService)
+	local ambience = newSound(Sounds.Ambience, SoundService, true)
 	ambience.Looped = true
 	ambience:Play()
 

@@ -22,6 +22,7 @@ local DeathFx = require(script.Parent.DeathFx)
 local ZombieAnimator = require(script.Parent.ZombieAnimator)
 local ZombieModels = require(script.Parent.ZombieModels)
 local Sfx = require(script.Parent.Sfx)
+local ComboUi = require(script.Parent.ComboUi)
 local XpDrops = require(script.Parent.XpDrops)
 
 local FLASH_COLOR = Color3.new(1, 1, 1)
@@ -452,6 +453,8 @@ local function flashEnemy(id: number)
 	end
 end
 
+local nextGrowl = 0
+
 local function render(dt: number)
 	frame += 1
 	local now = workspace:GetServerTimeNow()
@@ -470,6 +473,11 @@ local function render(dt: number)
 		position += Vector3.new(0, Paths.walkHeight(position), 0)
 		local toEnemy = position - cameraPosition
 		local distance = toEnemy.Magnitude
+		-- Gruñidos de los que están cerca: de vez en cuando uno suelta uno
+		if distance < 50 and clock > nextGrowl and math.random() < 0.04 then
+			nextGrowl = clock + 1.2
+			Sfx.playAt("ZombieGrowl", position)
+		end
 
 		-- Detrás de la cámara no hace falta moverlo: se ubica en cuanto vuelva a verse
 		local behind = distance > graphics.CullBehindDistance + visual.Extent and toEnemy:Dot(look) < -visual.Extent
@@ -634,6 +642,7 @@ function EnemyRenderer.init()
 				-- Rombo de experiencia que vuela hacia quien lo mató
 				XpDrops.spawn(EnemyMath.getPosition(visual.Path, workspace:GetServerTimeNow()), death[3] or 0, visual.Type)
 			end
+			ComboUi.onKill(death[3] or 0)
 			showDamage(death[1], death[2], true)
 			removeEnemy(death[1], true)
 		end

@@ -57,14 +57,37 @@ function BoostUi.init()
 	holder = Instance.new("Frame")
 	holder.AnchorPoint = Vector2.new(1, 0)
 	-- Debajo del botón de la Tienda
-	holder.Position = UDim2.new(1, -16, 0, if UserInputService.TouchEnabled then 112 else 124)
-	holder.Size = UDim2.fromOffset(132, 120)
+	holder.Position = UDim2.new(1, -16, 0, if UserInputService.TouchEnabled then 112 else 162)
+	holder.Size = UDim2.fromOffset(150, 120)
 	holder.BackgroundTransparency = 1
 	holder.Parent = gui
 	local layout = Instance.new("UIListLayout")
 	layout.HorizontalAlignment = Enum.HorizontalAlignment.Right
 	layout.Padding = UDim.new(0, 4)
 	layout.Parent = holder
+
+	-- Objetivo secundario de la oleada (texto que publica el servidor)
+	local gameState = ReplicatedStorage:WaitForChild("GameState")
+	local objectiveChip = Instance.new("TextLabel")
+	objectiveChip.Size = UDim2.fromOffset(150, 24)
+	objectiveChip.BackgroundColor3 = Color3.fromRGB(20, 22, 28)
+	objectiveChip.BackgroundTransparency = 0.3
+	objectiveChip.Font = Enum.Font.GothamBold
+	objectiveChip.TextSize = 13
+	objectiveChip.TextColor3 = Color3.fromRGB(255, 225, 140)
+	objectiveChip.LayoutOrder = -1
+	objectiveChip.Visible = false
+	objectiveChip.Parent = holder
+	local objectiveCorner = Instance.new("UICorner")
+	objectiveCorner.CornerRadius = UDim.new(1, 0)
+	objectiveCorner.Parent = objectiveChip
+	local function showObjective()
+		local text = gameState:GetAttribute("Objective")
+		objectiveChip.Visible = typeof(text) == "string" and text ~= ""
+		objectiveChip.Text = if objectiveChip.Visible then text else ""
+	end
+	gameState:GetAttributeChangedSignal("Objective"):Connect(showObjective)
+	showObjective()
 
 	Remotes.Boost.OnClientEvent:Connect(function(name: string, duration: number)
 		local info = Config.Powerups.Types[name]

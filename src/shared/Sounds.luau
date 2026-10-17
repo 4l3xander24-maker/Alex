@@ -22,6 +22,9 @@ return {
 	-- Zombis: solo suenan al morir (en el mundo, más bajo cuanto más lejos)
 	ZombieDeath = { Ids = { 9113607285, 9113607683 }, Volume = 0.6, PitchRange = { 0.8, 1.0 }, Distance = 80 },
 
+	-- Gruñidos de los zombis cercanos (los mismos audios de muerte, más graves y bajitos)
+	ZombieGrowl = { Ids = { 9113607285, 9113607683 }, Volume = 0.22, PitchRange = { 0.55, 0.75 }, Distance = 45 },
+
 	-- Poderes y trampas
 	Explosion = { Id = 9114224354, Volume = 0.8, PitchRange = { 0.9, 1.05 }, Distance = 200 },
 	SmallExplosion = { Id = 9114224354, Volume = 0.35, PitchRange = { 1.4, 1.6 }, Distance = 80 },

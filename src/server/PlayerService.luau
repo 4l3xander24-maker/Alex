@@ -81,6 +81,10 @@ function PlayerService.damagePlayer(player: Player, amount: number)
 		return
 	end
 	state.LastDamaged = now
+	-- El compañero se aturde un rato cuando te golpean fuerte (deja de pelear)
+	if amount >= Config.Pets.StunDamage then
+		player:SetAttribute("PetStunUntil", workspace:GetServerTimeNow() + Config.Pets.StunTime)
+	end
 
 	if humanoid.Health - amount <= 0 and not state.LastStandUsed and hasTalent(player, "LastStand") then
 		state.LastStandUsed = true

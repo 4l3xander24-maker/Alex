@@ -130,6 +130,53 @@ Remotes.SelectDifficulty.OnServerEvent:Connect(function(player, id)
 	end
 end)
 
+-- Objetivo secundario de la oleada (Config.Objectives): matar N de un tipo
+local objective: { Type: string, Goal: number, Count: number, Done: boolean }? = nil
+
+local function publishObjective()
+	local text = ""
+	if objective then
+		local info = Config.Enemies[objective.Type]
+		text = if objective.Done then `✅ {info.DisplayName}: ¡cumplido!` else `🎯 {info.DisplayName}: {objective.Count}/{objective.Goal}`
+	end
+	GameState.set("Objective", text)
+end
+
+local function rollObjective(wave: number)
+	objective = nil
+	local settings = Config.Objectives
+	if wave < settings.FirstWave or wave % waves.BossEvery == 0 or random:NextNumber() >= settings.Chance then
+		publishObjective()
+		return
+	end
+	local lineup = WaveService.getLineup(wave)
+	local typeName = lineup[random:NextInteger(1, #lineup)]
+	local goal = math.floor(settings.KillsBase + settings.KillsPerWave * (wave - settings.FirstWave))
+	objective = { Type = typeName, Goal = goal, Count = 0, Done = false }
+	publishObjective()
+	Remotes.Notify:FireAllClients(`🎯 Objetivo: elimina {goal} {Config.Enemies[typeName].DisplayName} (+{goal * settings.RewardPerKill} monedas)`)
+end
+
+-- Cada baja cuenta para el objetivo
+function WaveService.onKill(typeName: string)
+	local current = objective
+	if not current or current.Done or current.Type ~= typeName then
+		return
+	end
+	current.Count += 1
+	if current.Count >= current.Goal then
+		current.Done = true
+		local reward = current.Goal * Config.Objectives.RewardPerKill
+		for _, player in Players:GetPlayers() do
+			if DataService.get(player) then
+				DataService.addCoins(player, reward)
+			end
+		end
+		Remotes.Notify:FireAllClients(`✅ ¡Objetivo cumplido! +{reward} monedas para todos`)
+	end
+	publishObjective()
+end
+
 -- Evento de la oleada en curso (Config.WaveEvents), o nil
 local waveEvent: { Count: number, Health: number, Spawn: number, Coins: number }? = nil
 
@@ -361,6 +408,7 @@ local function runWave(wave: number): boolean
 	GameState.set("State", "Wave")
 	PlayerService.onWaveStart()
 	rollWaveEvent(wave)
+	rollObjective(wave)
 	-- Avisa qué zombis vienen en esta oleada
 	local names = {}
 	for _, typeName in WaveService.getLineup(wave) do
@@ -496,6 +544,7 @@ function WaveService.start()
 			end
 
 			GameState.resetBell(WaveService.getBellMaxHealth())
+			BellTower.setArmorLevel((WaveService.getBellMaxHealth() - Config.Bell.MaxHealth) // Config.Bell.Armor.HealthPerLevel)
 			-- Todos empiezan la partida con la munición inicial
 			CombatService.resetAll()
 			table.clear(lineups)
