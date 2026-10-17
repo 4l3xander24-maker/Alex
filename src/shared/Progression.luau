@@ -28,6 +28,8 @@ export type Profile = {
 	WeaponSkins: { [string]: boolean }, -- skins de armas compradas al Sastre
 	WeaponSkin: string, -- skin de arma puesta ("" = ninguna)
 	Achievements: { [string]: boolean }, -- logros ya conseguidos
+	ObjectSkins: { [string]: boolean }, -- skins de minas, rejas y campana que tiene
+	ObjectSkinOn: { Mine: string, Gate: string, Bell: string }, -- la que lleva puesta de cada una
 	Daily: { Day: string, Kills: number, BossKills: number, Waves: number, Claimed: { [string]: boolean } }, -- misiones del día
 }
 
@@ -69,6 +71,8 @@ function Progression.defaultProfile(): Profile
 		WeaponSkins = {},
 		WeaponSkin = "",
 		Achievements = {},
+		ObjectSkins = {},
+		ObjectSkinOn = { Mine = "", Gate = "", Bell = "" },
 		Daily = { Day = "", Kills = 0, BossKills = 0, Waves = 0, Claimed = {} },
 	}
 end

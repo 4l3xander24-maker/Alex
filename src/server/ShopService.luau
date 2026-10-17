@@ -17,7 +17,7 @@ local CLOSED = "🔒 Las tiendas solo abren antes de la partida"
 -- Acciones que se pueden hacer en cualquier momento
 -- Mejoras y talentos se reparten en cualquier momento (también al terminar la
 -- partida, después de subir de nivel)
-local ALWAYS_ALLOWED = { EquipWeapon = true, RepairVillageBridge = true, EquipPet = true, EquipWeaponSkin = true, FinishTutorial = true, AddStat = true, LearnTalent = true }
+local ALWAYS_ALLOWED = { EquipWeapon = true, RepairVillageBridge = true, EquipPet = true, EquipWeaponSkin = true, EquipObjectSkin = true, FinishTutorial = true, AddStat = true, LearnTalent = true }
 
 local ShopService = {}
 
@@ -245,6 +245,53 @@ function actions.EquipWeaponSkin(_player, data, id)
 	end
 	data.WeaponSkin = id
 	return true, `Skin {weaponSkin(id).Name} puesta`
+end
+
+-- Skins de objetos (minas, rejas, campana) con monedas; las Premium van con Robux
+local function objectSkin(id: string)
+	for _, skin in Config.ObjectSkins do
+		if skin.Id == id then
+			return skin
+		end
+	end
+	return nil
+end
+
+function actions.BuyObjectSkin(player, data, id)
+	local skin = objectSkin(id)
+	if not skin then
+		return false, "Skin desconocida"
+	end
+	if data.ObjectSkins[id] then
+		return false, "Ya tienes esta skin"
+	end
+	if not skin.CoinPrice then
+		return false, "Esta skin Premium se compra con Robux"
+	end
+	if not DataService.spendCoins(player, skin.CoinPrice) then
+		return false, NOT_ENOUGH
+	end
+	data.ObjectSkins[id] = true
+	data.ObjectSkinOn[skin.Kind] = id
+	return true, `{skin.Icon} ¡{skin.Name} puesta!`
+end
+
+-- id = "Mine:MineIce" para ponerla, "Mine:" para volver a la normal
+function actions.EquipObjectSkin(_player, data, id)
+	local kind, skinId = string.match(id, "^(%a+):(.*)$")
+	if not kind or data.ObjectSkinOn[kind] == nil then
+		return false, "Acción inválida"
+	end
+	if skinId == "" then
+		data.ObjectSkinOn[kind] = ""
+		return true, "Skin normal"
+	end
+	local skin = objectSkin(skinId)
+	if not skin or skin.Kind ~= kind or not data.ObjectSkins[skinId] then
+		return false, "No tienes esta skin"
+	end
+	data.ObjectSkinOn[kind] = skinId
+	return true, `{skin.Icon} {skin.Name} puesta`
 end
 
 -- Para avisos fuera de las ventanas de tienda (como el letrero del puente)

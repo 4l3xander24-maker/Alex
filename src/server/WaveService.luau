@@ -549,6 +549,15 @@ function WaveService.start()
 			end
 
 			GameState.resetBell(WaveService.getBellMaxHealth())
+			-- Skin de la campana: la del primer jugador que tenga una puesta
+			local bellSkin = nil
+			for _, player in Players:GetPlayers() do
+				bellSkin = TrapService.skinOf(player, "Bell")
+				if bellSkin then
+					break
+				end
+			end
+			BellTower.setSkin(bellSkin)
 			BellTower.setArmorLevel((WaveService.getBellMaxHealth() - Config.Bell.MaxHealth) // Config.Bell.Armor.HealthPerLevel)
 			-- Todos empiezan la partida con la munición inicial
 			CombatService.resetAll()

@@ -36,3 +36,6 @@ Sugerido: 99 R$ las comunes (Crimson, Royal), 149 R$ Emerald y Shadow, 249–349
 ## Estado
 - Los 9 productos (Revivir, Continuar, 2 bolsas, Gólem, Fénix, 3 skins de arma) ya están creados y sus ids puestos en Config (precios: 25, 49, 49, 149, 299, 399, 99, 129, 199 R$; Precios administrados desactivados).
 - Los 9 pases también están creados y conectados: Pack Inicial 199, Monedas x2 399, VIP 299, Capa Carmesí 99, Capa Real 99, Caballero Esmeralda 149, Cazador de Sombras 149, Rey de los Huesos 249, Infernal 349 R$.
+
+## Skins de objetos (Premium)
+Mina galáctica 79, Mina de oro 129, Reja de fuego 99, Reja de cristal 149, Campana dorada 149 y Campana infernal 199 R$: creadas y conectadas.

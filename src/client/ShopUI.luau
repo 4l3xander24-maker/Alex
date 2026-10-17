@@ -98,13 +98,24 @@ local function isOpen(): boolean
 end
 
 -- Una fila: ícono, nombre, descripción y hasta dos botones a la derecha
-local function row(icon: string, name: string, description: string, buttons: { ButtonSpec }, nameColor: Color3?)
+local function row(icon: string, name: string, description: string, buttons: { ButtonSpec }, nameColor: Color3?, premium: boolean?)
 	local frame = Instance.new("Frame")
 	frame.Size = UDim2.new(1, -10, 0, 86)
-	frame.BackgroundColor3 = ROW
+	frame.BackgroundColor3 = if premium then Color3.fromRGB(52, 36, 78) else ROW
 	frame.LayoutOrder = nextOrder()
 	frame.Parent = list
 	round(frame, 10)
+	-- Premium (Robux): borde violeta y degradado dorado, para que resalten
+	if premium then
+		local glow = Instance.new("UIStroke")
+		glow.Color = Color3.fromRGB(200, 120, 255)
+		glow.Thickness = 2.5
+		glow.Parent = frame
+		local shine = Instance.new("UIGradient")
+		shine.Color = ColorSequence.new(Color3.fromRGB(255, 255, 255), Color3.fromRGB(255, 225, 150))
+		shine.Rotation = 20
+		shine.Parent = frame
+	end
 
 	label(frame, { Position = UDim2.fromOffset(10, 0), Size = UDim2.fromOffset(54, 86), Text = icon, TextSize = 34, TextXAlignment = Enum.TextXAlignment.Center })
 	label(frame, { Position = UDim2.fromOffset(70, 8), Size = UDim2.new(1, -330, 0, 24), Text = name, TextSize = 18, Font = Enum.Font.GothamBlack, TextColor3 = nameColor or Color3.new(1, 1, 1) })
@@ -305,6 +316,40 @@ local function renderCaptain(data: Progression.Profile, coins: number)
 	end
 end
 
+-- Skins de objetos (minas, rejas, campana): las de monedas son normales; las
+-- Premium (Robux) salen con borde violeta, estrella y brillo dorado
+local KIND_NAMES = { Mine = "Minas", Gate = "Rejas", Bell = "Campana" }
+local function renderObjectSkins(data: Progression.Profile, coins: number)
+	for _, kind in { "Mine", "Gate", "Bell" } do
+		local equipped = data.ObjectSkinOn[kind]
+		sectionHeader(`Skins de {KIND_NAMES[kind]:lower()}`)
+		row("⬜", "Normal", "El aspecto de siempre.", { { Text = if equipped == "" then "Puesta" else "Poner", Enabled = equipped ~= "", OnClick = function()
+			runAction("EquipObjectSkin", `{kind}:`)
+		end } })
+		for _, skin in Config.ObjectSkins do
+			if skin.Kind == kind then
+				local owned = data.ObjectSkins[skin.Id]
+				local buttons: { ButtonSpec } = {}
+				if owned then
+					table.insert(buttons, { Text = if equipped == skin.Id then "Puesta" else "Poner", Enabled = equipped ~= skin.Id, OnClick = function()
+						runAction("EquipObjectSkin", `{kind}:{skin.Id}`)
+					end })
+				elseif skin.Product then
+					table.insert(buttons, { Text = "Robux 💎", Enabled = true, OnClick = function()
+						buyProduct(skin.Product)
+					end })
+				else
+					table.insert(buttons, { Text = `Comprar 💰{skin.CoinPrice}`, Enabled = coins >= skin.CoinPrice, OnClick = function()
+						runAction("BuyObjectSkin", skin.Id)
+					end })
+				end
+				local description = if skin.Premium then "★ PREMIUM: brilla y suelta chispas. Solo con Robux." else "Cambia el color. Se compra con monedas."
+				row(skin.Icon, (if skin.Premium then "★ " else "") .. skin.Name, description, buttons, if skin.Premium then Color3.fromRGB(235, 190, 255) elseif equipped == skin.Id then GREEN else nil, skin.Premium)
+			end
+		end
+	end
+end
+
 local function renderTailor(data: Progression.Profile, coins: number)
 	sectionHeader("Trajes  ·  capas, armaduras y sombreros")
 	row("🧥", "Trajes y capas", "Capas de viajero, de cazador, reales y más. Se pagan con monedas o Robux.", { { Text = "Abrir trajes", Enabled = true, OnClick = function()
@@ -336,6 +381,7 @@ local function renderTailor(data: Progression.Profile, coins: number)
 		end
 		row(skin.Icon, `Skin {skin.Name}`, if skin.Glow then "Brilla con luz propia." else "Color nuevo para tus armas.", buttons, if data.WeaponSkin == skin.Id then GREEN else nil)
 	end
+	renderObjectSkins(data, coins)
 end
 
 -- Veterano al estilo de Guns 'n Goblins: dos columnas en letra pixelada.

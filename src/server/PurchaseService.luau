@@ -66,6 +66,17 @@ local function grant(player: Player, key: string)
 			data.Pet = product.Pet
 			Remotes.Notify:FireClient(player, `{product.Icon} ¡{product.Name} ahora pelea a tu lado!`)
 		end
+	elseif product.ObjectSkin then
+		local data = DataService.get(player)
+		if data then
+			data.ObjectSkins[product.ObjectSkin] = true
+			for _, skin in Config.ObjectSkins do
+				if skin.Id == product.ObjectSkin then
+					data.ObjectSkinOn[skin.Kind] = skin.Id
+				end
+			end
+			Remotes.Notify:FireClient(player, `{product.Icon} ¡{product.Name} puesta!`)
+		end
 	elseif product.WeaponSkin then
 		local data = DataService.get(player)
 		if data then

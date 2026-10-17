@@ -21,7 +21,7 @@ local IRON = Color3.fromRGB(60, 62, 68)
 local STONE = Props.Colors.Stone
 local makePart, makeProp = Props.makePart, Props.makeProp
 
-type Mine = { Position: Vector3, Owner: Player, Model: Model, Level: number }
+type Mine = { Position: Vector3, Owner: Player, Model: Model, Level: number, Skin: any }
 type Gate = {
 	Id: string,
 	A: Vector3,
@@ -36,6 +36,7 @@ type Gate = {
 	Lift: number,
 	Base: CFrame,
 	Burn: number, -- cuenta para el daño del fuego (nivel 3)
+	Skin: any,
 }
 
 -- Lugar fijo donde se puede poner una trampa: aparece como un fantasma celeste
@@ -117,21 +118,56 @@ local function attachUpgrade(kind: string, key: string, model: Model, anchor: Ba
 	refreshSlots()
 end
 
+-- Skin puesta por el jugador para ese tipo de objeto (nil = la normal)
+local function skinOf(player: Player?, kind: string): any
+	local data = player and DataService.get(player)
+	local id = data and data.ObjectSkinOn[kind]
+	if not id or id == "" then
+		return nil
+	end
+	for _, skin in Config.ObjectSkins do
+		if skin.Id == id then
+			return skin
+		end
+	end
+	return nil
+end
+TrapService.skinOf = skinOf
+
+-- Las Premium sueltan chispas y brillan, para que se noten sobre las de monedas
+local function sparkle(part: BasePart, color: Color3, rate: number)
+	local emitter = Instance.new("ParticleEmitter")
+	emitter.Rate = rate
+	emitter.Lifetime = NumberRange.new(0.8, 1.6)
+	emitter.Speed = NumberRange.new(1, 3)
+	emitter.SpreadAngle = Vector2.new(180, 180)
+	emitter.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.35), NumberSequenceKeypoint.new(1, 0) })
+	emitter.LightEmission = 1
+	emitter.Color = ColorSequence.new(color)
+	emitter.Parent = part
+end
+
 -- Mina con relieve: base de metal, anillo de púas y luz de color según el nivel
 local LEVEL_COLORS = { Color3.fromRGB(255, 60, 50), Color3.fromRGB(255, 160, 40), Color3.fromRGB(190, 90, 255) }
 
-local function buildMineModel(position: Vector3, level: number): Model
+local function buildMineModel(position: Vector3, level: number, skin: any): Model
 	local model = Instance.new("Model")
 	model.Name = "Mine"
-	local color = LEVEL_COLORS[math.min(level, #LEVEL_COLORS)]
-	Props.makeProp({ Name = "Plate", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.5, 2.8, 2.8), CFrame = CFrame.new(position + Vector3.new(0, 0.25, 0)) * CFrame.Angles(0, 0, math.pi / 2), Material = Enum.Material.Metal, Color = Color3.fromRGB(46, 50, 44), Parent = model })
-	Props.makeProp({ Name = "Dome", Shape = Enum.PartType.Ball, Size = Vector3.new(1.6, 0.9, 1.6), Position = position + Vector3.new(0, 0.55, 0), Material = Enum.Material.Metal, Color = Color3.fromRGB(70, 76, 66), Parent = model })
+	local color = if skin then skin.Light or skin.Accent else LEVEL_COLORS[math.min(level, #LEVEL_COLORS)]
+	local body = if skin then skin.Main else Color3.fromRGB(46, 50, 44)
+	local domeColor = if skin then skin.Main:Lerp(Color3.new(1, 1, 1), 0.15) else Color3.fromRGB(70, 76, 66)
+	local spikeColor = if skin then skin.Accent else Color3.fromRGB(120, 124, 128)
+	Props.makeProp({ Name = "Plate", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.5, 2.8, 2.8), CFrame = CFrame.new(position + Vector3.new(0, 0.25, 0)) * CFrame.Angles(0, 0, math.pi / 2), Material = if skin and skin.Premium then Enum.Material.Neon else Enum.Material.Metal, Color = body, Parent = model })
+	Props.makeProp({ Name = "Dome", Shape = Enum.PartType.Ball, Size = Vector3.new(1.6, 0.9, 1.6), Position = position + Vector3.new(0, 0.55, 0), Material = if skin and skin.Premium then Enum.Material.Neon else Enum.Material.Metal, Color = domeColor, Parent = model })
 	for index = 1, 6 + level * 2 do
 		local angle = index / (6 + level * 2) * math.pi * 2
-		Props.makeProp({ Name = "Spike", Size = Vector3.new(0.18, 0.7, 0.18), CFrame = CFrame.new(position + Vector3.new(math.cos(angle) * 1.2, 0.7, math.sin(angle) * 1.2)) * CFrame.Angles(math.sin(angle) * 0.4, 0, -math.cos(angle) * 0.4), Material = Enum.Material.Metal, Color = Color3.fromRGB(120, 124, 128), Parent = model })
+		Props.makeProp({ Name = "Spike", Size = Vector3.new(0.18, 0.7, 0.18), CFrame = CFrame.new(position + Vector3.new(math.cos(angle) * 1.2, 0.7, math.sin(angle) * 1.2)) * CFrame.Angles(math.sin(angle) * 0.4, 0, -math.cos(angle) * 0.4), Material = Enum.Material.Metal, Color = spikeColor, Parent = model })
 	end
 	local light = Props.makeProp({ Name = "Light", Size = Vector3.new(0.4, 0.4, 0.4), Position = position + Vector3.new(0, 1.05, 0), Material = Enum.Material.Neon, Color = color, Parent = model })
 	Props.light(light, color, 7 + level * 2, 1.2)
+	if skin and skin.Premium then
+		sparkle(light, color, 14)
+	end
 	return model
 end
 
@@ -145,9 +181,10 @@ function TrapService.placeMine(owner: Player, index: number): boolean
 		return false
 	end
 	local position = TrapService.getMineSpot(index)
-	local model = buildMineModel(position, 1)
+	local skin = skinOf(owner, "Mine")
+	local model = buildMineModel(position, 1, skin)
 	model.Parent = folder
-	mines[index] = { Position = position, Owner = owner, Model = model, Level = 1 }
+	mines[index] = { Position = position, Owner = owner, Model = model, Level = 1, Skin = skin }
 	attachUpgrade("Mine", tostring(index), model, model:FindFirstChild("Plate") :: BasePart?, 9)
 	publish()
 	return true
@@ -161,7 +198,7 @@ function TrapService.upgradeMine(index: number): boolean
 	end
 	mine.Level += 1
 	mine.Model:Destroy()
-	mine.Model = buildMineModel(mine.Position, mine.Level)
+	mine.Model = buildMineModel(mine.Position, mine.Level, mine.Skin)
 	mine.Model.Parent = folder
 	attachUpgrade("Mine", tostring(index), mine.Model, mine.Model:FindFirstChild("Plate") :: BasePart?, 9)
 	publish()
@@ -174,7 +211,7 @@ end
 
 -- Portón de piedra con rastrillo de hierro (como en Guns 'n Goblins): dos
 -- torres de ladrillo, dintel con almenas, escalera, estandarte y farol
-function TrapService.buildGate(id: string): boolean
+function TrapService.buildGate(id: string, owner: Player?): boolean
 	if gates[id] or not gateConfig.Slots[id] then
 		return false
 	end
@@ -253,7 +290,8 @@ function TrapService.buildGate(id: string): boolean
 
 	local upgradeAnchor = Props.makeProp({ Name = "UpgradeAnchor", Size = Vector3.one * 0.4, Position = a:Lerp(b, 0.5) + lift + Vector3.new(0, 2, 0), Transparency = 1, Parent = model })
 	model.Parent = folder
-	gates[id] = { Id = id, A = a, B = b, Health = gateConfig.Health, MaxHealth = gateConfig.Health, Level = 1, Model = model, Fill = fill, Portcullis = portcullis, Open = 0, Lift = opening - 0.3, Base = portcullis:GetPivot(), Burn = 0 }
+	gates[id] = { Id = id, A = a, B = b, Health = gateConfig.Health, MaxHealth = gateConfig.Health, Level = 1, Model = model, Fill = fill, Portcullis = portcullis, Open = 0, Lift = opening - 0.3, Base = portcullis:GetPivot(), Burn = 0, Skin = skinOf(owner, "Gate") }
+	TrapService.applyGateSkin(gates[id])
 	refreshBarriers()
 	attachUpgrade("Gate", id, model, upgradeAnchor, 16)
 	publish()
@@ -261,6 +299,48 @@ function TrapService.buildGate(id: string): boolean
 end
 
 -- Mejora una reja: más vida (queda llena) y tachones dorados en las torres
+-- Pinta la reja con la skin elegida: piedra y barrotes de otro color; las Premium
+-- brillan, sueltan chispas y algunas llevan llamas
+function TrapService.applyGateSkin(gate: Gate)
+	local skin = gate.Skin
+	if not skin then
+		return
+	end
+	for _, part in gate.Model:GetDescendants() do
+		if part:IsA("BasePart") then
+			if part.Name == "GateTower" or part.Name == "GateLintel" or part.Name == "Merlon" then
+				part.Color = skin.Main
+				if skin.Premium then
+					part.Material = Enum.Material.Glass
+					part.Transparency = 0.15
+				end
+			elseif part.Name == "Bar" or part.Name == "Rail" or part.Name == "Spike" then
+				part.Color = skin.Accent
+				if skin.Premium then
+					part.Material = Enum.Material.Neon
+				end
+			end
+		end
+	end
+	if skin.Premium then
+		local anchor = gate.Portcullis:FindFirstChildWhichIsA("BasePart")
+		if anchor then
+			sparkle(anchor, skin.Accent, 22)
+			Props.light(anchor, skin.Accent, 24, 1.8)
+		end
+	end
+	if skin.Fire then
+		for _, part in gate.Portcullis:GetChildren() do
+			if part.Name == "Rail" and part:IsA("BasePart") and not part:FindFirstChildOfClass("Fire") then
+				local fire = Instance.new("Fire")
+				fire.Size = 5
+				fire.Heat = 6
+				fire.Parent = part
+			end
+		end
+	end
+end
+
 function TrapService.upgradeGate(id: string): boolean
 	local gate = gates[id]
 	if not gate or gate.Level >= gateConfig.MaxLevel then
@@ -484,7 +564,7 @@ local function buyAtSlot(player: Player, slot: Slot)
 			return
 		end
 		DataService.changed(player, "Profile")
-		TrapService.buildGate(slot.Key)
+		TrapService.buildGate(slot.Key, player)
 		Remotes.Notify:FireClient(player, `🚧 {gateConfig.Slots[slot.Key].Name} construida. Acércate a ella para mejorarla`)
 	end
 end

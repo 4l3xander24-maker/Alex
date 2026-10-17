@@ -257,6 +257,45 @@ function BellTower.collapse()
 	end
 end
 
+-- Skin de la campana (de monedas o Premium con Robux). nil = la de cobre normal.
+-- Recolorea el cuerpo y los detalles; las Premium brillan y sueltan chispas.
+local skinEffects: { Instance } = {}
+function BellTower.setSkin(skin: any)
+	for _, effect in skinEffects do
+		effect:Destroy()
+	end
+	table.clear(skinEffects)
+	for _, piece in pieces do
+		for _, part in piece.Parts do
+			if part.Name == "BellCrown" or part.Name == "BellDome" or part.Name == "BellBody" then
+				part.Color = if skin then skin.Main else BRONZE
+				part.Material = if skin and skin.Premium then Enum.Material.Neon else Enum.Material.Metal
+			elseif part.Name == "BellRim" or part.Name == "BellBand" then
+				part.Color = if skin then skin.Accent else GOLD
+			end
+			if skin and skin.Premium and part.Name == "BellDome" then
+				local emitter = Instance.new("ParticleEmitter")
+				emitter.Rate = 20
+				emitter.Lifetime = NumberRange.new(1, 2)
+				emitter.Speed = NumberRange.new(2, 4)
+				emitter.SpreadAngle = Vector2.new(180, 180)
+				emitter.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.5), NumberSequenceKeypoint.new(1, 0) })
+				emitter.LightEmission = 1
+				emitter.Color = ColorSequence.new(skin.Accent)
+				emitter.Parent = part
+				table.insert(skinEffects, emitter)
+				if skin.Fire then
+					local fire = Instance.new("Fire")
+					fire.Size = 8
+					fire.Heat = 8
+					fire.Parent = part
+					table.insert(skinEffects, fire)
+				end
+			end
+		end
+	end
+end
+
 -- Refuerzo visible (lo compra el Intendente): cada nivel suma estacas de piedra
 -- alrededor del montículo; desde el nivel 4 un aro de luz, y al nivel 8 una
 -- corona brillante. Va aparte de la campana, así no estorba al derrumbe.

@@ -861,6 +861,12 @@ Config.Monetization = {
 		Continue = { Id = 3719236225, Name = "Continuar partida", Icon = "💖", Description = "Cuando caen todos: el equipo entero vuelve y la partida sigue." },
 		PetGolem = { Id = 3719236383, Name = "Gólem de piedra", Icon = "🗿", Description = "Compañero que aplasta zombis en área.", Pet = "Golem" },
 		PetPhoenix = { Id = 3719236411, Name = "Fénix", Icon = "🔥", Description = "Compañero que lanza fuego desde el aire.", Pet = "Phoenix" },
+		ObjMineGalaxy = { Id = 3719283194, Name = "Mina galáctica", Icon = "🌌", Description = "Skin Premium de mina.", ObjectSkin = "MineGalaxy" },
+		ObjMineGold = { Id = 3719282844, Name = "Mina de oro", Icon = "🥇", Description = "Skin Premium de mina.", ObjectSkin = "MineGold" },
+		ObjGateFire = { Id = 3719282897, Name = "Reja de fuego", Icon = "🔥", Description = "Skin Premium de reja.", ObjectSkin = "GateFire" },
+		ObjGateCrystal = { Id = 3719283030, Name = "Reja de cristal", Icon = "💎", Description = "Skin Premium de reja.", ObjectSkin = "GateCrystal" },
+		ObjBellGold = { Id = 3719283075, Name = "Campana dorada", Icon = "🔔", Description = "Skin Premium de campana.", ObjectSkin = "BellGold" },
+		ObjBellFire = { Id = 3719283103, Name = "Campana infernal", Icon = "🌋", Description = "Skin Premium de campana.", ObjectSkin = "BellFire" },
 		SkinBlood = { Id = 3719236493, Name = "Skin Sangrienta", Icon = "🟥", Description = "Skin de arma roja brillante.", WeaponSkin = "Blood" },
 		SkinGalaxy = { Id = 3719236685, Name = "Skin Galaxia", Icon = "🟪", Description = "Skin de arma morada brillante.", WeaponSkin = "Galaxy" },
 		SkinGold = { Id = 3719236545, Name = "Skin Oro Macizo", Icon = "🟨", Description = "Skin de arma dorada brillante.", WeaponSkin = "Gold" },
@@ -1145,6 +1151,25 @@ Config.Pets.Hound = { DisplayName = "Perro de guerra", Icon = "🐕", Price = 15
 Config.Pets.Golem = { DisplayName = "Gólem de piedra", Icon = "🗿", Price = 0, Product = "PetGolem", Damage = 4.5, Rate = 0.6, Range = 22, Splash = 9, Color = Color3.fromRGB(120, 124, 132), Shop = "Captain", Description = "Aplasta a varios zombis a la vez" }
 Config.Pets.Phoenix = { DisplayName = "Fénix", Icon = "🔥", Price = 0, Product = "PetPhoenix", Damage = 3.8, Rate = 1.2, Range = 55, Splash = 6, Color = Color3.fromRGB(255, 130, 40), Shop = "Captain", Description = "Lluvia de fuego desde el aire" }
 Config.CompanionOrder = { "Hound", "Soldier", "Archer", "Golem", "Phoenix" }
+
+-- Skins de objetos (las vende el Sastre): cambian cómo se ven tus minas, tus rejas
+-- y la campana. Kind: "Mine", "Gate" o "Bell". CoinPrice = monedas; Product =
+-- producto de Robux (Monetization.Products), y esas son Premium: brillan, sueltan
+-- chispas y salen marcadas en la tienda. Main = cuerpo, Accent = detalles, Light =
+-- luz (minas). Fire = llamas (rejas).
+Config.ObjectSkins = {
+	{ Id = "MineIce", Kind = "Mine", Name = "Mina de hielo", Icon = "❄️", CoinPrice = 800, Main = Color3.fromRGB(150, 205, 235), Accent = Color3.fromRGB(225, 245, 255), Light = Color3.fromRGB(120, 210, 255) },
+	{ Id = "MineToxic", Kind = "Mine", Name = "Mina radiactiva", Icon = "☢️", CoinPrice = 1600, Main = Color3.fromRGB(70, 90, 40), Accent = Color3.fromRGB(150, 230, 60), Light = Color3.fromRGB(150, 255, 60) },
+	{ Id = "MineGalaxy", Kind = "Mine", Name = "Mina galáctica", Icon = "🌌", Product = "ObjMineGalaxy", Premium = true, Main = Color3.fromRGB(34, 20, 80), Accent = Color3.fromRGB(190, 130, 255), Light = Color3.fromRGB(190, 120, 255) },
+	{ Id = "MineGold", Kind = "Mine", Name = "Mina de oro", Icon = "🥇", Product = "ObjMineGold", Premium = true, Main = Color3.fromRGB(214, 170, 60), Accent = Color3.fromRGB(255, 235, 140), Light = Color3.fromRGB(255, 220, 90) },
+	{ Id = "GateIron", Kind = "Gate", Name = "Reja de hierro negro", Icon = "⚫", CoinPrice = 1200, Main = Color3.fromRGB(56, 58, 66), Accent = Color3.fromRGB(30, 32, 38) },
+	{ Id = "GateBronze", Kind = "Gate", Name = "Reja de bronce", Icon = "🟤", CoinPrice = 2200, Main = Color3.fromRGB(150, 104, 56), Accent = Color3.fromRGB(205, 140, 70) },
+	{ Id = "GateFire", Kind = "Gate", Name = "Reja de fuego", Icon = "🔥", Product = "ObjGateFire", Premium = true, Fire = true, Main = Color3.fromRGB(70, 30, 24), Accent = Color3.fromRGB(255, 120, 40) },
+	{ Id = "GateCrystal", Kind = "Gate", Name = "Reja de cristal", Icon = "💎", Product = "ObjGateCrystal", Premium = true, Main = Color3.fromRGB(150, 220, 245), Accent = Color3.fromRGB(110, 235, 255) },
+	{ Id = "BellSilver", Kind = "Bell", Name = "Campana de plata", Icon = "🥈", CoinPrice = 2500, Main = Color3.fromRGB(176, 182, 196), Accent = Color3.fromRGB(235, 240, 250) },
+	{ Id = "BellGold", Kind = "Bell", Name = "Campana dorada", Icon = "🔔", Product = "ObjBellGold", Premium = true, Main = Color3.fromRGB(220, 170, 50), Accent = Color3.fromRGB(255, 240, 150) },
+	{ Id = "BellFire", Kind = "Bell", Name = "Campana infernal", Icon = "🌋", Product = "ObjBellFire", Premium = true, Fire = true, Main = Color3.fromRGB(120, 30, 22), Accent = Color3.fromRGB(255, 130, 40) },
+}
 
 -- Skins de armas (las vende el Sastre): cambian el color del arma que llevas.
 -- CoinPrice = monedas; Product = producto de Robux (Monetization.Products).
