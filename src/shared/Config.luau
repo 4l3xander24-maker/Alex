@@ -687,14 +687,15 @@ Config.Enemies = {
 
 -- Dificultades: al reconstruir la campana se elige una. Solo se ve la que
 -- tienes abierta y la siguiente con candado; al superar las oleadas de Goal
--- se abre la que sigue. Count/Health/Spawn multiplican a los zombis;
+-- se abre la que sigue. Count/Health/Spawn multiplican a los zombis; Growth
+-- (si está) reemplaza a Waves.CountGrowth: cuánto crece la horda cada oleada;
 -- Coins y Xp lo que ganas.
 Config.Difficulties = {
 	{ Id = 1, Name = "Normal", Icon = "⚔️", Color = Color3.fromRGB(110, 190, 120), Count = 0.88, Health = 0.55, Spawn = 0.91, Damage = 0.8, Coins = 1.0, Xp = 1.0, Goal = 8, Description = "Pocos zombis y muy débiles: ideal para aprender." },
-	{ Id = 2, Name = "Difícil", Icon = "🔥", Color = Color3.fromRGB(240, 170, 70), Count = 1.1, Health = 1.15, Spawn = 1.1, Coins = 1.2, Xp = 1.2, Goal = 10, Description = "Más zombis y más duros. Mejores premios." },
-	{ Id = 3, Name = "Experto", Icon = "🎯", Color = Color3.fromRGB(110, 170, 240), Count = 1.3, Health = 1.45, Spawn = 1.25, Coins = 1.45, Xp = 1.45, Goal = 12, Description = "Para quien ya domina el campamento." },
-	{ Id = 4, Name = "Pesadilla", Icon = "💀", Color = Color3.fromRGB(220, 90, 90), Count = 1.55, Health = 1.8, Spawn = 1.4, Coins = 1.7, Xp = 1.7, Goal = 14, Description = "Hordas enormes y zombis resistentes." },
-	{ Id = 5, Name = "Infierno", Icon = "👹", Color = Color3.fromRGB(180, 70, 220), Count = 2.0, Health = 2.5, Spawn = 1.7, Coins = 2.4, Xp = 2.4, Goal = 16, Description = "Solo para los mejores. Premios enormes." },
+	{ Id = 2, Name = "Difícil", Icon = "🔥", Color = Color3.fromRGB(240, 170, 70), Count = 1.1, Growth = 1.25, Health = 1.15, Spawn = 1.1, Coins = 1.2, Xp = 1.2, Goal = 10, Description = "Más zombis y más duros. Mejores premios." },
+	{ Id = 3, Name = "Experto", Icon = "🎯", Color = Color3.fromRGB(110, 170, 240), Count = 1.3, Growth = 1.2, Health = 1.45, Spawn = 1.25, Coins = 1.45, Xp = 1.45, Goal = 12, Description = "Para quien ya domina el campamento." },
+	{ Id = 4, Name = "Pesadilla", Icon = "💀", Color = Color3.fromRGB(220, 90, 90), Count = 1.55, Growth = 1.18, Health = 1.8, Spawn = 1.4, Coins = 1.7, Xp = 1.7, Goal = 14, Description = "Hordas enormes y zombis resistentes." },
+	{ Id = 5, Name = "Infierno", Icon = "👹", Color = Color3.fromRGB(180, 70, 220), Count = 2.0, Growth = 1.15, Health = 2.5, Spawn = 1.7, Coins = 2.4, Xp = 2.4, Goal = 16, Description = "Solo para los mejores. Premios enormes." },
 }
 
 -- Logros: se revisan al terminar cada partida. Reward = monedas. Stat: qué se mide

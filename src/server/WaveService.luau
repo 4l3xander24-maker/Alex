@@ -162,8 +162,9 @@ local function extraPlayers(): number
 end
 
 function WaveService.getEnemyCount(wave: number): number
-	local base = waves.FirstWaveCount * waves.CountGrowth ^ (wave - 1)
-	return math.max(1, math.floor(base * (1 + waves.PerExtraPlayer.Count * extraPlayers()) * WaveService.getDifficulty().Count * (if waveEvent then waveEvent.Count else 1)))
+	local difficulty = WaveService.getDifficulty()
+	local base = waves.FirstWaveCount * (difficulty.Growth or waves.CountGrowth) ^ (wave - 1)
+	return math.max(1, math.floor(base * (1 + waves.PerExtraPlayer.Count * extraPlayers()) * difficulty.Count * (if waveEvent then waveEvent.Count else 1)))
 end
 
 -- Vida de la campana: la base más el refuerzo más alto entre los jugadores
