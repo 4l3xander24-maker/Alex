@@ -8,6 +8,7 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
 local Remotes = require(ReplicatedStorage:WaitForChild("Shared").Remotes)
+local HudIcons = require(script.Parent.HudIcons)
 local Profile = require(script.Parent.Profile)
 
 local GOLD = Color3.fromRGB(255, 215, 100)
@@ -36,13 +37,13 @@ local STEPS = {
 	{
 		Title = "¡Defiende la campana!",
 		Text = if touch
-			then "Los zombis vienen del bosque por el puente. Dispara con el botón grande de la bala, recarga con la flecha circular y cambia de arma con las flechas cruzadas."
+			then "Los zombis vienen del bosque por el puente. Usa estos botones para moverte, disparar, recargar y saltar."
 			else "Los zombis vienen del bosque por el puente. Dispara con clic izquierdo, R recarga, 1 a 6 cambia de arma.",
 	},
 	{
 		Title = "Poderes",
 		Text = if touch
-			then "La Bruja vende poderes: granada, rayo y campanazo. Úsalos con los botones de arriba a la izquierda. Muévete con el joystick y salta con el botón de la derecha."
+			then "La Bruja vende poderes: granada, rayo y campanazo. Úsalos con los botones de arriba a la izquierda."
 			else "La Bruja vende poderes: G granada, Q rayo y F campanazo. ¡Que no destruyan la campana!",
 	},
 	{
@@ -61,6 +62,7 @@ local active = false -- el tutorial está en curso
 local step = 0
 local hits = 0
 local panel: Frame
+local controls: Frame? = nil -- (celular) fila con los botones y para qué sirve cada uno
 local panelTitle: TextLabel
 local panelText: TextLabel
 
@@ -82,6 +84,9 @@ local function finishTutorial()
 	active = false
 	step = 0
 	panel.Visible = false
+	if controls then
+		controls.Visible = false
+	end
 	saveTutorialDone()
 end
 
@@ -96,6 +101,9 @@ local function setStep(newStep: number)
 	step = newStep
 	panelTitle.Text = `TUTORIAL {step}/{#STEPS} · {STEPS[step].Title}`
 	panelText.Text = STEPS[step].Text
+	if controls then
+		controls.Visible = step == 3 or step == 4
+	end
 	if step == #STEPS then
 		task.delay(POWERS_STEP_TIME, function()
 			if step == #STEPS then
@@ -257,6 +265,82 @@ local function buildPanel()
 	skipCorner.CornerRadius = UDim.new(0, 6)
 	skipCorner.Parent = skip
 	skip.Activated:Connect(finishTutorial)
+
+	-- Celular: los botones reales con su nombre, para aprender mirándolos
+	if touch then
+		controls = Instance.new("Frame")
+		local row = controls :: Frame
+		row.AnchorPoint = Vector2.new(0.5, 0)
+		row.Position = UDim2.new(0.5, 0, 0, 194)
+		row.Size = UDim2.fromOffset(340, 64)
+		row.BackgroundColor3 = Color3.fromRGB(20, 24, 26)
+		row.BackgroundTransparency = 0.3
+		row.Visible = false
+		row.Parent = gui
+		local rowCorner = Instance.new("UICorner")
+		rowCorner.CornerRadius = UDim.new(0, 10)
+		rowCorner.Parent = row
+		local layout = Instance.new("UIListLayout")
+		layout.FillDirection = Enum.FillDirection.Horizontal
+		layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+		layout.VerticalAlignment = Enum.VerticalAlignment.Center
+		layout.Padding = UDim.new(0, 8)
+		layout.Parent = row
+		local items = {
+			{ "Moverte", "stick" },
+			{ "Disparar", "fire" },
+			{ "Recargar", "reload" },
+			{ "Cambiar", "swap" },
+			{ "Saltar", "jump" },
+		}
+		for index, item in items do
+			local cell = Instance.new("Frame")
+			cell.Size = UDim2.fromOffset(58, 58)
+			cell.BackgroundTransparency = 1
+			cell.LayoutOrder = index
+			cell.Parent = row
+			local disc = Instance.new("Frame")
+			disc.AnchorPoint = Vector2.new(0.5, 0)
+			disc.Position = UDim2.fromScale(0.5, 0)
+			disc.Size = UDim2.fromOffset(38, 38)
+			disc.Parent = cell
+			local discCorner = Instance.new("UICorner")
+			discCorner.CornerRadius = UDim.new(1, 0)
+			discCorner.Parent = disc
+			HudIcons.styleButton(disc, 1.2)
+			local kind = item[2]
+			if kind == "stick" then
+				disc.BackgroundColor3 = Color3.fromRGB(70, 72, 76)
+				local knob = Instance.new("Frame")
+				knob.AnchorPoint = Vector2.new(0.5, 0.5)
+				knob.Position = UDim2.fromScale(0.5, 0.5)
+				knob.Size = UDim2.fromOffset(18, 18)
+				knob.BackgroundColor3 = Color3.fromRGB(214, 214, 216)
+				knob.Parent = disc
+				local knobCorner = Instance.new("UICorner")
+				knobCorner.CornerRadius = UDim.new(1, 0)
+				knobCorner.Parent = knob
+			elseif kind == "fire" then
+				disc.BackgroundColor3 = Color3.fromRGB(40, 42, 46)
+				HudIcons.fire(disc, 28)
+			elseif kind == "reload" then
+				HudIcons.reload(disc, 24)
+			elseif kind == "swap" then
+				HudIcons.swap(disc, 24)
+			else
+				HudIcons.jump(disc, 24)
+			end
+			local caption = Instance.new("TextLabel")
+			caption.Position = UDim2.fromOffset(0, 40)
+			caption.Size = UDim2.new(1, 0, 0, 16)
+			caption.BackgroundTransparency = 1
+			caption.Font = Enum.Font.GothamBold
+			caption.TextSize = 12
+			caption.TextColor3 = WHITE
+			caption.Text = item[1]
+			caption.Parent = cell
+		end
+	end
 end
 
 -- Lo llama el arma cada vez que le pega a un zombi
