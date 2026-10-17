@@ -64,6 +64,84 @@ function SkyFx.setReduced(value: boolean)
 	reduced = value
 end
 
+-- Sol y luna grandes, como si estuvieran cerca: bolas lejanas que siguen a la
+-- cámara en la dirección real del sol y de la luna (el cielo de Roblox los
+-- limita a un tamaño chico). Cada una con su halo; la luna con cráteres.
+local CELESTIAL_DISTANCE = 1400
+local SUN_DIAMETER = 560 -- unos 22 grados
+local MOON_DIAMETER = 440 -- unos 18 grados
+local SUN_COLOR = Color3.fromRGB(255, 232, 160)
+local MOON_COLOR = Color3.fromRGB(236, 238, 226)
+local MOON_BLOOD = Color3.fromRGB(230, 70, 56)
+local CRATERS = {
+	{ -0.22, 0.18, 0.2 }, { 0.25, 0.05, 0.14 }, { -0.05, -0.25, 0.17 },
+	{ 0.2, -0.3, 0.1 }, { -0.32, -0.08, 0.09 }, { 0.05, 0.32, 0.08 },
+}
+local sunBody: Part, sunHalo: Part, moonBody: Part, moonHalo: Part
+local craterParts: { Part } = {}
+
+local function glowBall(name: string, diameter: number, color: Color3, transparency: number): Part
+	local part = Instance.new("Part")
+	part.Name = name
+	part.Shape = Enum.PartType.Ball
+	part.Size = Vector3.one * diameter
+	part.Anchored = true
+	part.CanCollide = false
+	part.CanQuery = false
+	part.CanTouch = false
+	part.CastShadow = false
+	part.Material = Enum.Material.Neon
+	part.Color = color
+	part.Transparency = transparency
+	part.Parent = folder
+	return part
+end
+
+local function buildCelestials()
+	sunBody = glowBall("Sun", SUN_DIAMETER, SUN_COLOR, 0)
+	sunHalo = glowBall("SunHalo", SUN_DIAMETER * 1.7, SUN_COLOR, 0.93)
+	moonBody = glowBall("Moon", MOON_DIAMETER, MOON_COLOR, 0)
+	moonHalo = glowBall("MoonHalo", MOON_DIAMETER * 1.5, MOON_COLOR, 0.94)
+	for _, crater in CRATERS do
+		table.insert(craterParts, glowBall("Crater", MOON_DIAMETER * crater[3], Color3.fromRGB(196, 198, 188), 0))
+	end
+end
+
+-- Cada cuadro: sol y luna en su dirección, visibles solo sobre el horizonte
+local function updateCelestials()
+	local camera = workspace.CurrentCamera
+	if not camera or not sunBody then
+		return
+	end
+	local origin = camera.CFrame.Position
+	local sunDirection = Lighting:GetSunDirection()
+	local moonDirection = Lighting:GetMoonDirection()
+	local sunUp = sunDirection.Y > -0.12
+	local moonUp = moonDirection.Y > -0.12
+	local sunPosition = origin + sunDirection * CELESTIAL_DISTANCE
+	local moonPosition = origin + moonDirection * CELESTIAL_DISTANCE
+	sunBody.Transparency = if sunUp then 0 else 1
+	sunHalo.Transparency = if sunUp then 0.93 else 1
+	sunBody.Position = sunPosition
+	sunHalo.Position = sunPosition
+	local moonColor = if redMoon then MOON_BLOOD else MOON_COLOR
+	moonBody.Color = moonColor
+	moonHalo.Color = moonColor
+	moonBody.Transparency = if moonUp then 0 else 1
+	moonHalo.Transparency = if moonUp then 0.94 else 1
+	moonBody.Position = moonPosition
+	moonHalo.Position = moonPosition
+	-- Cráteres sobre la cara que mira a la cámara
+	local face = CFrame.lookAt(moonPosition, origin)
+	local radius = MOON_DIAMETER / 2
+	for index, crater in CRATERS do
+		local part = craterParts[index]
+		part.Transparency = if moonUp then 0 else 1
+		part.Color = if redMoon then Color3.fromRGB(170, 50, 44) else Color3.fromRGB(196, 198, 188)
+		part.Position = (face * CFrame.new(crater[1] * radius * 2, crater[2] * radius * 2, -radius * 0.985)).Position
+	end
+end
+
 local function newBlock(size: Vector3, color: Color3, material: Enum.Material): Part
 	local part = Instance.new("Part")
 	part.Size = size
@@ -227,6 +305,7 @@ function SkyFx.step(dt: number)
 			Lighting.ClockTime = clock
 		end
 	end
+	updateCelestials()
 	if not voxel then
 		return
 	end
@@ -241,12 +320,13 @@ function SkyFx.step(dt: number)
 end
 
 function SkyFx.init()
-	if not voxel then
-		return
-	end
 	folder = Instance.new("Folder")
 	folder.Name = "VoxelSky"
 	folder.Parent = workspace
+	buildCelestials()
+	if not voxel then
+		return
+	end
 	buildClouds()
 	buildFireflies()
 	buildMotes()

@@ -142,7 +142,8 @@ function DayCycle.applyLighting(clock: number, redness: number?)
 	end
 	local sky = Lighting:FindFirstChildOfClass("Sky")
 	if sky then
-		local stars = if night > 0.6 then 3000 else 0
+		-- Noche muy estrellada (al máximo de Roblox); en celular un poco menos
+		local stars = if night > 0.6 then (if game:GetService("RunService"):IsClient() and game:GetService("UserInputService").TouchEnabled then 3500 else 5000) else 0
 		if sky.StarCount ~= stars then
 			sky.StarCount = stars
 		end

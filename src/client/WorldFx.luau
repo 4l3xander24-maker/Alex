@@ -19,6 +19,7 @@ local SkyFx = require(script.Parent.SkyFx)
 
 local BLADE_SPEED = 0.45 -- vueltas por segundo en radianes
 local LOW_QUALITY_LEVEL = 4 -- calidad 1-4 de 10 = equipo modesto
+local CULL_DISTANCE = 230 -- en equipos modestos, árboles y plantas más lejos que esto no se dibujan
 local FLICKER_TAG = "Flicker"
 local FLICKER_SPEED = 7
 local SWAY_DISTANCE = 160 -- más lejos no se nota que se mueven
@@ -37,7 +38,7 @@ local flameBase: { [BasePart]: CFrame } = {}
 local lastDayDim = 0
 local ambientEmitter: ParticleEmitter? = nil
 
-type Swayer = { Part: BasePart, Base: CFrame, Pivot: Vector3, Amount: number, Seed: number }
+type Swayer = { Part: BasePart, Base: CFrame, Pivot: Vector3, Amount: number, Seed: number, Hidden: boolean? }
 local swayers: { Swayer } = {}
 -- Hojas que caen de los árboles (se apagan en calidad baja)
 local leafEmitters: { ParticleEmitter } = {}
@@ -73,6 +74,20 @@ local function applyQuality()
 			effect.Enabled = not low
 		elseif effect:IsA("BloomEffect") then
 			effect.Size = if low then 16 else 30
+			effect.Enabled = not low
+		end
+	end
+	-- Equipos modestos: sin pasto 3D, sin sombras en tiempo real y sin lo lejano
+	pcall(function()
+		workspace.Terrain.Decoration = not low
+	end)
+	Lighting.GlobalShadows = not low
+	if not low then
+		for _, swayer in swayers do
+			if swayer.Hidden then
+				swayer.Part.LocalTransparencyModifier = 0
+				swayer.Hidden = false
+			end
 		end
 	end
 	local map = workspace:FindFirstChild("Map")
@@ -84,6 +99,23 @@ local function applyQuality()
 	end
 	-- Las hojas se ajustan solas en el bucle (updateLeaves)
 	SkyFx.setReduced(low)
+end
+
+-- Calidad baja: oculta árboles y plantas lejanos (no se ven ni se dibujan)
+local function cullFar()
+	local camera = workspace.CurrentCamera.CFrame.Position
+	local limit = CULL_DISTANCE * CULL_DISTANCE
+	for _, swayer in swayers do
+		local part = swayer.Part
+		if part.Parent then
+			local offset = swayer.Pivot - camera
+			local far = offset.X * offset.X + offset.Z * offset.Z > limit
+			if far ~= (swayer.Hidden == true) then
+				swayer.Hidden = far
+				part.LocalTransparencyModifier = if far then 1 else 0
+			end
+		end
+	end
 end
 
 -- Las luciérnagas de partículas (estilo realista) solo salen de noche
@@ -291,6 +323,9 @@ function WorldFx.init()
 		end
 		if frame % 20 == 0 then
 			updateLeaves()
+		end
+		if lowQuality and frame % 45 == 0 then
+			cullFar()
 		end
 		if frame % 30 == 0 then
 			updateAmbient()

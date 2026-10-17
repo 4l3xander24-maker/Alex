@@ -829,7 +829,7 @@ local function setupLighting()
 	local sky = Instance.new("Sky")
 	sky.MoonAngularSize = 24
 	sky.SunAngularSize = 14
-	sky.StarCount = if theme.Night then 2500 else 0
+	sky.StarCount = if theme.Night then 5000 else 0
 	if Config.SkyTextures.Moon ~= "" then
 		sky.MoonTextureId = Config.SkyTextures.Moon
 	end
