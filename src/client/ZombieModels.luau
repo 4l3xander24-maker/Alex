@@ -505,7 +505,9 @@ function ZombieModels.resolveColor(info, key: string): (Color3, boolean)
 		local glowing = eyes ~= nil and (eyes.R < 0.95 or eyes.G < 0.95 or eyes.B < 0.95)
 		return if glowing then eyes else ZombieModels.Palette.Black, glowing
 	end
-	local color = info[key] or ZombieModels.Palette[key] or Color3.new(1, 0, 1)
+	-- Solo vale si es un color (Cape = true es un interruptor, no un color)
+	local own = if typeof(info[key]) == "Color3" then info[key] else nil
+	local color = own or ZombieModels.Palette[key] or Color3.new(1, 0, 1)
 	return color, false
 end
 

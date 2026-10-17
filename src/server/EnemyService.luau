@@ -45,6 +45,7 @@ export type Enemy = {
 	IsBoss: boolean,
 	HealthMultiplier: number,
 	SummonAt: number?, -- cuándo vuelve a llamar zombis (jefes con Summon)
+	StrikeAt: number?, -- cuándo vuelve a atacar a distancia (jefes con Strike)
 }
 
 local EnemyService = {}
@@ -296,6 +297,7 @@ local function create(typeName: string, healthMultiplier: number, start: Vector3
 		Coins = info.Coins,
 		IsBoss = info.IsBoss == true,
 		SummonAt = if info.Summon then spawnTime + info.Summon.Every else nil,
+		StrikeAt = if info.Strike then spawnTime + info.Strike.Every * 0.6 else nil,
 	}
 	enemies[nextId] = enemy
 	aliveCount += 1
@@ -491,6 +493,37 @@ function EnemyService.think(now: number, dt: number)
 
 	for _, enemy in enemies do
 		local position = EnemyMath.getPosition(enemy.Path, now)
+		-- Ataque a distancia de los jefes (Config.Enemies[*].Strike): marca el suelo,
+		-- avisa con un anillo y al terminar el retraso daña a quien siga ahí
+		local strike = Config.Enemies[enemy.Type].Strike
+		if strike and enemy.StrikeAt and now >= enemy.StrikeAt then
+			local victim, victimDistance = nil, strike.Range
+			for player, playerPosition in players do
+				local distance = flatDistance(position, playerPosition)
+				if distance <= victimDistance then
+					victim, victimDistance = player, distance
+				end
+			end
+			if victim then
+				enemy.StrikeAt = now + strike.Every
+				local center = if strike.OnSelf then position else players[victim]
+				center = Vector3.new(center.X, Paths.walkHeight(center), center.Z)
+				Remotes.PowerFx:FireAllClients("Telegraph", center, strike.Radius, strike.Delay, strike.Color)
+				task.delay(strike.Delay, function()
+					Remotes.PowerFx:FireAllClients("Explosion", center + Vector3.new(0, 2, 0), strike.Radius)
+					if playerDamageHandler then
+						for _, other in Players:GetPlayers() do
+							local root = other.Character and other.Character:FindFirstChild("HumanoidRootPart")
+							if root and flatDistance((root :: BasePart).Position, center) <= strike.Radius then
+								playerDamageHandler(other, strike.Damage)
+							end
+						end
+					end
+				end)
+			else
+				enemy.StrikeAt = now + 1
+			end
+		end
 		-- Jefes que llaman refuerzos cada cierto tiempo (Reina Necromante)
 		local summon = Config.Enemies[enemy.Type].Summon
 		if summon and enemy.SummonAt and now >= enemy.SummonAt then

@@ -148,6 +148,20 @@ local fxHandlers = {
 			Sfx.playAt("Lightning", points[1])
 		end
 	end,
+	-- Aviso de un ataque de jefe: anillo en el suelo que se llena hasta el golpe
+	Telegraph = function(center: Vector3, radius: number, delay: number, color: Color3)
+		local disc = newFxPart(Vector3.new(0.3, radius * 2, radius * 2), color)
+		disc.Shape = Enum.PartType.Cylinder
+		disc.CFrame = CFrame.new(center + Vector3.new(0, 0.3, 0)) * CFrame.Angles(0, 0, math.pi / 2)
+		disc.Transparency = 0.75
+		local fill = newFxPart(Vector3.new(0.35, 1, 1), color)
+		fill.Shape = Enum.PartType.Cylinder
+		fill.CFrame = disc.CFrame
+		fill.Transparency = 0.35
+		TweenService:Create(fill, TweenInfo.new(delay, Enum.EasingStyle.Linear), { Size = Vector3.new(0.35, radius * 2, radius * 2) }):Play()
+		Debris:AddItem(disc, delay + 0.1)
+		Debris:AddItem(fill, delay + 0.1)
+	end,
 	Bell = function(center: Vector3, radius: number)
 		bellFx(center, radius)
 		Sfx.playAt("BellToll", center)

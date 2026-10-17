@@ -613,6 +613,8 @@ Config.Enemies = {
 		Sprite = "",
 		Model = "Fat",
 		SpawnOnDeath = { Type = "Walker", Count = 8 },
+		-- Escupe ácido a un jugador: marca el suelo y a los 1.4 s explota
+		Strike = { Name = "Ácido", Every = 7, Range = 70, Radius = 9, Damage = 40, Delay = 1.4, Color = Color3.fromRGB(150, 230, 60) },
 		Skin = Color3.fromRGB(150, 186, 80),
 		Shirt = Color3.fromRGB(210, 200, 170),
 		Pants = Color3.fromRGB(80, 60, 90),
@@ -634,6 +636,8 @@ Config.Enemies = {
 		Model = "Zombie",
 		Hat = "Crown",
 		Cape = true,
+		-- Pisotón: onda grande alrededor de él
+		Strike = { Name = "Pisotón", Every = 9, Range = 26, Radius = 20, Damage = 55, Delay = 1.2, Color = Color3.fromRGB(255, 200, 70), OnSelf = true },
 		Skin = Color3.fromRGB(110, 160, 96),
 		Shirt = Color3.fromRGB(96, 40, 120), -- túnica real
 		Pants = Color3.fromRGB(44, 36, 54),
@@ -673,6 +677,8 @@ Config.Enemies = {
 		IsBoss = true,
 		Flying = true,
 		FlyHeight = 30, -- altura del centro del cuerpo
+		-- Bola de fuego: marca el suelo bajo un jugador y cae a los 1.5 s
+		Strike = { Name = "Fuego", Every = 8, Range = 90, Radius = 11, Damage = 45, Delay = 1.5, Color = Color3.fromRGB(255, 110, 40) },
 		Size = Vector2.new(48, 24),
 		SpriteSize = Vector2.new(48, 32.5),
 		HitRadius = 12,
