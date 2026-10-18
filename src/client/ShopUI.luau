@@ -16,6 +16,8 @@ local Config = require(Shared.Config)
 local Progression = require(Shared.Progression)
 local Remotes = require(Shared.Remotes)
 local Notify = require(script.Parent.Notify)
+local PetRenderer = require(script.Parent.PetRenderer)
+local Preview3D = require(Shared.Preview3D)
 local Profile = require(script.Parent.Profile)
 local RobuxShop = require(Shared.RobuxShop)
 local Sfx = require(script.Parent.Sfx)
@@ -98,7 +100,9 @@ local function isOpen(): boolean
 end
 
 -- Una fila: ícono, nombre, descripción y hasta dos botones a la derecha
-local function row(icon: string, name: string, description: string, buttons: { ButtonSpec }, nameColor: Color3?, premium: boolean?)
+type Preview = { Title: string, Builder: () -> Model }
+
+local function row(icon: string, name: string, description: string, buttons: { ButtonSpec }, nameColor: Color3?, premium: boolean?, preview: Preview?)
 	local frame = Instance.new("Frame")
 	frame.Size = UDim2.new(1, -10, 0, 86)
 	frame.BackgroundColor3 = if premium then Color3.fromRGB(52, 36, 78) else ROW
@@ -117,9 +121,28 @@ local function row(icon: string, name: string, description: string, buttons: { B
 		shine.Parent = frame
 	end
 
-	label(frame, { Position = UDim2.fromOffset(10, 0), Size = UDim2.fromOffset(54, 86), Text = icon, TextSize = 34, TextXAlignment = Enum.TextXAlignment.Center })
-	label(frame, { Position = UDim2.fromOffset(70, 8), Size = UDim2.new(1, -330, 0, 24), Text = name, TextSize = 18, Font = Enum.Font.GothamBlack, TextColor3 = nameColor or Color3.new(1, 1, 1) })
-	label(frame, { Position = UDim2.fromOffset(70, 32), Size = UDim2.new(1, -330, 0, 50), Text = description, TextSize = 13, TextColor3 = MUTED, TextYAlignment = Enum.TextYAlignment.Top })
+	if preview then
+		-- Vista 3D que gira; al tocarla se abre grande para girarla con el dedo o el mouse
+		local view = Instance.new("TextButton")
+		view.Position = UDim2.fromOffset(6, 6)
+		view.Size = UDim2.fromOffset(100, 74)
+		view.BackgroundColor3 = Color3.fromRGB(24, 28, 34)
+		view.BackgroundTransparency = 0.2
+		view.Text = ""
+		view.AutoButtonColor = false
+		view.Parent = frame
+		round(view, 8)
+		Preview3D.attach(view, preview.Builder)
+		label(view, { AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 1, -1), Size = UDim2.fromOffset(98, 14), Text = "👁 Ver en 3D", TextSize = 11, TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 5 })
+		view.Activated:Connect(function()
+			Preview3D.openBig(preview.Title, description, preview.Builder)
+		end)
+	else
+		label(frame, { Position = UDim2.fromOffset(10, 0), Size = UDim2.fromOffset(54, 86), Text = icon, TextSize = 34, TextXAlignment = Enum.TextXAlignment.Center })
+	end
+	local textX = if preview then 114 else 70
+	label(frame, { Position = UDim2.fromOffset(textX, 8), Size = UDim2.new(1, -textX - 260, 0, 24), Text = name, TextSize = 18, Font = Enum.Font.GothamBlack, TextColor3 = nameColor or Color3.new(1, 1, 1) })
+	label(frame, { Position = UDim2.fromOffset(textX, 32), Size = UDim2.new(1, -textX - 260, 0, 50), Text = description, TextSize = 13, TextColor3 = MUTED, TextYAlignment = Enum.TextYAlignment.Top })
 
 	for index, spec in buttons do
 		local button = Instance.new("TextButton")
@@ -185,7 +208,9 @@ local function renderArmory(data: Progression.Profile, coins: number)
 				ShopUI.render()
 			end })
 		end
-		row(weapon.Icon, name, description, buttons, nameColor)
+		row(weapon.Icon, name, description, buttons, nameColor, nil, { Title = weapon.DisplayName, Builder = function()
+			return Preview3D.weapon(id)
+		end })
 	end
 end
 
@@ -265,7 +290,9 @@ local function renderMystic(data: Progression.Profile, coins: number)
 				runAction("EquipPet", id)
 			end })
 		end
-		row(pet.Icon, pet.DisplayName .. (if data.Pet == id then "  ·  te acompaña" else ""), description, buttons, if data.Pet == id then GREEN else nil)
+		row(pet.Icon, pet.DisplayName .. (if data.Pet == id then "  ·  te acompaña" else ""), description, buttons, if data.Pet == id then GREEN else nil, nil, { Title = pet.DisplayName, Builder = function()
+			return PetRenderer.buildPreview(id, data.ObjectSkinOn.Pet)
+		end })
 	end
 end
 
@@ -312,15 +339,33 @@ local function renderCaptain(data: Progression.Profile, coins: number)
 		if pet.Product then
 			description ..= "\n💎 Compañero especial: se compra con Robux."
 		end
-		row(pet.Icon, pet.DisplayName .. (if data.Pet == id then "  ·  te acompaña" else ""), description, petButtons(data, coins, id), if data.Pet == id then GREEN else nil)
+		row(pet.Icon, pet.DisplayName .. (if data.Pet == id then "  ·  te acompaña" else ""), description, petButtons(data, coins, id), if data.Pet == id then GREEN else nil, nil, { Title = pet.DisplayName, Builder = function()
+			return PetRenderer.buildPreview(id, data.ObjectSkinOn.Pet)
+		end })
 	end
 end
 
 -- Skins de objetos (minas, rejas, campana): las de monedas son normales; las
 -- Premium (Robux) salen con borde violeta, estrella y brillo dorado
-local KIND_NAMES = { Mine = "Minas", Gate = "Rejas", Bell = "Campana", Pet = "Compañeros", Tracer = "Rastro de balas" }
+-- Modelo 3D de una skin de objeto según su tipo
+local function objectSkinModel(skin, data: Progression.Profile): Model
+	if skin.Kind == "Mine" then
+		return Preview3D.mine(skin, 3)
+	elseif skin.Kind == "Gate" then
+		return Preview3D.gate(skin)
+	elseif skin.Kind == "Bell" then
+		return Preview3D.bell(skin)
+	elseif skin.Kind == "Pet" then
+		return PetRenderer.buildPreview(if data.Pet ~= "" then data.Pet else "Wolf", skin.Id)
+	elseif skin.Kind == "Tracer" then
+		return Preview3D.tracer(skin)
+	end
+	return Preview3D.deathFx(skin)
+end
+
+local KIND_NAMES = { Mine = "Minas", Gate = "Rejas", Bell = "Campana", Pet = "Compañeros", Tracer = "Rastro de balas", DeathFx = "Efecto al eliminar" }
 local function renderObjectSkins(data: Progression.Profile, coins: number)
-	for _, kind in { "Mine", "Gate", "Bell", "Pet", "Tracer" } do
+	for _, kind in { "Mine", "Gate", "Bell", "Pet", "Tracer", "DeathFx" } do
 		local equipped = data.ObjectSkinOn[kind]
 		sectionHeader(`Skins de {KIND_NAMES[kind]:lower()}`)
 		row("⬜", "Normal", "El aspecto de siempre.", { { Text = if equipped == "" then "Puesta" else "Poner", Enabled = equipped ~= "", OnClick = function()
@@ -344,7 +389,9 @@ local function renderObjectSkins(data: Progression.Profile, coins: number)
 					end })
 				end
 				local description = if skin.Premium then "★ PREMIUM: brilla y suelta chispas. Solo con Robux." else "Cambia el color. Se compra con monedas."
-				row(skin.Icon, (if skin.Premium then "★ " else "") .. skin.Name, description, buttons, if skin.Premium then Color3.fromRGB(235, 190, 255) elseif equipped == skin.Id then GREEN else nil, skin.Premium)
+				row(skin.Icon, (if skin.Premium then "★ " else "") .. skin.Name, description, buttons, if skin.Premium then Color3.fromRGB(235, 190, 255) elseif equipped == skin.Id then GREEN else nil, skin.Premium, { Title = skin.Name, Builder = function()
+					return objectSkinModel(skin, data)
+				end })
 			end
 		end
 	end
@@ -379,7 +426,10 @@ local function renderTailor(data: Progression.Profile, coins: number)
 				end })
 			end
 		end
-		row(skin.Icon, `Skin {skin.Name}`, if skin.Glow then "Brilla con luz propia." else "Color nuevo para tus armas.", buttons, if data.WeaponSkin == skin.Id then GREEN else nil)
+		row(skin.Icon, `Skin {skin.Name}`, if skin.Glow then "Brilla con luz propia." else "Color nuevo para tus armas.", buttons, if data.WeaponSkin == skin.Id then GREEN else nil, nil, { Title = `Skin {skin.Name}`, Builder = function()
+			local weaponId = if data.Equipped ~= "Machete" then data.Equipped else "Rifle"
+			return Preview3D.weapon(weaponId, skin)
+		end })
 	end
 	renderObjectSkins(data, coins)
 end

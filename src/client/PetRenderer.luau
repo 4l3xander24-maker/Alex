@@ -390,6 +390,30 @@ local function onAttack(owner: Player, id: string, target: Vector3)
 	Debris:AddItem(burst, 0.3)
 end
 
+-- Modelo quieto del compañero (para la vista 3D de las tiendas)
+function PetRenderer.buildPreview(id: string, skinId: string?): Model
+	local spec = specFor(id)
+	local skin = skinById(skinId)
+	local model = Instance.new("Model")
+	for _, piece in spec.Parts do
+		local part = Instance.new("Part")
+		part.Size = piece.Size
+		part.Color = piece.Color
+		part.Material = if piece.Neon then Enum.Material.Neon else Enum.Material.SmoothPlastic
+		if skin and not piece.Neon then
+			part.Color = piece.Color:Lerp(skin.Main, 0.8)
+			if skin.Premium then
+				part.Material = Enum.Material.Neon
+			end
+		end
+		part.CFrame = CFrame.new(piece.Offset)
+		part.Anchored = true
+		part.CanCollide = false
+		part.Parent = model
+	end
+	return model
+end
+
 function PetRenderer.init()
 	folder = Instance.new("Folder")
 	folder.Name = "Pets"

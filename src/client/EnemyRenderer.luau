@@ -8,6 +8,7 @@
 --
 -- Optimización: los zombis detrás de la cámara no se mueven en pantalla, los
 -- lejanos no se animan y los muy lejanos se actualizan cada 3 cuadros.
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
@@ -643,6 +644,18 @@ function EnemyRenderer.init()
 				XpDrops.spawn(EnemyMath.getPosition(visual.Path, workspace:GetServerTimeNow()), death[3] or 0, visual.Type)
 			end
 			ComboUi.onKill(death[3] or 0)
+			-- Efecto de skin del que lo eliminó (lo ve todo el equipo)
+			local killer = Players:GetPlayerByUserId(death[3] or 0)
+			local skinId = killer and killer:GetAttribute("DeathSkin")
+			if visual and typeof(skinId) == "string" and skinId ~= "" then
+				for _, skin in Config.ObjectSkins do
+					if skin.Id == skinId then
+						local at = EnemyMath.getPosition(visual.Path, workspace:GetServerTimeNow())
+						DeathFx.skinBurst(at + Vector3.new(0, Paths.walkHeight(at), 0), skin)
+						break
+					end
+				end
+			end
 			showDamage(death[1], death[2], true)
 			removeEnemy(death[1], true)
 		end

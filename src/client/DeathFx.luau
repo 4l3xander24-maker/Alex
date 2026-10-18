@@ -137,6 +137,26 @@ function DeathFx.addCube(position: Vector3, color: Color3, size: number, velocit
 	})
 end
 
+-- Efecto de una skin al eliminar un zombi (Config.ObjectSkins, tipo DeathFx):
+-- un estallido de cubos de sus colores; las Premium suman una columna y brillan
+function DeathFx.skinBurst(position: Vector3, skin: any)
+	local colors = skin.Colors
+	local count = math.min(if skin.Premium then 34 else 22, DeathFx.budget() - 6)
+	for index = 1, count do
+		local angle = random:NextNumber(0, math.pi * 2)
+		local push = random:NextNumber(4, 11)
+		local velocity = Vector3.new(math.cos(angle) * push, random:NextNumber(skin.Rise * 0.5, skin.Rise), math.sin(angle) * push)
+		local size = if skin.Big then random:NextNumber(0.8, 1.5) else random:NextNumber(0.3, 0.6)
+		DeathFx.addCube(position + Vector3.new(0, 2, 0), colors[(index - 1) % #colors + 1], size, velocity, if skin.Big then 8 else 26, random:NextNumber(0.7, 1.3), skin.Premium)
+	end
+	if skin.Column then
+		-- Columna de luz que sube desde el suelo
+		for step = 0, 7 do
+			DeathFx.addCube(position + Vector3.new(0, 1 + step * 1.6, 0), if step % 2 == 0 then skin.Main else skin.Accent, 0.9, Vector3.new(0, 4, 0), 0, 0.5, true)
+		end
+	end
+end
+
 -- Mancha en el suelo que se desvanece
 function DeathFx.splat(position: Vector3, radius: number, color: Color3, life: number)
 	local part = Instance.new("Part")

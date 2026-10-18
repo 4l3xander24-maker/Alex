@@ -6,6 +6,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(script.Parent.Config)
+local Preview3D = require(script.Parent.Preview3D)
 
 local monetization = Config.Monetization
 local GOLD = Color3.fromRGB(255, 215, 100)
@@ -68,7 +69,7 @@ end
 type Button = { Text: string, Color: Color3, OnClick: (() -> ())? }
 
 -- Tarjeta: muestra (color o ícono), nombre, descripción y uno o dos botones
-local function card(order: number, swatch: Color3?, icon: string?, title: string, description: string, buttons: { Button }, exclusive: boolean?)
+local function card(order: number, swatch: Color3?, icon: string?, title: string, description: string, buttons: { Button }, exclusive: boolean?, outfit: any?)
 	local frame = Instance.new("Frame")
 	frame.Size = UDim2.new(1, 0, 0, 74)
 	frame.BackgroundColor3 = CARD
@@ -90,6 +91,25 @@ local function card(order: number, swatch: Color3?, icon: string?, title: string
 	preview.Font = Enum.Font.GothamBlack
 	preview.Parent = frame
 	corner(preview, 8)
+	-- Traje: vista 3D con tu personaje; al tocarla se abre grande
+	if outfit then
+		local view = Instance.new("TextButton")
+		view.Size = UDim2.fromScale(1, 1)
+		view.BackgroundTransparency = 1
+		view.Text = ""
+		view.AutoButtonColor = false
+		view.ZIndex = 4
+		view.Parent = preview
+		preview.Text = ""
+		Preview3D.attach(preview, function()
+			return Preview3D.outfit(outfit)
+		end, 1.1)
+		view.Activated:Connect(function()
+			Preview3D.openBig(title, description, function()
+				return Preview3D.outfit(outfit)
+			end)
+		end)
+	end
 	local buttonsWidth = #buttons * 110 + 10
 	local name = label({ Position = UDim2.fromOffset(74, 10), Size = UDim2.new(1, -84 - buttonsWidth, 0, 24), Text = title, TextSize = 18, TextScaled = true, Font = Enum.Font.GothamBlack, Parent = frame })
 	local nameLimit = Instance.new("UITextSizeConstraint")
@@ -202,7 +222,7 @@ local function refresh()
 				end else nil })
 			end
 		end
-		card(nextOrder(), skin.Cape, nil, skin.Name, description, buttons, info.Exclusive)
+		card(nextOrder(), skin.Cape, nil, skin.Name, description, buttons, info.Exclusive, skin)
 	end
 
 	header("⭐ Pases (para siempre)", nextOrder())
