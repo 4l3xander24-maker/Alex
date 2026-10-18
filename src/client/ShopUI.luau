@@ -318,9 +318,9 @@ end
 
 -- Skins de objetos (minas, rejas, campana): las de monedas son normales; las
 -- Premium (Robux) salen con borde violeta, estrella y brillo dorado
-local KIND_NAMES = { Mine = "Minas", Gate = "Rejas", Bell = "Campana" }
+local KIND_NAMES = { Mine = "Minas", Gate = "Rejas", Bell = "Campana", Pet = "Compañeros", Tracer = "Rastro de balas" }
 local function renderObjectSkins(data: Progression.Profile, coins: number)
-	for _, kind in { "Mine", "Gate", "Bell" } do
+	for _, kind in { "Mine", "Gate", "Bell", "Pet", "Tracer" } do
 		local equipped = data.ObjectSkinOn[kind]
 		sectionHeader(`Skins de {KIND_NAMES[kind]:lower()}`)
 		row("⬜", "Normal", "El aspecto de siempre.", { { Text = if equipped == "" then "Puesta" else "Poner", Enabled = equipped ~= "", OnClick = function()

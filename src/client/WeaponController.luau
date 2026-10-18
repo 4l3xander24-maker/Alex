@@ -82,8 +82,22 @@ local function showWeapon()
 	Viewmodel.setWeapon(equipped, Config.Weapons[equipped].Zoom, level, Progression.weaponTier(level))
 end
 
+local function tracerSkin(): any
+	local id = Profile.get().ObjectSkinOn.Tracer
+	if id == "" then
+		return nil
+	end
+	for _, skin in Config.ObjectSkins do
+		if skin.Id == id then
+			return skin
+		end
+	end
+	return nil
+end
+
 local function drawTracer(from: Vector3, to: Vector3)
 	local length = (to - from).Magnitude
+	local skin = tracerSkin()
 	local tracer = Instance.new("Part")
 	tracer.Anchored = true
 	tracer.CanCollide = false
@@ -91,10 +105,27 @@ local function drawTracer(from: Vector3, to: Vector3)
 	tracer.CanTouch = false
 	tracer.CastShadow = false
 	tracer.Material = Enum.Material.Neon
-	tracer.Color = TRACER_COLOR
-	tracer.Size = Vector3.new(0.06, 0.06, length)
+	tracer.Color = if skin then skin.Main else TRACER_COLOR
+	local width = if skin and skin.Premium then 0.16 else 0.06
+	tracer.Size = Vector3.new(width, width, length)
 	tracer.CFrame = CFrame.lookAt(from, to) * CFrame.new(0, 0, -length / 2)
 	tracer.Parent = workspace.CurrentCamera
+	-- Las Premium dejan un núcleo claro y chispas a lo largo de la bala
+	if skin and skin.Premium then
+		local core = tracer:Clone()
+		core.Color = skin.Accent
+		core.Size = Vector3.new(0.05, 0.05, length)
+		core.Parent = workspace.CurrentCamera
+		Debris:AddItem(core, TRACER_TIME)
+		local emitter = Instance.new("ParticleEmitter")
+		emitter.Rate = 60
+		emitter.Lifetime = NumberRange.new(0.3, 0.5)
+		emitter.Speed = NumberRange.new(0.5, 1.5)
+		emitter.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.25), NumberSequenceKeypoint.new(1, 0) })
+		emitter.LightEmission = 1
+		emitter.Color = ColorSequence.new(skin.Accent)
+		emitter.Parent = tracer
+	end
 	Debris:AddItem(tracer, TRACER_TIME)
 end
 

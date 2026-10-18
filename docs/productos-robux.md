@@ -39,3 +39,4 @@ Sugerido: 99 R$ las comunes (Crimson, Royal), 149 R$ Emerald y Shadow, 249–349
 
 ## Skins de objetos (Premium)
 Mina galáctica 79, Mina de oro 129, Reja de fuego 99, Reja de cristal 149, Campana dorada 149 y Campana infernal 199 R$: creadas y conectadas.
+Compañero solar 129, Compañero del vacío 149, Rastro de tormenta 79 y Rastro de oro 99 R$: creadas y conectadas.

@@ -27,6 +27,8 @@ local function publish(player: Player)
 		pet = ""
 	end
 	player:SetAttribute("Pet", pet)
+	-- Skin del compañero (Config.ObjectSkins, tipo Pet): la leen los clientes
+	player:SetAttribute("PetSkin", if data then data.ObjectSkinOn.Pet else "")
 end
 
 local function attack(player: Player, petId: string, now: number, wave: number)

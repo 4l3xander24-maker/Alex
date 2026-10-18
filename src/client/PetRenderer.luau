@@ -27,6 +27,7 @@ type Render = {
 	LungeTarget: Vector3,
 	Phase: number,
 	Stunned: boolean?,
+	SkinKey: any,
 }
 
 local CREAM = Color3.fromRGB(236, 220, 170)
@@ -221,8 +222,21 @@ local function destroy(owner: Player)
 	end
 end
 
+local function skinById(skinId: any): any
+	if typeof(skinId) ~= "string" or skinId == "" then
+		return nil
+	end
+	for _, skin in Config.ObjectSkins do
+		if skin.Id == skinId then
+			return skin
+		end
+	end
+	return nil
+end
+
 local function create(owner: Player, id: string): Render
 	local spec = specFor(id)
+	local skin = skinById(owner:GetAttribute("PetSkin"))
 	local model = Instance.new("Model")
 	model.Name = `Pet_{owner.Name}`
 	local parts = {}
@@ -231,6 +245,13 @@ local function create(owner: Player, id: string): Render
 		part.Size = piece.Size
 		part.Color = piece.Color
 		part.Material = if piece.Neon then Enum.Material.Neon else Enum.Material.SmoothPlastic
+		-- Skin: tiñe el cuerpo; las Premium brillan (los ojos neón se quedan como son)
+		if skin and not piece.Neon then
+			part.Color = piece.Color:Lerp(skin.Main, 0.8)
+			if skin.Premium then
+				part.Material = Enum.Material.Neon
+			end
+		end
 		part.Anchored = true
 		part.CanCollide = false
 		part.CanQuery = false
@@ -239,12 +260,24 @@ local function create(owner: Player, id: string): Render
 		part.Parent = model
 		table.insert(parts, part)
 	end
+	if skin and skin.Premium and parts[1] then
+		local sparks = Instance.new("ParticleEmitter")
+		sparks.Rate = 16
+		sparks.Lifetime = NumberRange.new(0.6, 1.2)
+		sparks.Speed = NumberRange.new(1, 3)
+		sparks.SpreadAngle = Vector2.new(180, 180)
+		sparks.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.3), NumberSequenceKeypoint.new(1, 0) })
+		sparks.LightEmission = 1
+		sparks.Color = ColorSequence.new(skin.Accent)
+		sparks.Parent = parts[1]
+	end
 	model.Parent = folder
 	return {
 		Model = model,
 		Parts = parts,
 		Specs = spec.Parts,
 		Id = id,
+		SkinKey = owner:GetAttribute("PetSkin"),
 		CFrame = CFrame.new(),
 		LungeStart = -1,
 		LungeTarget = Vector3.zero,
@@ -262,7 +295,7 @@ local function update(dt: number)
 		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 		local valid = typeof(id) == "string" and Config.Pets[id] ~= nil and root ~= nil and humanoid ~= nil and humanoid.Health > 0
 		local render = renders[owner]
-		if not valid or (render and render.Id ~= id) then
+		if not valid or (render and (render.Id ~= id or render.SkinKey ~= owner:GetAttribute("PetSkin"))) then
 			destroy(owner)
 			render = nil
 		end
