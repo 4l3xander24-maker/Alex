@@ -675,6 +675,8 @@ function EnemyRenderer.init()
 		for _, update in updates do
 			local visual = visuals[update[1]]
 			if visual then
+				-- El 4.º dato es la velocidad (cambia en la cámara súper lenta)
+				visual.Speed = update[4] or visual.Speed
 				visual.Path = EnemyMath.newRoute(update[2], visual.Speed, update[3])
 			end
 		end

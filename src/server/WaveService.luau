@@ -338,6 +338,8 @@ local function offerContinue(reason: string): boolean
 	local endsAt = workspace:GetServerTimeNow() + monetization.ContinueWindow
 	GameState.set("ContinueReason", reason)
 	GameState.set("ContinueEnds", endsAt)
+	-- Cámara súper lenta mientras deciden: los zombis casi no avanzan
+	EnemyService.setTimeScale(monetization.ContinueSlowScale, workspace:GetServerTimeNow())
 	local continued = false
 	while workspace:GetServerTimeNow() < endsAt do
 		if reason == "Bell" then
@@ -365,6 +367,7 @@ local function offerContinue(reason: string): boolean
 		task.wait(0.2)
 	end
 	GameState.set("ContinueEnds", 0)
+	EnemyService.setTimeScale(1, workspace:GetServerTimeNow())
 	return continued
 end
 

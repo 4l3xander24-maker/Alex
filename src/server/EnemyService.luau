@@ -93,6 +93,8 @@ local function flatDistance(a: Vector3, b: Vector3): number
 end
 
 -- Cambia el recorrido del zombi y lo anota para mandarlo a los clientes
+local timeScale = 1 -- 1 = normal; muy bajo = cámara súper lenta (ver setTimeScale)
+
 local function setRoute(enemy: Enemy, points: { Vector3 }, now: number)
 	-- Las rutas van a la altura del cuerpo; la del suelo (bosque, rampa) la
 	-- suma EnemyMath.getPosition. Al partir de la posición actual (que ya la
@@ -458,6 +460,28 @@ function EnemyService.findNearest(point: Vector3, maxDistance: number, time: num
 	return bestId
 end
 
+-- Cámara súper lenta: todos caminan a `scale` de su velocidad (1 = normal) sin
+-- saltar de lugar. Los clientes reciben la nueva velocidad junto al camino.
+function EnemyService.setTimeScale(scale: number, now: number)
+	if scale == timeScale then
+		return
+	end
+	local ratio = scale / timeScale
+	for id, enemy in enemies do
+		local path = enemy.Path
+		local traveled = EnemyMath.getTraveled(path, now)
+		path.Speed *= ratio
+		path.SpawnTime = now - traveled / path.Speed
+		pendingUpdates[id] = enemy
+	end
+	timeScale = scale
+	EnemyService.flushUpdates()
+end
+
+function EnemyService.isSlowed(): boolean
+	return timeScale < 1
+end
+
 -- Empuja hacia atrás a los zombis cercanos: dejan de perseguir y retroceden
 -- en dirección contraria a la campana.
 function EnemyService.knockback(center: Vector3, radius: number, seconds: number, now: number)
@@ -602,7 +626,7 @@ function EnemyService.flushUpdates()
 	local updates = {}
 	for id, enemy in pendingUpdates do
 		local path = enemy.Path
-		table.insert(updates, { id, path.Points, path.SpawnTime })
+		table.insert(updates, { id, path.Points, path.SpawnTime, path.Speed })
 	end
 	table.clear(pendingUpdates)
 	if #updates > 0 then

@@ -800,7 +800,7 @@ Config.Powerups = {
 -- enemigo, la dificultad, el evento y los bonus). Subir los costos y bajar esto
 -- alarga cuántas partidas hacen falta para comprarlo todo.
 Config.Economy = {
-	KillCoinScale = 0.6,
+	KillCoinScale = 0.45,
 }
 
 Config.Waves = {
@@ -904,6 +904,7 @@ Config.Monetization = {
 	},
 	ReviveWindow = 10, -- segundos para comprar Revivir después de caer
 	ContinueWindow = 10, -- cuenta cuando caen todos, para comprar Continuar
+	ContinueSlowScale = 0.03, -- velocidad del mundo mientras tanto (cámara súper lenta)
 	ReviveRefund = 300, -- monedas si compraste Revivir pero ya no se podía usar
 	VipXpBonus = 0.25,
 	-- Skins: capa (y armadura o sombrero) que ven todos. Cómo se consiguen:
@@ -1220,12 +1221,12 @@ Config.ObjectSkins = {
 -- Skins de armas (las vende el Sastre): cambian el color del arma que llevas.
 -- CoinPrice = monedas; Product = producto de Robux (Monetization.Products).
 Config.WeaponSkins = {
-	{ Id = "Rust", Name = "Oxidada", Icon = "🟧", CoinPrice = 800, Main = Color3.fromRGB(110, 62, 36), Accent = Color3.fromRGB(190, 110, 50) },
-	{ Id = "Arctic", Name = "Ártica", Icon = "🟦", CoinPrice = 1800, Main = Color3.fromRGB(150, 200, 235), Accent = Color3.fromRGB(235, 248, 255) },
-	{ Id = "Toxic", Name = "Tóxica", Icon = "🟩", CoinPrice = 3500, Main = Color3.fromRGB(40, 120, 50), Accent = Color3.fromRGB(120, 255, 90), Glow = true },
-	{ Id = "Blood", Name = "Sangrienta", Icon = "🟥", Product = "SkinBlood", Main = Color3.fromRGB(110, 14, 20), Accent = Color3.fromRGB(255, 50, 60), Glow = true },
-	{ Id = "Galaxy", Name = "Galaxia", Icon = "🟪", Product = "SkinGalaxy", Main = Color3.fromRGB(40, 24, 90), Accent = Color3.fromRGB(170, 120, 255), Glow = true },
-	{ Id = "Gold", Name = "Oro Macizo", Icon = "🟨", CoinPrice = 9000, Product = "SkinGold", Main = Color3.fromRGB(200, 150, 30), Accent = Color3.fromRGB(255, 230, 120), Glow = true },
+	{ Id = "Rust", Name = "Oxidada", Icon = "🟧", CoinPrice = 800, Main = Color3.fromRGB(110, 62, 36), Accent = Color3.fromRGB(190, 110, 50), Bonus = { Magazine = 0.10 } },
+	{ Id = "Arctic", Name = "Ártica", Icon = "🟦", CoinPrice = 1800, Main = Color3.fromRGB(150, 200, 235), Accent = Color3.fromRGB(235, 248, 255), Bonus = { Reload = 0.10 } },
+	{ Id = "Toxic", Name = "Tóxica", Icon = "🟩", CoinPrice = 3500, Main = Color3.fromRGB(40, 120, 50), Accent = Color3.fromRGB(120, 255, 90), Glow = true, Bonus = { Damage = 0.08 } },
+	{ Id = "Blood", Name = "Sangrienta", Icon = "🟥", Product = "SkinBlood", Main = Color3.fromRGB(110, 14, 20), Accent = Color3.fromRGB(255, 50, 60), Glow = true, Bonus = { Damage = 0.06, Crit = 0.04 } },
+	{ Id = "Galaxy", Name = "Galaxia", Icon = "🟪", Product = "SkinGalaxy", Main = Color3.fromRGB(40, 24, 90), Accent = Color3.fromRGB(170, 120, 255), Glow = true, Bonus = { FireRate = 0.08, Magazine = 0.10 } },
+	{ Id = "Gold", Name = "Oro Macizo", Icon = "🟨", CoinPrice = 9000, Product = "SkinGold", Main = Color3.fromRGB(200, 150, 30), Accent = Color3.fromRGB(255, 230, 120), Glow = true, Bonus = { Damage = 0.12, Magazine = 0.12, Crit = 0.03 } },
 }
 
 Config.CritMultiplier = 2
@@ -1305,29 +1306,29 @@ Config.Progression = {
 
 -- Un punto por nivel. PerPoint es lo que suma cada punto.
 Config.Stats = {
-	{ Id = "Damage", Name = "Daño", Icon = "💥", PerPoint = 0.05, Max = 20, Text = "+%d%% de daño", Percent = true },
-	{ Id = "Health", Name = "Vida", Icon = "❤️", PerPoint = 2, Max = 20, Text = "+%d de vida máxima" },
-	{ Id = "Speed", Name = "Velocidad", Icon = "👟", PerPoint = 0.03, Max = 10, Text = "+%d%% de velocidad al caminar", Percent = true },
-	{ Id = "Reload", Name = "Recarga", Icon = "🔄", PerPoint = 0.05, Max = 10, Text = "%d%% menos tiempo de recarga", Percent = true },
-	{ Id = "FireRate", Name = "Cadencia", Icon = "⚡", PerPoint = 0.03, Max = 10, Text = "+%d%% de disparos por segundo", Percent = true },
-	{ Id = "Ammo", Name = "Munición", Icon = "📦", PerPoint = 0.08, Max = 10, Text = "+%d%% de balas por cargador", Percent = true },
-	{ Id = "Crit", Name = "Crítico", Icon = "🎯", PerPoint = 0.02, Max = 10, Text = "+%d%% de probabilidad de crítico", Percent = true },
-	{ Id = "Loot", Name = "Botín", Icon = "💰", PerPoint = 0.05, Max = 10, Text = "+%d%% de monedas", Percent = true },
-	{ Id = "Power", Name = "Poder", Icon = "✨", PerPoint = 0.05, Max = 10, Text = "+%d%% de daño de poderes y menos espera", Percent = true },
+	{ Brief = "Más daño en cada disparo y golpe", Id = "Damage", Name = "Daño", Icon = "💥", PerPoint = 0.05, Max = 20, Text = "+%d%% de daño", Percent = true },
+	{ Brief = "Aguantas más golpes antes de caer", Id = "Health", Name = "Vida", Icon = "❤️", PerPoint = 2, Max = 20, Text = "+%d de vida máxima" },
+	{ Brief = "Caminas más rápido", Id = "Speed", Name = "Velocidad", Icon = "👟", PerPoint = 0.03, Max = 10, Text = "+%d%% de velocidad al caminar", Percent = true },
+	{ Brief = "Recargas las armas en menos tiempo", Id = "Reload", Name = "Recarga", Icon = "🔄", PerPoint = 0.05, Max = 10, Text = "%d%% menos tiempo de recarga", Percent = true },
+	{ Brief = "Disparas más rápido", Id = "FireRate", Name = "Cadencia", Icon = "⚡", PerPoint = 0.03, Max = 10, Text = "+%d%% de disparos por segundo", Percent = true },
+	{ Brief = "Más balas dentro de cada cargador", Id = "Ammo", Name = "Munición", Icon = "📦", PerPoint = 0.08, Max = 10, Text = "+%d%% de balas por cargador", Percent = true },
+	{ Brief = "Más chances de golpe crítico (daño extra)", Id = "Crit", Name = "Crítico", Icon = "🎯", PerPoint = 0.02, Max = 10, Text = "+%d%% de probabilidad de crítico", Percent = true },
+	{ Brief = "Ganas más monedas por cada zombi", Id = "Loot", Name = "Botín", Icon = "💰", PerPoint = 0.05, Max = 10, Text = "+%d%% de monedas", Percent = true },
+	{ Brief = "Tus poderes pegan más y se recargan antes", Id = "Power", Name = "Poder", Icon = "✨", PerPoint = 0.05, Max = 10, Text = "+%d%% de daño de poderes y menos espera", Percent = true },
 }
 
 -- Un talento cada 5 niveles. Cada uno se aprende una sola vez.
 Config.Talents = {
-	{ Id = "Aim", Name = "Puntería", Icon = "🔭", Description = "Mantén clic derecho para apuntar: zoom, -70% de dispersión y +15% de crítico" },
-	{ Id = "Sprint", Name = "Correr", Icon = "🏃", Description = "Mantén Shift para correr un 60% más rápido (no puedes disparar mientras corres)" },
-	{ Id = "Regen", Name = "Regeneración", Icon = "💚", Description = "Recuperas 8 de vida por segundo si nadie te ataca durante 4 segundos" },
-	{ Id = "Vampire", Name = "Vampiro", Icon = "🩸", Description = "Cada zombi que eliminas te cura 3 de vida" },
-	{ Id = "DoubleJump", Name = "Doble salto", Icon = "🦘", Description = "Puedes saltar otra vez en el aire" },
-	{ Id = "Dash", Name = "Esquivar", Icon = "💨", Description = "Pulsa C para impulsarte hacia adelante (cada 3 segundos)" },
-	{ Id = "LastStand", Name = "Último aliento", Icon = "🛡️", Description = "Una vez por oleada, un golpe mortal te deja con 1 de vida y 2 segundos de invulnerabilidad" },
-	{ Id = "Explosive", Name = "Balas explosivas", Icon = "🧨", Description = "10% de probabilidad de que una bala explote y dañe a los zombis cercanos" },
-	{ Id = "Greed", Name = "Codicia", Icon = "💰", Description = "+25% de monedas por cada zombi" },
-	{ Id = "Repair", Name = "Reparador", Icon = "🔧", Description = "Puedes reparar la campana manteniendo E junto a ella" },
+	{ Brief = "Clic derecho: apuntas con zoom y más precisión", Id = "Aim", Name = "Puntería", Icon = "🔭", Description = "Mantén clic derecho para apuntar: zoom, -70% de dispersión y +15% de crítico" },
+	{ Brief = "Mantén Shift para correr más rápido", Id = "Sprint", Name = "Correr", Icon = "🏃", Description = "Mantén Shift para correr un 60% más rápido (no puedes disparar mientras corres)" },
+	{ Brief = "Recuperas vida si nadie te ataca", Id = "Regen", Name = "Regeneración", Icon = "💚", Description = "Recuperas 8 de vida por segundo si nadie te ataca durante 4 segundos" },
+	{ Brief = "Cada baja te cura 3 de vida", Id = "Vampire", Name = "Vampiro", Icon = "🩸", Description = "Cada zombi que eliminas te cura 3 de vida" },
+	{ Brief = "Un salto extra en el aire", Id = "DoubleJump", Name = "Doble salto", Icon = "🦘", Description = "Puedes saltar otra vez en el aire" },
+	{ Brief = "Pulsa C: impulso rápido hacia adelante", Id = "Dash", Name = "Esquivar", Icon = "💨", Description = "Pulsa C para impulsarte hacia adelante (cada 3 segundos)" },
+	{ Brief = "Sobrevives un golpe mortal por oleada", Id = "LastStand", Name = "Último aliento", Icon = "🛡️", Description = "Una vez por oleada, un golpe mortal te deja con 1 de vida y 2 segundos de invulnerabilidad" },
+	{ Brief = "Algunas balas explotan y dañan en área", Id = "Explosive", Name = "Balas explosivas", Icon = "🧨", Description = "10% de probabilidad de que una bala explote y dañe a los zombis cercanos" },
+	{ Brief = "+25% de monedas por cada zombi", Id = "Greed", Name = "Codicia", Icon = "💰", Description = "+25% de monedas por cada zombi" },
+	{ Brief = "Mantén E junto a la campana para repararla", Id = "Repair", Name = "Reparador", Icon = "🔧", Description = "Puedes reparar la campana manteniendo E junto a ella" },
 }
 
 Config.TalentValues = {

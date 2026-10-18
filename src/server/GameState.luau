@@ -51,6 +51,12 @@ function GameState.repairBell(amount: number): boolean
 	return true
 end
 
+-- Mientras se decide si seguir (cuenta de Continuar) el mundo va en cámara súper
+-- lenta: nadie puede disparar, usar poderes ni dañar y los zombis casi no avanzan
+function GameState.isSlowmo(): boolean
+	return (folder:GetAttribute("ContinueEnds") or 0) > workspace:GetServerTimeNow()
+end
+
 function GameState.isBellDestroyed(): boolean
 	return bellHealth <= 0
 end

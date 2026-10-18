@@ -200,6 +200,23 @@ function StoreUi.init()
 			continuePrice = if ok and info and info.PriceInRobux then ` R$ {info.PriceInRobux}` else ""
 		end
 	end)
+	-- Cámara súper lenta mientras se decide: la imagen se apaga y se enfría
+	local slowGrade: ColorCorrectionEffect? = nil
+	local slowOn = false
+	local function setSlowmo(on: boolean)
+		if on == slowOn then
+			return
+		end
+		slowOn = on
+		if not slowGrade then
+			local grade = Instance.new("ColorCorrectionEffect")
+			grade.Name = "SlowmoGrade"
+			grade.Parent = game:GetService("Lighting")
+			slowGrade = grade
+		end
+		local goal = if on then { Saturation = -0.55, Contrast = 0.15, Brightness = -0.08, TintColor = Color3.fromRGB(170, 195, 255) } else { Saturation = 0, Contrast = 0, Brightness = 0, TintColor = Color3.new(1, 1, 1) }
+		game:GetService("TweenService"):Create(slowGrade :: ColorCorrectionEffect, TweenInfo.new(0.5), goal):Play()
+	end
 	task.spawn(function()
 		while true do
 			local endsAt = gameState:GetAttribute("ContinueEnds") or 0
@@ -209,6 +226,7 @@ function StoreUi.init()
 				cancelled = false
 			end
 			continuePanel.Visible = show
+			setSlowmo(left > 0)
 			if show then
 				revivePanel.Visible = false
 				local team = #Players:GetPlayers() > 1

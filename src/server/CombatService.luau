@@ -13,6 +13,7 @@ local Progression = require(Shared.Progression)
 local Remotes = require(Shared.Remotes)
 local DataService = require(script.Parent.DataService)
 local EnemyService = require(script.Parent.EnemyService)
+local GameState = require(script.Parent.GameState)
 
 local anticheat = Config.Anticheat
 local talents = Config.TalentValues
@@ -201,7 +202,7 @@ end
 
 local function onShoot(player: Player, origin: any, direction: any, shotTime: any, aiming: any)
 	local data = DataService.get(player)
-	if not data then
+	if not data or GameState.isSlowmo() then
 		return
 	end
 	local weaponId = data.Equipped

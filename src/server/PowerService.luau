@@ -10,6 +10,7 @@ local Remotes = require(Shared.Remotes)
 local CombatService = require(script.Parent.CombatService)
 local DataService = require(script.Parent.DataService)
 local EnemyService = require(script.Parent.EnemyService)
+local GameState = require(script.Parent.GameState)
 
 local COOLDOWN_TOLERANCE = 0.25
 local BELL_CENTER = Config.Arena.Bell
@@ -132,7 +133,7 @@ local function onUsePower(player: Player, name: any, origin: any, direction: any
 		return
 	end
 	local data = DataService.get(player)
-	if not data or (data.Powers[name] or 0) < 1 then
+	if not data or GameState.isSlowmo() or (data.Powers[name] or 0) < 1 then
 		return
 	end
 

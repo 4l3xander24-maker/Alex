@@ -93,6 +93,10 @@ LobbyReturn.startHeartbeat()
 
 RunService.Heartbeat:Connect(function(dt)
 	local now = workspace:GetServerTimeNow()
+	if GameState.isSlowmo() then
+		EnemyService.flushEvents()
+		return
+	end
 	local damagePerSecond = EnemyService.getBellDamagePerSecond(now)
 	if damagePerSecond > 0 then
 		GameState.damageBell(damagePerSecond * Config.Bell.DamageTaken * dt)
@@ -109,6 +113,9 @@ task.spawn(function()
 	while true do
 		task.wait(interval)
 		local now = workspace:GetServerTimeNow()
+		if GameState.isSlowmo() then
+			continue
+		end
 		EnemyService.think(now, interval)
 		TrapService.think(now, WaveService.getCurrentWave())
 	end

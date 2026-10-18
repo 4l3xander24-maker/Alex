@@ -40,6 +40,11 @@ for _, stat in Config.Stats do
 	statById[stat.Id] = stat
 end
 
+local skinById = {}
+for _, skin in Config.WeaponSkins do
+	skinById[skin.Id] = skin
+end
+
 local talentById = {}
 for _, talent in Config.Talents do
 	talentById[talent.Id] = talent
@@ -123,6 +128,33 @@ function Progression.addXp(profile: Profile, amount: number): number
 	return gained
 end
 
+-- Bonus de la skin de arma puesta (Config.WeaponSkins[*].Bonus), vacío si no hay
+local NO_BONUS = {}
+local function skinBonus(profile: Profile): { [string]: number }
+	local skin = skinById[profile.WeaponSkin]
+	return if skin and profile.WeaponSkins[skin.Id] then (skin.Bonus or NO_BONUS) else NO_BONUS
+end
+
+local BONUS_TEXT = {
+	{ "Damage", "+%d%% de daño" },
+	{ "Magazine", "+%d%% de balas por cargador" },
+	{ "FireRate", "+%d%% de cadencia" },
+	{ "Reload", "-%d%% de tiempo de recarga" },
+	{ "Crit", "+%d%% de crítico" },
+}
+
+-- "+8% de daño  ·  +10% de balas por cargador" para mostrar en la tienda
+function Progression.describeSkinBonus(skin): string
+	local parts = {}
+	for _, entry in BONUS_TEXT do
+		local value = skin.Bonus and skin.Bonus[entry[1]]
+		if value then
+			table.insert(parts, string.format(entry[2], math.floor(value * 100 + 0.5)))
+		end
+	end
+	return table.concat(parts, "  ·  ")
+end
+
 function Progression.getPlayerStats(profile: Profile)
 	local greed = if Progression.hasTalent(profile, "Greed") then 1 + Config.TalentValues.GreedBonus else 1
 	local power = Progression.statValue(profile, "Power")
@@ -159,8 +191,9 @@ function Progression.getWeaponStats(profile: Profile, weaponId: string, aiming: 
 	local base = Config.Weapons[weaponId]
 	local level = profile.Weapons[weaponId] or 0
 	local upgrade = Config.WeaponUpgrade
-	local damage = base.Damage * (1 + upgrade.DamagePerLevel * level) * (1 + Progression.statValue(profile, "Damage"))
-	local critChance = Config.BaseCritChance + Progression.statValue(profile, "Crit")
+	local bonus = skinBonus(profile)
+	local damage = base.Damage * (1 + upgrade.DamagePerLevel * level) * (1 + Progression.statValue(profile, "Damage")) * (1 + (bonus.Damage or 0))
+	local critChance = Config.BaseCritChance + Progression.statValue(profile, "Crit") + (bonus.Crit or 0)
 
 	if base.Melee then
 		return {
@@ -190,12 +223,12 @@ function Progression.getWeaponStats(profile: Profile, weaponId: string, aiming: 
 	return {
 		Melee = false,
 		Damage = damage,
-		FireRate = base.FireRate * (1 + Progression.statValue(profile, "FireRate")),
-		Magazine = math.ceil(base.Magazine * (1 + upgrade.MagazinePerLevel * level) * (1 + Progression.statValue(profile, "Ammo"))),
+		FireRate = base.FireRate * (1 + Progression.statValue(profile, "FireRate") + (bonus.FireRate or 0)),
+		Magazine = math.ceil(base.Magazine * (1 + upgrade.MagazinePerLevel * level) * (1 + Progression.statValue(profile, "Ammo") + (bonus.Magazine or 0))),
 		MaxReserve = math.floor(base.MaxReserve * storage),
 		StartReserve = math.floor(base.StartReserve * storage),
 		AmmoPerKill = base.AmmoPerKill,
-		ReloadTime = base.ReloadTime * math.max(0.3, 1 - upgrade.ReloadPerLevel * level - Progression.statValue(profile, "Reload")),
+		ReloadTime = base.ReloadTime * math.max(0.3, 1 - upgrade.ReloadPerLevel * level - Progression.statValue(profile, "Reload") - (bonus.Reload or 0)),
 		Range = base.Range,
 		Pellets = base.Pellets,
 		-- El rifle al máximo de mejora atraviesa un zombi más

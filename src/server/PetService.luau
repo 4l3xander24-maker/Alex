@@ -72,7 +72,7 @@ function PetService.init()
 	task.spawn(function()
 		while true do
 			task.wait(TICK)
-			if GameState.get("State") ~= "Wave" then
+			if GameState.get("State") ~= "Wave" or GameState.isSlowmo() then
 				continue
 			end
 			local now = os.clock()
