@@ -33,7 +33,7 @@ local POMMEL = Color3.fromRGB(150, 152, 158)
 local SWING_TIME = 0.28
 local EQUIP_TIME = 0.38 -- el arma nueva sube desde abajo de la pantalla
 
-local HIP_OFFSET = CFrame.new(1.05, -1.05, -2.1)
+local HIP_OFFSET = CFrame.new(1.05, -0.92, -2.1)
 local AIM_OFFSET = CFrame.new(0, -0.55, -1.7)
 local BASE_FOV = 80
 
@@ -201,26 +201,50 @@ local function tube(length: number, radius: number, offset: CFrame, color: Color
 	return { Size = Vector3.new(length, radius * 2, radius * 2), Offset = offset * CFrame.Angles(0, math.pi / 2, 0), Color = color, Shape = Enum.PartType.Cylinder, Material = material }
 end
 
-local function glove(size: Vector3, offset: CFrame): PieceSpec
-	return { Size = size, Offset = offset, Color = GLOVE_LEATHER, Material = Enum.Material.Leather }
+local GLOVE_FINGER = Color3.fromRGB(104, 76, 56)
+
+-- Dedo redondeado: cilindro a lo largo de X (length) con el grosor dado
+local function finger(length: number, thickness: number, offset: CFrame): PieceSpec
+	return { Size = Vector3.new(length, thickness, thickness), Offset = offset, Color = GLOVE_FINGER, Shape = Enum.PartType.Cylinder, Material = Enum.Material.SmoothPlastic }
 end
 
-local SMOOTH_RIGHT_ARM = {
-	glove(Vector3.new(0.44, 0.38, 0.52), CFrame.new(0.02, -0.5, 0.48) * CFrame.Angles(-0.25, 0, 0)),
-	tube(0.3, 0.24, CFrame.new(0.07, -0.66, 0.92) * CFrame.Angles(0.35, 0, 0), CUFF, Enum.Material.Leather),
-	tube(1.5, 0.22, CFrame.new(0.13, -0.86, 1.6) * CFrame.Angles(0.35, 0, 0), SLEEVE_CLOTH, Enum.Material.Fabric),
-	tube(0.8, 0.27, CFrame.new(0.16, -1.1, 2.3) * CFrame.Angles(0.35, 0, 0), SLEEVE_CLOTH, Enum.Material.Fabric),
-}
+-- Mano con dedos: palma, cuatro dedos que rodean la empuñadura, pulgar al lado
+-- y la fila de nudillos. `base` coloca la mano; `mirror` = -1 para la izquierda.
+local function fingeredHand(base: CFrame, mirror: number): { PieceSpec }
+	local pieces = {
+		{ Size = Vector3.new(0.46, 0.34, 0.5), Offset = base, Color = GLOVE_FINGER, Material = Enum.Material.SmoothPlastic },
+		-- Correa de la muñeca
+		{ Size = Vector3.new(0.5, 0.1, 0.12), Offset = base * CFrame.new(0, 0.02, 0.3), Color = GLOVE_LEATHER, Material = Enum.Material.SmoothPlastic },
+	}
+	for index = 0, 3 do
+		local y = 0.12 - index * 0.085
+		local thick = if index == 3 then 0.07 else 0.08
+		-- Dedo que rodea la empuñadura: tramo hacia un lado y punta doblada hacia adelante
+		table.insert(pieces, finger(0.44, thick, base * CFrame.new(-0.04 * mirror, y, -0.29)))
+		table.insert(pieces, { Size = Vector3.one * thick, Offset = base * CFrame.new(-0.27 * mirror, y, -0.29), Color = GLOVE_FINGER, Shape = Enum.PartType.Ball, Material = Enum.Material.SmoothPlastic })
+	end
+	-- Pulgar apoyado en el costado
+	table.insert(pieces, finger(0.4, 0.11, base * CFrame.new(0.26 * mirror, 0.12, -0.14) * CFrame.Angles(0, 0.9 * mirror, 0)))
+	return pieces
+end
+
+local function smoothRightArm(): { PieceSpec }
+	local pieces = fingeredHand(CFrame.new(0.02, -0.5, 0.48) * CFrame.Angles(-0.25, 0, 0), -1)
+	table.insert(pieces, tube(0.3, 0.24, CFrame.new(0.07, -0.66, 0.92) * CFrame.Angles(0.35, 0, 0), CUFF, Enum.Material.Leather))
+	table.insert(pieces, tube(1.5, 0.22, CFrame.new(0.13, -0.86, 1.6) * CFrame.Angles(0.35, 0, 0), SLEEVE_CLOTH, Enum.Material.Fabric))
+	table.insert(pieces, tube(0.8, 0.27, CFrame.new(0.16, -1.1, 2.3) * CFrame.Angles(0.35, 0, 0), SLEEVE_CLOTH, Enum.Material.Fabric))
+	return pieces
+end
+local SMOOTH_RIGHT_ARM = smoothRightArm()
 
 local function smoothLeftArm(hand: Vector3): { PieceSpec }
 	local base = CFrame.new(hand)
 	local forearm = base * CFrame.new(-0.58, -0.38, 0.7) * CFrame.Angles(0.3, -0.55, 0)
-	return {
-		glove(Vector3.new(0.44, 0.34, 0.52), base),
-		tube(0.3, 0.23, forearm * CFrame.new(0, 0, -0.6), CUFF, Enum.Material.Leather),
-		tube(1.5, 0.21, forearm * CFrame.new(0, 0, 0.15), SLEEVE_CLOTH, Enum.Material.Fabric),
-		tube(0.8, 0.26, base * CFrame.new(-1.03, -0.63, 1.4) * CFrame.Angles(0.3, -0.55, 0), SLEEVE_CLOTH, Enum.Material.Fabric),
-	}
+	local pieces = fingeredHand(base, 1)
+	table.insert(pieces, tube(0.3, 0.23, forearm * CFrame.new(0, 0, -0.6), CUFF, Enum.Material.Leather))
+	table.insert(pieces, tube(1.5, 0.21, forearm * CFrame.new(0, 0, 0.15), SLEEVE_CLOTH, Enum.Material.Fabric))
+	table.insert(pieces, tube(0.8, 0.26, base * CFrame.new(-1.03, -0.63, 1.4) * CFrame.Angles(0.3, -0.55, 0), SLEEVE_CLOTH, Enum.Material.Fabric))
+	return pieces
 end
 
 local function leftArm(hand: Vector3): { PieceSpec }

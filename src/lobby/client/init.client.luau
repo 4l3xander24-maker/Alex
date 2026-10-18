@@ -39,7 +39,7 @@ stroke.Thickness = 1.5
 stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 stroke.Parent = panel
 
-local IDLE = `Entra a un círculo verde para jugar (1 a {Config.Rooms.MaxPlayers} jugadores).\nMás jugadores = más zombis.`
+local IDLE = `Entra a un círculo verde para jugar (cada uno dice para cuántos es).\nMás jugadores = más zombis.`
 panel.Text = IDLE
 
 -- Botón Cancelar: dentro de la sala no puedes salir caminando; esto te saca del círculo
@@ -113,8 +113,8 @@ status.OnClientEvent:Connect(function(room, count, seconds, problem)
 	elseif problem then
 		panel.Text = `Aviso: {problem}`
 	elseif seconds then
-		panel.Text = `Sala {room}  ·  {count}/{Config.Rooms.MaxPlayers} jugadores\nLa partida empieza en {seconds} s. Pulsa Cancelar para salir.`
+		panel.Text = `Sala {room}  ·  {count}/{Config.Rooms.Capacities[room]} jugadores\nLa partida empieza en {seconds} s. Pulsa Cancelar para salir.`
 	else
-		panel.Text = `Sala {room}  ·  {count}/{Config.Rooms.MaxPlayers} jugadores`
+		panel.Text = `Sala {room}  ·  {count}/{Config.Rooms.Capacities[room]} jugadores`
 	end
 end)

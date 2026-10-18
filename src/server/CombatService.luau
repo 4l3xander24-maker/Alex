@@ -137,27 +137,27 @@ function CombatService.resetAll()
 	end
 end
 
--- Cada zombi eliminado da balas al arma que tienes en la mano (o a la última
--- arma de fuego que usaste si lo mataste con el machete)
+-- Cada zombi eliminado (con arma de fuego o cuchillo) da balas de reserva: se
+-- llena primero la pistola hasta su tope y, cuando está llena, las siguientes
+-- armas que tengas en el orden de la tienda
 function CombatService.grantKillAmmo(player: Player)
 	local data = DataService.get(player)
 	if not data then
 		return
 	end
 	local state = getState(player)
-	local weaponId = data.Equipped
-	if Config.Weapons[weaponId].Melee then
-		weaponId = state.LastGun
-	end
-	if not data.Weapons[weaponId] then
-		return
-	end
-	local stats = Progression.getWeaponStats(data, weaponId, false)
-	local reserve = state.Reserve[weaponId] or 0
-	local added = math.min(stats.AmmoPerKill, stats.MaxReserve - reserve)
-	if added > 0 then
-		state.Reserve[weaponId] = reserve + added
-		Remotes.AmmoGranted:FireClient(player, weaponId, added)
+	for _, weaponId in Config.WeaponOrder do
+		if Config.Weapons[weaponId].Melee or not data.Weapons[weaponId] then
+			continue
+		end
+		local stats = Progression.getWeaponStats(data, weaponId, false)
+		local reserve = state.Reserve[weaponId] or 0
+		local added = math.min(stats.AmmoPerKill, stats.MaxReserve - reserve)
+		if added > 0 then
+			state.Reserve[weaponId] = reserve + added
+			Remotes.AmmoGranted:FireClient(player, weaponId, added)
+			return
+		end
 	end
 end
 

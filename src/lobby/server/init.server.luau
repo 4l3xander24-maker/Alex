@@ -31,13 +31,13 @@ local FOLIAGE = { Color3.fromRGB(214, 120, 40), Color3.fromRGB(190, 70, 36), Col
 local PAD_RADIUS = 7
 local PLAZA_RADIUS = 50
 local BELL = Vector3.new(0, 0, -6) -- la campana gigante, centro de la plaza
-local ROOM_RING = 32 -- distancia de las salas a la campana
 local SPAWN = Vector3.new(0, 0, 36)
 local BOARD_REFRESH = 90 -- segundos entre lecturas del ranking
 local random = Random.new(5)
 
 type Room = {
 	Index: number,
+	Capacity: number,
 	Center: Vector3,
 	Members: { Player },
 	EndsAt: number?,
@@ -545,7 +545,7 @@ local function buildSpawn(map: Instance)
 	spawn.Parent = map
 end
 
-local function buildRoom(map: Instance, index: number, center: Vector3): Room
+local function buildRoom(map: Instance, index: number, center: Vector3, capacity: number): Room
 	local model = Instance.new("Model")
 	model.Name = "Room" .. index
 	local outward = Vector3.new(center.X - BELL.X, 0, center.Z - BELL.Z).Unit
@@ -585,7 +585,7 @@ local function buildRoom(map: Instance, index: number, center: Vector3): Room
 	hintLabel.TextScaled = true
 	hintLabel.TextColor3 = Color3.new(1, 1, 1)
 	hintLabel.TextStrokeTransparency = 0.6
-	hintLabel.Text = "ENTRA AQUÍ"
+	hintLabel.Text = if capacity == 1 then "SOLO 1 JUGADOR" else `PARA {capacity} JUGADORES`
 	hintLabel.Parent = hint
 	for step = 0, 5 do
 		local angle = step / 6 * math.pi * 2 + 0.3
@@ -636,7 +636,7 @@ local function buildRoom(map: Instance, index: number, center: Vector3): Room
 	title.Font = Enum.Font.Arcade
 	title.TextScaled = true
 	title.TextColor3 = GOLD
-	title.Text = `SALA {index}`
+	title.Text = if capacity == 1 then `SALA {index} · SOLO` else `SALA {index} · {capacity}`
 	title.Parent = gui
 	local label = Instance.new("TextLabel")
 	label.Position = UDim2.fromScale(0.05, 0.55)
@@ -647,12 +647,12 @@ local function buildRoom(map: Instance, index: number, center: Vector3): Room
 	label.TextColor3 = Color3.new(1, 1, 1)
 	label.Parent = gui
 	model.Parent = map
-	return { Index = index, Center = center, Members = {}, EndsAt = nil, Launching = false, Label = label, Glow = glow, Outward = outward, Light = light, Sparkles = sparkles }
+	return { Index = index, Capacity = capacity, Center = center, Members = {}, EndsAt = nil, Launching = false, Label = label, Glow = glow, Outward = outward, Light = light, Sparkles = sparkles }
 end
 
 local function refresh(room: Room)
 	local count = #room.Members
-	local text = `{count}/{rooms.MaxPlayers} jugadores`
+	local text = `{count}/{room.Capacity} {if room.Capacity == 1 then "jugador" else "jugadores"}`
 	if room.Launching then
 		text ..= "  ·  ¡Saliendo!"
 	elseif room.EndsAt then
@@ -661,7 +661,7 @@ local function refresh(room: Room)
 		text ..= "  ·  Entra aquí"
 	end
 	room.Label.Text = text
-	local color = if count >= rooms.MaxPlayers then FULL elseif count > 0 then GOLD else FREE
+	local color = if count >= room.Capacity then FULL elseif count > 0 then GOLD else FREE
 	for _, part in room.Glow do
 		part.Color = color
 	end
@@ -728,7 +728,7 @@ local function leave(player: Player)
 end
 
 local function join(player: Player, room: Room)
-	if roomOf[player] == room or room.Launching or #room.Members >= rooms.MaxPlayers then
+	if roomOf[player] == room or room.Launching or #room.Members >= room.Capacity then
 		return
 	end
 	leave(player)
@@ -738,7 +738,7 @@ local function join(player: Player, room: Room)
 	if not room.EndsAt then
 		room.EndsAt = os.clock() + rooms.Countdown
 	end
-	if #room.Members >= rooms.MaxPlayers then
+	if #room.Members >= room.Capacity then
 		room.EndsAt = math.min(room.EndsAt :: number, os.clock() + rooms.FullCountdown)
 	end
 	refresh(room)
@@ -894,16 +894,18 @@ buildScenery(map)
 buildSpawn(map)
 buildGuide(map)
 buildShop(map)
--- Las salas en semicírculo detrás de la campana, mirándola
-local spread = math.rad(120)
+-- Diez salas en un solo arco grande alrededor de la plaza, mirando a la campana
+-- (de 5 a 1 jugadores a la izquierda y de 1 a 5 a la derecha)
+local ROOM_RING = 44
+local spread = math.rad(190)
 for index = 1, rooms.Count do
-	local alpha = if rooms.Count > 1 then (index - 1) / (rooms.Count - 1) else 0.5
+	local alpha = (index - 1) / (rooms.Count - 1)
 	local angle = -math.pi / 2 - spread / 2 + spread * alpha
 	local center = BELL + Vector3.new(math.cos(angle) * ROOM_RING, 0, math.sin(angle) * ROOM_RING)
-	table.insert(roomList, buildRoom(map, index, center))
+	table.insert(roomList, buildRoom(map, index, center, rooms.Capacities[index]))
 end
-local waveBoard = buildBoard(map, Vector3.new(-38, 0, 6), "MEJOR OLEADA", 8)
-local killBoard = buildBoard(map, Vector3.new(38, 0, 6), "MÁS ZOMBIS", 8)
+local waveBoard = buildBoard(map, Vector3.new(-34, 0, 24), "MEJOR OLEADA", 8)
+local killBoard = buildBoard(map, Vector3.new(34, 0, 24), "MÁS ZOMBIS", 8)
 -- El terreno de Roblox queda un poco más arriba de lo que se rellena (va en
 -- bloques de 4 studs): se mide el piso de verdad y todo sube esa altura, así
 -- nada queda metido bajo el suelo
@@ -962,7 +964,21 @@ task.spawn(function()
 			if root then
 				for _, room in roomList do
 					local offset = root.Position - room.Center
-					if Vector3.new(offset.X, 0, offset.Z).Magnitude <= PAD_RADIUS and offset.Y < 8 then
+					local flat = Vector3.new(offset.X, 0, offset.Z).Magnitude
+					-- Quien ya está dentro sigue dentro aunque salte (la altura no cuenta)
+					if roomOf[player] == room then
+						if flat <= PAD_RADIUS + 3 and offset.Y < 60 then
+							inside = room
+							-- Si se pasó del borde (salto, empujón), lo devuelve al círculo
+							if flat > PAD_RADIUS - 0.8 and not room.Launching then
+								local back = room.Center + Vector3.new(offset.X, 0, offset.Z).Unit * (PAD_RADIUS - 2.5)
+								local character = player.Character :: Model
+								character:PivotTo(CFrame.new(back.X, root.Position.Y, back.Z))
+								root.AssemblyLinearVelocity = Vector3.new(0, root.AssemblyLinearVelocity.Y, 0)
+							end
+						end
+						break
+					elseif flat <= PAD_RADIUS and offset.Y < 8 then
 						inside = room
 						break
 					end

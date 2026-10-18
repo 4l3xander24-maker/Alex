@@ -495,6 +495,7 @@ Config.Enemies = {
 		Coins = 3,
 		Size = Vector2.new(3.8, 5.3),
 		HitRadius = 1.9,
+		HitExtra = 1.2, -- el modelo es más alto que Size (casco, cabeza)
 		Sprite = "",
 		Model = "Zombie",
 		Hat = "Helmet",
@@ -568,6 +569,7 @@ Config.Enemies = {
 		Coins = 3,
 		Size = Vector2.new(4, 5.2),
 		HitRadius = 2,
+		HitExtra = 1.5, -- el modelo es más alto que Size (casco, cabeza)
 		Sprite = "",
 		Model = "Zombie",
 		Tentacles = true,
@@ -607,6 +609,7 @@ Config.Enemies = {
 		Coins = 3,
 		Size = Vector2.new(3.8, 5.2),
 		HitRadius = 1.9,
+		HitExtra = 1.5, -- el modelo es más alto que Size (casco, cabeza)
 		Sprite = "",
 		Model = "Zombie",
 		Tentacles = true,
@@ -674,6 +677,7 @@ Config.Enemies = {
 		Size = Vector2.new(18, 28),
 		SpriteSize = Vector2.new(17, 28),
 		HitRadius = 7.5,
+		HitExtra = 6, -- el modelo es más alto que Size (casco, cabeza)
 		Sprite = "",
 		Model = "Zombie",
 		Hat = "Crown",
@@ -907,8 +911,9 @@ Config.Monetization = {
 }
 
 Config.Rooms = {
-	Count = 4, -- salas en el lobby
+	Count = 10, -- salas en el lobby
 	MaxPlayers = 5,
+	Capacities = { 5, 4, 3, 2, 1, 1, 2, 3, 4, 5 }, -- cuántos jugadores caben en cada sala (2 de cada tamaño, simétricas)
 	Countdown = 15, -- segundos desde que entra el primero
 	FullCountdown = 5, -- si se llena, sale antes
 	ReturnDelay = 10, -- segundos del resumen antes de volver al lobby
@@ -919,7 +924,7 @@ Config.Rooms = {
 -- Armas que vende el Armero. Zoom solo se usa con el talento Puntería.
 -- StartReserve: balas de reserva al empezar la partida.
 -- MaxReserve: máximo de balas de reserva (lo sube la cartuchera del Intendente).
--- AmmoPerKill: balas que ganas por cada zombi eliminado con esa arma en la mano (1 en todas).
+-- AmmoPerKill: balas que ganas por cada zombi eliminado (con cualquier arma): llena primero la pistola y, al llegar a su tope, la siguiente arma.
 Config.Weapons = {
 	Machete = {
 		DisplayName = "Cuchillo",

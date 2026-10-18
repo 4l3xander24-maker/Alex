@@ -33,6 +33,7 @@ export type Enemy = {
 	Radius: number,
 	HalfHeight: number, -- altura del centro del cuerpo (en los voladores, la de vuelo)
 	BodyHalf: number, -- medio alto del cuerpo
+	HitExtra: number, -- studs extra hacia arriba (cascos, cuernos, cabezas grandes del modelo)
 	BellTarget: Vector3, -- dónde se para a golpear la campana
 	Route: string, -- camino que sigue
 	Lane: Vector3, -- desvío respecto al centro del camino
@@ -286,6 +287,7 @@ local function create(typeName: string, healthMultiplier: number, start: Vector3
 		Radius = info.HitRadius,
 		HalfHeight = halfHeight,
 		BodyHalf = info.Size.Y / 2,
+		HitExtra = info.HitExtra or 0,
 		BellTarget = target,
 		Route = route,
 		Lane = laneOffset,
@@ -407,7 +409,7 @@ function EnemyService.raycast(
 		local axisPoint = center
 		for _ = 1, 2 do
 			local rayPoint = origin + direction * along
-			axisPoint = Vector3.new(center.X, math.clamp(rayPoint.Y, center.Y - reach, center.Y + reach), center.Z)
+			axisPoint = Vector3.new(center.X, math.clamp(rayPoint.Y, center.Y - reach, center.Y + reach + enemy.HitExtra), center.Z)
 			along = (axisPoint - origin):Dot(direction)
 		end
 		if along > 0 and along < range then
