@@ -47,6 +47,9 @@ ZombieModels.Palette = {
 	Rot = Color3.fromRGB(78, 104, 58),
 	Bone = Color3.fromRGB(232, 226, 208),
 	Bandage = Color3.fromRGB(214, 202, 172),
+	Steel = Color3.fromRGB(206, 212, 224),
+	Acid = Color3.fromRGB(150, 230, 60),
+	Purple = Color3.fromRGB(186, 72, 224),
 }
 
 local PLASTIC = Enum.Material.SmoothPlastic
@@ -183,6 +186,17 @@ local function zombie(info): { PartSpec }
 				table.insert(list, part(name .. "Bandage" .. index, v(armSize.X + 0.07, 0.17, armSize.Z + 0.07), shoulder, v(0, y + 0.5, 0), tilt, "Bandage", "Arm", { Material = FABRIC, Role = role }))
 			end
 		end
+		-- Caballero: espada oxidada en la mano derecha, apuntando adelante
+		if info.Sword and side > 0 then
+			local endY = -armSize.Y + 0.4
+			table.insert(list, part("SwordGuard", v(1, 0.15, 0.26), shoulder, v(0, endY, 0), tilt, "Iron", "Arm", { Material = METAL, Role = role }))
+			table.insert(list, part("SwordBlade", v(0.2, 2.7, 0.1), shoulder, v(0, endY - 1.4, 0), tilt, "Steel", "Arm", { Material = METAL, Role = role }))
+			table.insert(list, part("SwordRust", v(0.22, 0.7, 0.11), shoulder, v(0, endY - 1.9, 0), tilt, "Blood", "Arm", { Role = role }))
+		end
+		-- Realeza: brazaletes de oro
+		if info.Regal then
+			table.insert(list, part(name .. "Bracer", v(armSize.X + 0.12, 0.55, armSize.Z + 0.12), shoulder, v(0, -armSize.Y + 0.95, 0), tilt, "Gold", "Arm", { Material = METAL, Role = role }))
+		end
 		if info.Claws or buff then
 			for index, x in { -0.3, 0, 0.3 } do
 				table.insert(list, part(name .. "Claw" .. index, v(0.12, 0.42, 0.14), shoulder, v(x * armSize.X, -armSize.Y + 0.35, -0.38 * armSize.Z), tilt, "Claw", "Arm", { Material = METAL, Role = role }))
@@ -195,6 +209,59 @@ local function zombie(info): { PartSpec }
 
 	if info.Armor then
 		table.insert(list, part("ChestPlate", v(torsoSize.X + 0.06, torsoSize.Y * 0.65, torsoSize.Z + 0.1), hip, v(0, torsoSize.Y * 0.62, 0), torsoTilt, "Iron", "Torso", { Material = METAL }))
+	end
+	-- Cinturón con calavera (Bruto y Coloso)
+	if info.Belt then
+		table.insert(list, part("Belt", v(torsoSize.X + 0.1, 0.3, torsoSize.Z + 0.1), hip, v(0, 0.3, 0), torsoTilt, "Socket", "Torso", { Material = FABRIC }))
+		table.insert(list, part("Buckle", v(0.5, 0.42, 0.08), hip, v(0, 0.3, front - 0.06), torsoTilt, "Gold", "Torso", { Material = METAL }))
+		table.insert(list, part("BuckleSkull", v(0.28, 0.28, 0.06), hip, v(0, 0.3, front - 0.12), torsoTilt, "Bone", "Torso"))
+	end
+	-- Cuernos de hueso (Coloso)
+	if info.Horns then
+		for _, side in { -1, 1 } do
+			table.insert(list, part("HornBase", v(0.34, 0.5, 0.34), headPivot, v(side * headSize * 0.5, headSize + 0.12, 0), headTilt, "Bone", "Head"))
+			table.insert(list, part("HornTip", v(0.2, 0.6, 0.2), headPivot, v(side * headSize * 0.62, headSize + 0.55, 0), headTilt, "Bone", "Head"))
+		end
+	end
+	-- Bomber: chaleco de dinamita con mecha encendida
+	if info.Dynamite then
+		for _, y in { 0.7, 1.55 } do
+			table.insert(list, part("DynamiteStrap", v(torsoSize.X + 0.08, 0.14, torsoSize.Z + 0.08), hip, v(0, y, 0), torsoTilt, "Socket", "Torso", { Material = FABRIC }))
+		end
+		for index, x in { -0.55, 0, 0.55 } do
+			table.insert(list, part("Dynamite" .. index, v(0.3, 1, 0.3), hip, v(x, 1.1, front - 0.16), torsoTilt, "Ruby", "Torso", { Shape = Enum.PartType.Cylinder, Turn = CFrame.Angles(0, 0, math.pi / 2) }))
+		end
+		table.insert(list, part("Fuse", v(0.06, 0.34, 0.06), hip, v(0, 1.78, front - 0.16), torsoTilt, "Black", "Torso"))
+		table.insert(list, part("FuseSpark", v(0.2, 0.2, 0.2), hip, v(0, 2, front - 0.16), torsoTilt, "Orange", "Torso", { Material = Enum.Material.Neon, Shape = Enum.PartType.Ball }))
+	end
+	-- Escupidor: bolsa de ácido en la garganta y baba
+	if info.Sac then
+		table.insert(list, part("ThroatSac", v(0.85, 0.85, 0.85), headPivot, v(0, -0.2, -headSize * 0.32), headTilt, "Acid", "Head", { Material = Enum.Material.Neon, Shape = Enum.PartType.Ball }))
+		table.insert(list, part("Drool", v(0.1, 0.55, 0.07), headPivot, v(0.02 * headSize, headSize * 0.05, -headSize / 2 - 0.02), headTilt, "Acid", "Head", { Material = Enum.Material.Neon }))
+	end
+	-- Parásito: pústulas que brillan en el pecho
+	if info.Pustules then
+		for index, spot in { v(-0.6, 1.4, 0.45), v(0.55, 0.9, 0.5), v(0.15, 1.75, 0.4), v(-0.45, 0.6, 0.4) } do
+			local size = 0.38 + index % 2 * 0.16
+			table.insert(list, part("Pustule" .. index, v(size, size, size), hip, v(spot.X, spot.Y, front - spot.Z * 0.3), torsoTilt, "Purple", "Torso", { Material = Enum.Material.Neon, Shape = Enum.PartType.Ball }))
+		end
+	end
+	-- Mutante: espinas de hueso que le salen por la columna
+	if info.Spines then
+		for index = 1, 5 do
+			table.insert(list, part("Spine" .. index, v(0.2, 0.55 + index % 2 * 0.2, 0.2), hip, v(0, 2.0 - index * 0.36, torsoSize.Z / 2 + 0.16), torsoTilt + 0.55, "Bone", "Torso"))
+		end
+	end
+	-- Corredor: banda roja en la frente
+	if info.Headband then
+		table.insert(list, part("Headband", v(headSize * 1.1, 0.17, headSize * 1.1), headPivot, v(0, headSize * 0.75, 0), headTilt, "Ruby", "Head", { Material = FABRIC }))
+		table.insert(list, part("HeadbandKnot", v(0.3, 0.3, 0.2), headPivot, v(0.1, headSize * 0.75, headSize / 2 + 0.1), headTilt + 0.3, "Ruby", "Head", { Material = FABRIC }))
+	end
+	-- Realeza: peto de oro, gema y cuello de piel
+	if info.Regal then
+		table.insert(list, part("RegalPlate", v(torsoSize.X + 0.08, torsoSize.Y * 0.5, torsoSize.Z + 0.1), hip, v(0, torsoSize.Y * 0.68, 0), torsoTilt, "Gold", "Torso", { Material = METAL }))
+		table.insert(list, part("RegalGem", v(0.34, 0.34, 0.08), hip, v(0, torsoSize.Y * 0.72, front - 0.07), torsoTilt, "Ruby", "Torso", { Material = Enum.Material.Neon }))
+		table.insert(list, part("FurCollar", v(torsoSize.X + 0.55, 0.4, torsoSize.Z + 0.55), hip, v(0, torsoSize.Y - 0.05, 0), torsoTilt, "White", "Torso", { Material = FABRIC }))
 	end
 	if info.Cape then
 		local capePivot = upper(v(0, torsoSize.Y - 0.2, torsoSize.Z / 2 + 0.05))
@@ -263,6 +330,12 @@ local function fat(_info): { PartSpec }
 	table.insert(list, part("Head", v(1.5, 1.3, 1.3), headPivot, v(0, 0.6, 0), 0.2, "Skin", "Head"))
 	table.insert(list, part("Chin", v(1.3, 0.35, 1.1), headPivot, v(0, -0.1, -0.05), 0.2, "Skin", "Head"))
 	face(list, headPivot, 0.2, 0.62, -0.65, 0.9)
+	-- Delantal de carnicero ensangrentado y gorro de cocinero
+	table.insert(list, part("Apron", v(2.5, 2.1, 0.1), hip, v(0, 1.0, -1.16), 0.1, "White", "Torso", { Material = FABRIC }))
+	table.insert(list, part("ApronBlood", v(1.2, 0.7, 0.11), hip, v(0.3, 0.55, -1.2), 0.1, "Blood", "Torso"))
+	table.insert(list, part("ApronBlood2", v(0.5, 0.9, 0.11), hip, v(-0.8, 1.3, -1.2), 0.1, "Blood", "Torso"))
+	table.insert(list, part("ChefBand", v(1.5, 0.3, 1.35), headPivot, v(0, 1.2, 0), 0.2, "White", "Head", { Material = FABRIC }))
+	table.insert(list, part("ChefHat", v(1.3, 0.9, 1.15), headPivot, v(0, 1.75, 0), 0.2, "White", "Head", { Material = FABRIC }))
 
 	for _, side in { -1, 1 } do
 		local name = if side < 0 then "Left" else "Right"
@@ -271,6 +344,12 @@ local function fat(_info): { PartSpec }
 		table.insert(list, part(name .. "Arm", v(0.8, 0.8, 1.9), shoulder, v(0, -0.1, -0.85), 0, "Skin", "Arm", { Role = role }))
 		table.insert(list, part(name .. "Sleeve", v(0.95, 0.95, 0.6), shoulder, v(0, 0, -0.2), 0, "Shirt", "Arm", { Material = FABRIC, Role = role }))
 		table.insert(list, part(name .. "Hand", v(0.9, 0.85, 0.5), shoulder, v(0, -0.1, -1.9), 0, "Skin", "Arm", { Role = role }))
+		if side > 0 then
+			-- Cuchillo de carnicero en la mano derecha
+			table.insert(list, part("CleaverHandle", v(0.2, 0.2, 0.8), shoulder, v(0, -0.1, -2.3), 0, "Socket", "Arm", { Role = role }))
+			table.insert(list, part("CleaverBlade", v(0.12, 1.3, 1.1), shoulder, v(0, 0.55, -2.55), 0, "Steel", "Arm", { Material = METAL, Role = role }))
+			table.insert(list, part("CleaverBlood", v(0.13, 0.5, 0.5), shoulder, v(0, 0.95, -2.7), 0, "Blood", "Arm", { Role = role }))
+		end
 	end
 	return list
 end
@@ -304,6 +383,12 @@ local function dragon(_info): { PartSpec }
 		local height = if index <= 3 then 0.75 else 0.55
 		add("Spike" .. index, v(0.16, height, height), v(0, 0, 0), v(0, 1.05, z), 0.785, "Shirt", "Torso")
 	end
+
+	-- Brasas: grietas que brillan en la panza y el pecho
+	for index, z in { -1.2, -0.4, 0.4, 1.2 } do
+		add("Ember" .. index, v(0.9 - math.abs(z) * 0.2, 0.1, 0.36), v(0, 0, 0), v(0, -0.98, z), 0, "Orange", "Torso", { Material = Enum.Material.Neon })
+	end
+	add("ChestGlow", v(0.8, 0.8, 0.2), v(0, 0, 0), v(0, 0.1, -2.72), 0, "Orange", "Torso", { Material = Enum.Material.Neon })
 
 	-- Cuello en tres partes, cabeza con hocico, cejas y cuernos curvos
 	for index, segment in { { -2.3, 0.95 }, { -2.9, 0.82 }, { -3.4, 0.72 } } do
