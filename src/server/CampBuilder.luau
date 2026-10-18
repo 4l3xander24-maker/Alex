@@ -757,7 +757,7 @@ local function buildMarket(map: Instance)
 end
 
 -- Plaza empedrada alrededor de la fogata, caminos de piedra a cada puesto,
--- guirnaldas de luces entre postes, un tablón de misiones y el cartel de
+-- un tablón de misiones y el cartel de
 -- bienvenida en la entrada.
 local function buildPlaza(map: Instance)
 	local stone = Props.Colors.Stone
@@ -790,32 +790,6 @@ local function buildPlaza(map: Instance)
 		end
 	end
 
-	-- Guirnalda de luces: 8 postes en círculo y bombillas colgando entre ellos
-	local radius = 15.5
-	local count = 8
-	local poles = {}
-	for index = 1, count do
-		local angle = (index - 0.5) / count * math.pi * 2
-		local base = camp + Vector3.new(math.cos(angle) * radius, 0, math.sin(angle) * radius)
-		makePart({ Name = "LightPole", Size = Vector3.new(0.6, 10, 0.6), Position = base + Vector3.new(0, 5, 0), Material = Enum.Material.Wood, Color = DARK_WOOD, Parent = map })
-		makeProp({ Name = "PoleFoot", Size = Vector3.new(1.1, 0.5, 1.1), Position = base + Vector3.new(0, 0.25, 0), Material = Enum.Material.Slate, Color = stone, Parent = map })
-		poles[index] = base + Vector3.new(0, 9.7, 0)
-	end
-	local bulbColor = Color3.fromRGB(255, 214, 140)
-	for index = 1, count do
-		local from, to = poles[index], poles[index % count + 1]
-		local steps = 9
-		for step = 1, steps - 1 do
-			local alpha = step / steps
-			local sag = math.sin(alpha * math.pi) * 1.4
-			local position = from:Lerp(to, alpha) - Vector3.new(0, sag, 0)
-			local bulb = makeProp({ Name = "StringBulb", Shape = Enum.PartType.Ball, Size = Vector3.one * 0.45, Position = position, Material = Enum.Material.Neon, Color = bulbColor, CastShadow = false, Parent = map })
-			if step % 4 == 0 then
-				Props.light(bulb, bulbColor, 16, 0.9)
-			end
-		end
-	end
-
 	-- Tablón de misiones junto al camino de la campana
 	local board = CFrame.lookAt(camp + Vector3.new(6.5, 0, -17), camp + Vector3.new(0, 0, -10))
 	for _, side in { -1, 1 } do
@@ -845,7 +819,7 @@ local function buildPlaza(map: Instance)
 		makePart({ Name = "TallLampPost", Size = Vector3.new(0.7, 13, 0.7), Position = gate + Vector3.new(side * 14, 6.5, 0), Material = Enum.Material.Wood, Color = DARK_WOOD, Parent = map })
 		makeProp({ Name = "TallLampFoot", Size = Vector3.new(1.4, 0.6, 1.4), Position = gate + Vector3.new(side * 14, 0.3, 0), Material = Enum.Material.Slate, Color = stone, Parent = map })
 		local tall = makeProp({ Name = "TallLamp", Size = Vector3.new(1.1, 1.5, 1.1), Position = gate + Vector3.new(side * 14, 13.6, 0), Material = Enum.Material.Neon, Color = Color3.fromRGB(255, 214, 140), Parent = map })
-		Props.light(tall, Color3.fromRGB(255, 214, 140), 34, 2.4)
+		Props.light(tall, Color3.fromRGB(255, 214, 140), 22, 1.1)
 	end
 	makePart({ Name = "GateBeam", Size = Vector3.new(24, 1.2, 1.2), Position = gate + Vector3.new(0, 17.4, 0), Material = Enum.Material.Wood, Color = DARK_WOOD, Parent = map })
 	-- Luz cálida bajo el travesaño para que el cartel se lea siempre
@@ -857,7 +831,7 @@ local function buildPlaza(map: Instance)
 			makePart({ Name = "LampBrace", Size = Vector3.new(0.3, 0.3, 3), CFrame = CFrame.new(gate + Vector3.new(x, 17.6, face * 1.2)) * CFrame.Angles(face * 0.8, 0, 0), Material = Enum.Material.Wood, Color = DARK_WOOD, Parent = map })
 			makeProp({ Name = "LampChain", Size = Vector3.new(0.12, 1.2, 0.12), Position = gate + Vector3.new(x, 17.7, face * 3.2), Material = Enum.Material.Metal, Color = Props.Colors.Iron, Parent = map })
 			local lamp = makeProp({ Name = "SignLamp", Size = Vector3.new(0.9, 1.1, 0.9), Position = gate + Vector3.new(x, 16.6, face * 3.2), Material = Enum.Material.Neon, Color = Color3.fromRGB(255, 214, 140), Parent = map })
-			Props.light(lamp, Color3.fromRGB(255, 214, 140), 30, 2.2)
+			Props.light(lamp, Color3.fromRGB(255, 214, 140), 18, 1.1)
 		end
 	end
 	Props.sign(map, CFrame.new(gate + Vector3.new(0, 14.4, -0.8)) * CFrame.Angles(0, 0, 0), "CAMPAMENTO", Color3.fromRGB(255, 225, 150))

@@ -870,9 +870,9 @@ Config.Monetization = {
 		ObjPetVoid = { Id = 3719357910, Name = "Compañero del vacío", Icon = "🌀", Description = "Skin Premium de compañero.", ObjectSkin = "PetVoid" },
 		ObjTracerStorm = { Id = 3719357961, Name = "Rastro de tormenta", Icon = "⚡", Description = "Skin Premium de rastro de balas.", ObjectSkin = "TracerStorm" },
 		ObjTracerAurum = { Id = 3719358010, Name = "Rastro de oro", Icon = "✨", Description = "Skin Premium de rastro de balas.", ObjectSkin = "TracerAurum" },
-		ObjDfLightning = { Id = 0, Name = "Efecto Rayo", Icon = "⚡", Description = "Skin Premium de efecto al eliminar.", ObjectSkin = "DfLightning" },
-		ObjDfGold = { Id = 0, Name = "Efecto Lluvia de oro", Icon = "🪙", Description = "Skin Premium de efecto al eliminar.", ObjectSkin = "DfGold" },
-		ObjDfRainbow = { Id = 0, Name = "Efecto Arcoíris", Icon = "🌈", Description = "Skin Premium de efecto al eliminar.", ObjectSkin = "DfRainbow" },
+		ObjDfLightning = { Id = 3719363441, Name = "Efecto Rayo", Icon = "⚡", Description = "Skin Premium de efecto al eliminar.", ObjectSkin = "DfLightning" },
+		ObjDfGold = { Id = 3719363499, Name = "Efecto Lluvia de oro", Icon = "🪙", Description = "Skin Premium de efecto al eliminar.", ObjectSkin = "DfGold" },
+		ObjDfRainbow = { Id = 3719363534, Name = "Efecto Arcoíris", Icon = "🌈", Description = "Skin Premium de efecto al eliminar.", ObjectSkin = "DfRainbow" },
 		ObjBellFire = { Id = 3719283103, Name = "Campana infernal", Icon = "🌋", Description = "Skin Premium de campana.", ObjectSkin = "BellFire" },
 		SkinBlood = { Id = 3719236493, Name = "Skin Sangrienta", Icon = "🟥", Description = "Skin de arma roja brillante.", WeaponSkin = "Blood" },
 		SkinGalaxy = { Id = 3719236685, Name = "Skin Galaxia", Icon = "🟪", Description = "Skin de arma morada brillante.", WeaponSkin = "Galaxy" },
@@ -913,7 +913,7 @@ Config.Rooms = {
 	FullCountdown = 5, -- si se llena, sale antes
 	ReturnDelay = 10, -- segundos del resumen antes de volver al lobby
 	VoteMaxWait = 300, -- sin cuenta regresiva: si alguien no vota en tanto tiempo, cuenta como Reintentar
-	CinematicTime = 6, -- duración de la cinemática de derrota
+	CinematicTime = 9, -- duración de la cinemática de derrota
 }
 
 -- Armas que vende el Armero. Zoom solo se usa con el talento Puntería.

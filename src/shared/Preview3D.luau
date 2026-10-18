@@ -191,15 +191,53 @@ end
 -- Efecto al morir un zombi: un estallido de cubos
 function Preview3D.deathFx(skin: any): Model
 	local model = Instance.new("Model")
+	model:SetAttribute("Burst", true)
 	local colors = skin.Colors or { skin.Main, skin.Accent }
 	local rng = Random.new(7)
-	newPart(model, "Core", Vector3.one * 1.4, CFrame.new(), skin.Accent, Enum.Material.Neon, Enum.PartType.Ball)
-	for index = 1, 26 do
-		local direction = Vector3.new(rng:NextNumber(-1, 1), rng:NextNumber(-0.6, 1), rng:NextNumber(-1, 1)).Unit
-		local size = rng:NextNumber(0.3, 0.8)
-		newPart(model, "Bit", Vector3.one * size, CFrame.new(direction * rng:NextNumber(1.6, 4)) * CFrame.Angles(rng:NextNumber(0, 6), rng:NextNumber(0, 6), 0), colors[(index - 1) % #colors + 1], if skin.Premium then Enum.Material.Neon else Enum.Material.SmoothPlastic)
+	local material = if skin.Premium then Enum.Material.Neon else Enum.Material.SmoothPlastic
+	local core = newPart(model, "Core", Vector3.one * 1.4, CFrame.new(), skin.Accent, Enum.Material.Neon, Enum.PartType.Ball)
+	core:SetAttribute("Core", true)
+	if skin.Column then
+		newPart(model, "Column", Vector3.new(0.9, 9, 0.9), CFrame.new(), skin.Main, Enum.Material.Neon):SetAttribute("Column", true)
+	end
+	for index = 1, 34 do
+		local direction = Vector3.new(rng:NextNumber(-1, 1), rng:NextNumber(-0.3, 1), rng:NextNumber(-1, 1)).Unit
+		local size = rng:NextNumber(0.35, if skin.Big then 1.3 else 0.8)
+		local bit = newPart(model, "Bit", Vector3.one * size, CFrame.new(direction * 2), colors[(index - 1) % #colors + 1], material)
+		bit:SetAttribute("Dir", direction * rng:NextNumber(2.2, 4.2))
+		bit:SetAttribute("Rise", (skin.Rise or 10) / 10 * rng:NextNumber(0.6, 1.4))
+		bit:SetAttribute("Spin", rng:NextNumber(-6, 6))
+		bit:SetAttribute("Size", size)
 	end
 	return model
+end
+
+-- Reproduce en bucle el estallido de un efecto de muerte (las partículas no se
+-- ven en un ViewportFrame, así que se mueven los cubos a mano)
+local function animateBurst(model: Model, t: number)
+	local cycle = (t % 2.4) / 2.4
+	local out = 1 - (1 - math.min(cycle * 2.2, 1)) ^ 2
+	local fade = math.clamp((cycle - 0.55) / 0.45, 0, 1)
+	for _, part in model:GetChildren() do
+		if not part:IsA("BasePart") then
+			continue
+		end
+		if part:GetAttribute("Core") then
+			part.Size = Vector3.one * 1.4 * math.max(1 - cycle * 2, 0.01)
+		elseif part:GetAttribute("Column") then
+			local flash = math.clamp(1 - cycle * 3, 0, 1)
+			part.Transparency = 1 - flash
+			part.Size = Vector3.new(0.9 * flash + 0.01, 9, 0.9 * flash + 0.01)
+		else
+			local dir = part:GetAttribute("Dir")
+			local rise = part:GetAttribute("Rise")
+			local size = part:GetAttribute("Size")
+			part.Position = dir * out + Vector3.new(0, rise * cycle * 2.2, 0)
+			part.Orientation = Vector3.new(part:GetAttribute("Spin") * cycle * 60, part:GetAttribute("Spin") * cycle * 90, 0)
+			part.Transparency = fade
+			part.Size = Vector3.one * size * (1 - fade * 0.5)
+		end
+	end
 end
 
 -- Traje: tu personaje con la capa, hombreras y sombrero de la skin
@@ -266,7 +304,11 @@ function Preview3D.attach(parent: GuiObject, builder: () -> Model, zoom: number?
 		viewport:Destroy()
 		return newViewport(parent)
 	end
-	local rotate = frameModel(viewport, model :: Model, zoom)
+	local burst = (model :: Model):GetAttribute("Burst") == true
+	local rotate = frameModel(viewport, model :: Model, if burst then (zoom or 0.72) * 1.7 else zoom)
+	if burst then
+		rotate(0)
+	end
 	local started = os.clock() + math.random()
 	local connection
 	connection = RunService.RenderStepped:Connect(function()
@@ -276,7 +318,11 @@ function Preview3D.attach(parent: GuiObject, builder: () -> Model, zoom: number?
 		end
 		-- Solo gira si se ve (las filas fuera de la ventana no gastan)
 		if viewport.AbsoluteSize.Y > 0 then
-			rotate((os.clock() - started) * 0.9)
+			if burst then
+				animateBurst(model :: Model, os.clock() - started)
+			else
+				rotate((os.clock() - started) * 0.9)
+			end
 		end
 	end)
 	return viewport
@@ -382,7 +428,13 @@ function Preview3D.openBig(title: string, subtitle: string, builder: () -> Model
 		gui:Destroy()
 		return
 	end
-	local rotate = frameModel(viewport, model :: Model, 0.7)
+	local burst = (model :: Model):GetAttribute("Burst") == true
+	local rotate = frameModel(viewport, model :: Model, if burst then 1.2 else 0.7)
+	if burst then
+		hint.Text = "Así se verá al eliminar un zombi"
+		rotate(0)
+	end
+	local started = os.clock()
 	local yaw, pitch = 0.6, 0.15
 	local dragging = false
 	local auto = true
@@ -408,7 +460,11 @@ function Preview3D.openBig(title: string, subtitle: string, builder: () -> Model
 		if auto then
 			yaw += dt * 0.7
 		end
-		rotate(yaw, pitch)
+		if burst then
+			animateBurst(model :: Model, os.clock() - started)
+		else
+			rotate(yaw, pitch)
+		end
 	end))
 	local function closeIt()
 		for _, connection in connections do
