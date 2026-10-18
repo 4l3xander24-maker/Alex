@@ -401,7 +401,7 @@ Config.Bell = {
 	Armor = {
 		MaxLevel = 8,
 		HealthPerLevel = 15, -- +15 de vida por nivel (40 -> 160 al máximo)
-		Prices = { 60, 120, 220, 350, 500, 700, 950, 1250 },
+		Prices = { 70, 150, 270, 430, 620, 850, 1150, 1500 },
 	},
 	BarHeight = 28, -- altura de la barra de vida sobre la campana (studs)
 }
@@ -767,7 +767,7 @@ Config.Objectives = {
 	FirstWave = 2,
 	KillsBase = 8, -- cuántos pide en la primera oleada con objetivo
 	KillsPerWave = 1.2,
-	RewardPerKill = 6, -- monedas por cada zombi pedido, a cada jugador
+	RewardPerKill = 4, -- monedas por cada zombi pedido, a cada jugador
 }
 
 -- Eventos de oleada: a veces una oleada (no de jefe, desde la 3) trae un giro.
@@ -792,8 +792,15 @@ Config.Powerups = {
 		Heal = { Name = "Curación total", Icon = "💚", Color = Color3.fromRGB(110, 230, 120), Weight = 3 },
 		Damage = { Name = "Daño x2", Icon = "💥", Color = Color3.fromRGB(255, 110, 90), Weight = 3, Duration = 15, Multiplier = 2 },
 		Shield = { Name = "Escudo", Icon = "🛡️", Color = Color3.fromRGB(110, 190, 255), Weight = 2, Duration = 8 },
-		Coins = { Name = "Lluvia de monedas", Icon = "💰", Color = Color3.fromRGB(255, 215, 90), Weight = 2, Base = 30, PerWave = 8 },
+		Coins = { Name = "Lluvia de monedas", Icon = "💰", Color = Color3.fromRGB(255, 215, 90), Weight = 2, Base = 20, PerWave = 5 },
 	},
+}
+
+-- Economía: qué tantas monedas dan los zombis (se multiplica con el Coins de cada
+-- enemigo, la dificultad, el evento y los bonus). Subir los costos y bajar esto
+-- alarga cuántas partidas hacen falta para comprarlo todo.
+Config.Economy = {
+	KillCoinScale = 0.6,
 }
 
 Config.Waves = {
@@ -1046,7 +1053,7 @@ Config.WeaponUpgrade = {
 	DamagePerLevel = 0.2,
 	MagazinePerLevel = 0.15,
 	ReloadPerLevel = 0.06,
-	BaseCost = 100, -- el costo crece con el precio del arma y el nivel
+	BaseCost = 130, -- el costo crece con el precio del arma y el nivel
 	-- Cuánto del precio base cuesta cada mejora (las primeras son baratas)
 	CostFactor = { 0.35, 0.5, 0.7, 1.0, 1.3 },
 }
@@ -1066,7 +1073,7 @@ Config.WeaponTiers = {
 Config.AmmoStorage = {
 	MaxLevel = 8,
 	PerLevel = 0.25,
-	Prices = { 50, 100, 180, 300, 450, 650, 900, 1200 },
+	Prices = { 60, 120, 220, 360, 540, 780, 1080, 1450 },
 }
 
 -- Trampas que vende el Intendente. Duran solo una partida.
