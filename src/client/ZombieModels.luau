@@ -44,6 +44,9 @@ ZombieModels.Palette = {
 	Claw = Color3.fromRGB(70, 66, 60),
 	Hair = Color3.fromRGB(30, 28, 30),
 	Tentacle = Color3.fromRGB(46, 86, 46),
+	Rot = Color3.fromRGB(78, 104, 58),
+	Bone = Color3.fromRGB(232, 226, 208),
+	Bandage = Color3.fromRGB(214, 202, 172),
 }
 
 local PLASTIC = Enum.Material.SmoothPlastic
@@ -140,6 +143,13 @@ local function zombie(info): { PartSpec }
 	table.insert(list, part("Blood", v(0.5, 0.3, 0.07), hip, v(0.45, 1.2, front - 0.01), torsoTilt, "Blood", "Torso"))
 	table.insert(list, part("Blood2", v(0.25, 0.45, 0.07), hip, v(-0.15, 0.9, front - 0.01), torsoTilt, "Blood", "Torso"))
 	table.insert(list, part("Collar", v(torsoSize.X * 0.45, 0.2, torsoSize.Z + 0.06), hip, v(0, torsoSize.Y - 0.08, 0), torsoTilt, "Socket", "Torso", { Material = FABRIC }))
+	-- Costillas al aire por el desgarro de la camisa y la panza podrida
+	if not buff then
+		for index = 0, 2 do
+			table.insert(list, part("RibBone" .. index, v(0.5 - index * 0.06, 0.06, 0.07), hip, v(-0.45, 0.6 - index * 0.14, front - 0.02), torsoTilt, "Bone", "Torso"))
+		end
+		table.insert(list, part("RotBelly", v(0.34, 0.3, 0.07), hip, v(0.55, 0.3, front - 0.02), torsoTilt, "Rot", "Torso"))
+	end
 
 	-- Cabeza cuadrada (más chica en el bruto)
 	local headSize = if buff then 1.05 else 1.2
@@ -148,6 +158,9 @@ local function zombie(info): { PartSpec }
 	local headTilt = 0.18 + hunch * 0.5
 	table.insert(list, part("Head", v(headSize * 1.05, headSize, headSize), headPivot, v(0, headSize / 2, 0), headTilt, "Skin", "Head"))
 	face(list, headPivot, headTilt, headSize / 2, -headSize / 2 - 0.01, headSize / 1.2)
+	-- Herida en la frente y un lado de la cara podrido
+	table.insert(list, part("HeadWound", v(0.34, 0.1, 0.06), headPivot, v(0.12 * headSize, headSize * 0.9, -headSize / 2 - 0.02), headTilt, "Blood", "Head"))
+	table.insert(list, part("RotCheek", v(0.3, 0.34, 0.06), headPivot, v(-0.3 * headSize, headSize * 0.42, -headSize / 2 - 0.02), headTilt, "Rot", "Head"))
 	if info.Hair then
 		table.insert(list, part("Hair", v(headSize * 1.12, 0.32, headSize * 1.08), headPivot, v(0, headSize + 0.1, 0.03), headTilt, "Hair", "Head"))
 		for index, x in { -0.42, -0.1, 0.25, 0.48 } do
@@ -164,6 +177,12 @@ local function zombie(info): { PartSpec }
 		local tilt = -1.35
 		table.insert(list, part(name .. "Arm", armSize, shoulder, v(0, -armSize.Y / 2 + 0.5, 0), tilt, "Skin", "Arm", { Role = role }))
 		table.insert(list, part(name .. "Sleeve", v(armSize.X + 0.04, armSize.Y * 0.35, armSize.Z + 0.04), shoulder, v(0, 0.15, 0), tilt, if buff then "Skin" else "Shirt", "Arm", { Material = FABRIC, Role = role }))
+		-- Vendas sucias en el brazo izquierdo
+		if side < 0 and not buff then
+			for index, y in { -0.55, -0.9, -1.25 } do
+				table.insert(list, part(name .. "Bandage" .. index, v(armSize.X + 0.07, 0.17, armSize.Z + 0.07), shoulder, v(0, y + 0.5, 0), tilt, "Bandage", "Arm", { Material = FABRIC, Role = role }))
+			end
+		end
 		if info.Claws or buff then
 			for index, x in { -0.3, 0, 0.3 } do
 				table.insert(list, part(name .. "Claw" .. index, v(0.12, 0.42, 0.14), shoulder, v(x * armSize.X, -armSize.Y + 0.35, -0.38 * armSize.Z), tilt, "Claw", "Arm", { Material = METAL, Role = role }))
@@ -495,6 +514,17 @@ function ZombieModels.get(typeName: string, info): { PartSpec }
 		cache[typeName] = cached
 	end
 	return cached
+end
+
+-- Variación de color por zombi (cada uno con su tono de piel, camisa y pantalón):
+-- la horda no se ve de un solo molde. `random` viene sembrado con el id del zombi.
+local VARIED = { Skin = true, Shirt = true, Pants = true, Hair = true, Rot = true }
+function ZombieModels.vary(key: string, color: Color3, random: Random): Color3
+	if not VARIED[key] then
+		return color
+	end
+	local h, sat, val = color:ToHSV()
+	return Color3.fromHSV((h + random:NextNumber(-0.025, 0.025)) % 1, math.clamp(sat * random:NextNumber(0.8, 1.15), 0, 1), math.clamp(val * random:NextNumber(0.82, 1.12), 0, 1))
 end
 
 -- Color de una pieza: primero los del tipo (Skin, Shirt...), después la paleta.

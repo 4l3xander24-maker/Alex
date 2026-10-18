@@ -153,11 +153,21 @@ local function addBreath(part: BasePart, scale: number): (ParticleEmitter?, Poin
 	return fire, light
 end
 
-local function createBody(typeName: string, info, scale: number): ({ Piece }, ParticleEmitter?, PointLight?, BasePart?)
+local function createBody(typeName: string, info, scale: number, id: number): ({ Piece }, ParticleEmitter?, PointLight?, BasePart?)
 	local pieces = {}
 	local breath, breathLight, breathPart = nil, nil, nil
+	-- Un tono distinto por zombi (no a los jefes, que tienen su look). Todas las
+	-- piezas del mismo color de un zombi salen con la misma semilla, así coinciden.
+	local varied = not info.IsBoss
 	for _, spec in ZombieModels.get(typeName, info) do
 		local color, glows = ZombieModels.resolveColor(info, spec.Color)
+		if varied and not glows then
+			local seed = id * 7
+			for index = 1, #spec.Color do
+				seed += string.byte(spec.Color, index) * index
+			end
+			color = ZombieModels.vary(spec.Color, color, Random.new(seed))
+		end
 		local material = if glows then Enum.Material.Neon else spec.Material
 		if Config.Style.Flat and material ~= Enum.Material.Neon then
 			material = Enum.Material.SmoothPlastic
@@ -250,7 +260,7 @@ local function addEnemy(id: number, typeName: string, points: { Vector3 }, speed
 			breathLight.Parent = pieces[1].Part
 		end
 	else
-		pieces, breath, breathLight, breathPart = createBody(typeName, info, scale)
+		pieces, breath, breathLight, breathPart = createBody(typeName, info, scale, id)
 	end
 	visuals[id] = {
 		Type = typeName,
