@@ -30,11 +30,12 @@ Si todas las partidas se completaran, el núcleo saldría en ~29 partidas (~19 c
 2. **Mejoras de armas más caras arriba:** factores de costo 0,35 / 0,5 / 0,75 / 1,2 / 1,8 (antes 0,35 / 0,5 / 0,7 / 1,0 / 1,3). Los niveles 4 y 5 cuestan bastante más.
 3. **Cartuchera y refuerzo de campana:** niveles altos más caros.
 4. **Maestría (candados):** subir al nivel alto exige haber superado una dificultad.
-   - Armas: nivel 3 pide superar **Normal**; nivel 4, **Difícil**; nivel 5, **Experto**.
-   - Cartuchera y campana: niveles 5–6 piden superar **Difícil**; 7–8, **Experto**.
+   - Armas: niveles 1–3 libres; el nivel 4 pide superar **Normal** y el 5, **Difícil**.
+   - Cartuchera y campana: niveles 5–6 piden superar **Normal**; 7–8, **Difícil**.
+   - (Ajustado: antes pedían una dificultad más; ahora el primer candado llega más tarde y con una meta alcanzable.)
    - Así no basta con juntar monedas: hay que mejorar el juego para pasar el siguiente reto. Es el motivo para volver a intentar.
 5. **Premio por completar** la dificultad cada vez (120 / 250 / 450 / 800 / 1.400), además del premio de la primera vez.
-6. **Consuelo al perder:** 8 monedas por oleada superada (por el multiplicador de la dificultad). Perder nunca deja en cero.
+6. **Consuelo al perder:** 10 monedas por oleada superada (por el multiplicador de la dificultad). Perder nunca deja en cero.
 
 ## Cosas que NO toqué (y por qué)
 - **Puntos de estadística:** salen del nivel de cuenta, que crece exponencialmente (~9 partidas al nivel 20, cientos al 50). Ya frena solo.

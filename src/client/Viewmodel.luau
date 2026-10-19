@@ -18,7 +18,6 @@ local DARK = Color3.fromRGB(28, 28, 32)
 local WOOD = Color3.fromRGB(150, 95, 50)
 local OLIVE = Color3.fromRGB(90, 100, 60)
 local SKIN = Color3.fromRGB(150, 105, 80)
-local SLEEVE = Color3.fromRGB(60, 70, 60)
 local FLASH = Color3.fromRGB(255, 210, 90)
 local LENS = Color3.fromRGB(120, 200, 255)
 -- Hoja del cuchillo: un tono claro del color de mejora
@@ -49,36 +48,6 @@ end
 -- Piezas relativas al centro del arma (el cañón apunta hacia -Z).
 -- Las piezas GUNMETAL y STEEL toman los colores del nivel de mejora.
 local MODELS: { [string]: ModelSpec } = {
-	-- Ballesta: culata de madera, arco cruzado con cuerda y un virote cargado
-	Crossbow = {
-		Muzzle = CFrame.new(0, 0.28, -1.7),
-		LeftHand = Vector3.new(-0.05, -0.3, -0.7),
-		Pieces = {
-			p(Vector3.new(0.3, 0.34, 2.3), CFrame.new(0, 0, 0.35), WOOD),
-			p(Vector3.new(0.16, 0.1, 1.7), CFrame.new(0, 0.22, -0.35), STEEL),
-			p(Vector3.new(2.3, 0.14, 0.18), CFrame.new(0, 0.18, -1.15), DARK),
-			p(Vector3.new(0.18, 0.14, 0.7), CFrame.new(1.2, 0.18, -1.45) * CFrame.Angles(0, 0.5, 0), DARK),
-			p(Vector3.new(0.18, 0.14, 0.7), CFrame.new(-1.2, 0.18, -1.45) * CFrame.Angles(0, -0.5, 0), DARK),
-			p(Vector3.new(2.3, 0.03, 0.03), CFrame.new(0, 0.2, -0.75), STEEL),
-			p(Vector3.new(0.08, 0.08, 1.5), CFrame.new(0, 0.3, -0.85), STEEL),
-			p(Vector3.new(0.12, 0.1, 0.3), CFrame.new(0, 0.3, -1.65), Color3.fromRGB(200, 60, 50)),
-			p(Vector3.new(0.28, 0.6, 0.32), CFrame.new(0, -0.45, 0.8) * CFrame.Angles(-0.3, 0, 0), WOOD),
-		},
-	},
-	-- Lanzallamas: tanque de combustible, tubo y llama piloto
-	Flamethrower = {
-		Muzzle = CFrame.new(0, 0.05, -2.4),
-		LeftHand = Vector3.new(-0.05, -0.3, -0.9),
-		Pieces = {
-			p(Vector3.new(0.34, 0.4, 1.0), CFrame.new(0, 0, 0.2), GUNMETAL),
-			p(Vector3.new(0.2, 0.2, 1.9), CFrame.new(0, 0.05, -1.2), DARK),
-			p(Vector3.new(0.34, 0.34, 0.3), CFrame.new(0, 0.05, -2.15), STEEL),
-			{ Size = Vector3.new(0.65, 0.65, 1.3), Offset = CFrame.new(0.4, -0.35, 0.9), Color = OLIVE, Shape = Enum.PartType.Cylinder, Material = Enum.Material.Metal },
-			p(Vector3.new(0.7, 0.14, 0.14), CFrame.new(0.4, -0.35, 0.25), STEEL),
-			p(Vector3.new(0.14, 0.14, 0.14), CFrame.new(0, 0.05, -2.32), Color3.fromRGB(255, 140, 40), true),
-			p(Vector3.new(0.3, 0.6, 0.34), CFrame.new(0, -0.45, 0.5) * CFrame.Angles(-0.3, 0, 0), DARK),
-		},
-	},
 	Machete = (function(): ModelSpec
 		-- Todo relativo al puño. `knife` apunta la hoja hacia la derecha y un poco
 		-- adelante, con la punta levantada.
@@ -214,80 +183,200 @@ local MESHES: { [string]: { Length: number, Center: CFrame, Turn: CFrame? } } = 
 	Machete = { Length = 3.8, Center = CFrame.Angles(0, 0.25, 0) * CFrame.Angles(0, 0, 0.1) * CFrame.new(1.3, 0, 0) * CFrame.Angles(0, -math.pi / 2, 0), Turn = CFrame.Angles(0, math.pi, 0) },
 }
 
--- Mano y antebrazo derechos (siempre en el mango)
-local RIGHT_ARM = {
-	p(Vector3.new(0.42, 0.36, 0.5), CFrame.new(0.02, -0.5, 0.48) * CFrame.Angles(-0.25, 0, 0), SKIN),
-	p(Vector3.new(0.4, 0.4, 1.8), CFrame.new(0.12, -0.8, 1.45) * CFrame.Angles(0.35, 0, 0), SKIN),
-	p(Vector3.new(0.46, 0.46, 0.8), CFrame.new(0.14, -1.05, 2.15) * CFrame.Angles(0.35, 0, 0), SLEEVE),
+-- Manos realistas: dedos con tres falanges que rodean el mango (derecha) y el
+-- guardamanos (izquierda), pulgar, palma, muñeca, puño de cuero y manga. Se
+-- arman con cilindros entre puntos; el tono de piel es el del personaje.
+local CUFF = Color3.fromRGB(110, 84, 56)
+local SLEEVE_CLOTH = Color3.fromRGB(78, 64, 50)
+local handTone = SKIN
+
+local function characterTone(): Color3
+	local character = player.Character
+	local hand = character and (character:FindFirstChild("RightHand") or character:FindFirstChild("Right Arm") or character:FindFirstChild("Head"))
+	return if hand and hand:IsA("BasePart") then hand.Color else SKIN
+end
+
+-- Cilindro entre dos puntos (los cilindros de Roblox van a lo largo de X)
+local function link(a: Vector3, b: Vector3, thick: number, color: Color3, material: Enum.Material?): PieceSpec
+	local direction = b - a
+	local up = if math.abs(direction.Unit.Y) > 0.99 then Vector3.xAxis else Vector3.yAxis
+	return { Size = Vector3.new(direction.Magnitude, thick, thick), Offset = CFrame.lookAt((a + b) / 2, b, up) * CFrame.Angles(0, math.pi / 2, 0), Color = color, Shape = Enum.PartType.Cylinder, Material = material or Enum.Material.SmoothPlastic }
+end
+
+local function ball(at: Vector3, size: number, color: Color3): PieceSpec
+	return { Size = Vector3.one * size, Offset = CFrame.new(at), Color = color, Shape = Enum.PartType.Ball, Material = Enum.Material.SmoothPlastic }
+end
+
+-- Un dedo (o el pulgar): tramos entre puntos con nudillos redondos
+local function chain(list: { PieceSpec }, points: { Vector3 }, thick: number, color: Color3)
+	for index = 1, #points - 1 do
+		table.insert(list, link(points[index], points[index + 1], thick, color))
+	end
+	for index = 2, #points - 1 do
+		table.insert(list, ball(points[index], thick * 1.08, color))
+	end
+	table.insert(list, ball(points[#points], thick * 0.95, color))
+end
+
+-- Antebrazo: muñeca de piel, puño de cuero y manga de tela hacia la cámara
+local function forearm(list: { PieceSpec }, wrist: Vector3, direction: Vector3)
+	local d = direction.Unit
+	table.insert(list, link(wrist, wrist + d * 0.5, 0.27, handTone))
+	table.insert(list, link(wrist + d * 0.5, wrist + d * 0.74, 0.37, CUFF, Enum.Material.Leather))
+	table.insert(list, link(wrist + d * 0.74, wrist + d * 3.4, 0.42, SLEEVE_CLOTH, Enum.Material.Fabric))
+end
+
+-- Mano derecha sobre el mango. grip: dónde está el centro del mango (el mango es
+-- vertical en el eje Y de `grip`, el cañón hacia -Z).
+local function realRightHand(grip: CFrame): { PieceSpec }
+	local list: { PieceSpec } = {}
+	local function at(x: number, y: number, z: number): Vector3
+		return grip:PointToWorldSpace(Vector3.new(x, y, z))
+	end
+	local tone = handTone
+	-- Palma y dorso de la mano
+	table.insert(list, { Size = Vector3.new(0.15, 0.5, 0.34), Offset = grip * CFrame.new(0.27, 0.02, 0.06), Color = tone, Material = Enum.Material.SmoothPlastic })
+	table.insert(list, { Size = Vector3.new(0.22, 0.47, 0.3), Offset = grip * CFrame.new(0.35, 0.03, 0.2) * CFrame.Angles(0, -0.12, 0), Color = tone, Material = Enum.Material.SmoothPlastic })
+	-- Cuatro dedos que rodean el mango por delante
+	local fingers = { { 0.17, 0.095 }, { 0.06, 0.1 }, { -0.05, 0.095 }, { -0.15, 0.085 } }
+	for _, finger in fingers do
+		local y = finger[1]
+		chain(list, { at(0.24, y, 0.12), at(0.28, y, -0.06), at(0.14, y, -0.24), at(-0.07, y, -0.26), at(-0.2, y, -0.12) }, finger[2], tone)
+	end
+	-- Pulgar por detrás del mango
+	chain(list, { at(0.26, 0.2, 0.2), at(0.02, 0.23, 0.2), at(-0.17, 0.2, 0.08), at(-0.23, 0.2, -0.08) }, 0.115, tone)
+	forearm(list, at(0.38, 0.0, 0.32), Vector3.new(0.18, -0.42, 1))
+	return list
+end
+
+-- Mano izquierda bajo el cañón. barrel: dónde queda el centro del guardamanos.
+local function realLeftHand(barrel: Vector3): { PieceSpec }
+	local list: { PieceSpec } = {}
+	local c = barrel + Vector3.new(0, 0.3, 0)
+	local function at(x: number, y: number, z: number): Vector3
+		return c + Vector3.new(x, y, z)
+	end
+	local tone = handTone
+	table.insert(list, { Size = Vector3.new(0.2, 0.26, 0.46), Offset = CFrame.new(at(-0.33, -0.13, 0.02)), Color = tone, Material = Enum.Material.SmoothPlastic })
+	table.insert(list, { Size = Vector3.new(0.22, 0.22, 0.3), Offset = CFrame.new(at(-0.4, -0.17, 0.22)) * CFrame.Angles(0, 0.2, 0), Color = tone, Material = Enum.Material.SmoothPlastic })
+	for _, z in { 0.14, 0.05, -0.04, -0.13 } do
+		chain(list, { at(-0.3, -0.04, z), at(-0.24, -0.2, z), at(-0.02, -0.28, z), at(0.2, -0.19, z), at(0.27, 0.0, z) }, 0.09, tone)
+	end
+	chain(list, { at(-0.34, 0.08, 0.2), at(-0.22, 0.12, 0.05), at(-0.1, 0.13, -0.15), at(-0.04, 0.12, -0.3) }, 0.105, tone)
+	forearm(list, at(-0.46, -0.2, 0.32), Vector3.new(-0.4, -0.45, 1))
+	return list
+end
+
+-- Dónde se agarra cada arma con la mano derecha (centro y inclinación del mango)
+local TILT = CFrame.Angles(-0.3, 0, 0)
+local GRIPS: { [string]: CFrame } = {
+	Pistol = CFrame.new(0, -0.42, 0.42) * CFrame.Angles(-0.25, 0, 0),
+	Shotgun = CFrame.new(0, -0.45, 0.6) * TILT,
+	Rifle = CFrame.new(0, -0.45, 0.55) * TILT,
+	Sniper = CFrame.new(0, -0.4, 0.45) * TILT,
+	Minigun = CFrame.new(0, -0.55, 0.6) * TILT,
+	Crossbow = CFrame.new(0, -0.45, 0.55) * TILT,
+	Flamethrower = CFrame.new(0, -0.45, 0.5) * TILT,
 }
 
--- Estilo realista: guante de cuero y manga redonda de tela (en vez de bloques)
-local GLOVE_LEATHER = Color3.fromRGB(70, 50, 38)
-local SLEEVE_CLOTH = Color3.fromRGB(78, 64, 50)
-local CUFF = Color3.fromRGB(110, 84, 56)
 
--- Cilindro a lo largo de Z (los cilindros de Roblox van a lo largo de X)
-local function tube(length: number, radius: number, offset: CFrame, color: Color3, material: Enum.Material): PieceSpec
-	return { Size = Vector3.new(length, radius * 2, radius * 2), Offset = offset * CFrame.Angles(0, math.pi / 2, 0), Color = color, Shape = Enum.PartType.Cylinder, Material = material }
+-- Armas nuevas, con más detalle: cilindros, metal, madera y lazos entre puntos
+local function bolt(from: Vector3, to: Vector3, color: Color3): PieceSpec
+	return link(from, to, 0.07, color, Enum.Material.Metal)
 end
 
-local GLOVE_FINGER = Color3.fromRGB(104, 76, 56)
+local WOOD_DARK = Color3.fromRGB(96, 60, 34)
+local BRASS = Color3.fromRGB(190, 150, 70)
+local RUBBER = Color3.fromRGB(30, 30, 34)
 
--- Dedo redondeado: cilindro a lo largo de X (length) con el grosor dado
-local function finger(length: number, thickness: number, offset: CFrame): PieceSpec
-	return { Size = Vector3.new(length, thickness, thickness), Offset = offset, Color = GLOVE_FINGER, Shape = Enum.PartType.Cylinder, Material = Enum.Material.SmoothPlastic }
-end
-
--- Mano con dedos: palma, cuatro dedos que rodean la empuñadura, pulgar al lado
--- y la fila de nudillos. `base` coloca la mano; `mirror` = -1 para la izquierda.
-local function fingeredHand(base: CFrame, mirror: number): { PieceSpec }
-	local pieces = {
-		{ Size = Vector3.new(0.46, 0.34, 0.5), Offset = base, Color = GLOVE_FINGER, Material = Enum.Material.SmoothPlastic },
-		-- Correa de la muñeca
-		{ Size = Vector3.new(0.5, 0.1, 0.12), Offset = base * CFrame.new(0, 0.02, 0.3), Color = GLOVE_LEATHER, Material = Enum.Material.SmoothPlastic },
-	}
-	for index = 0, 3 do
-		local y = 0.12 - index * 0.085
-		local thick = if index == 3 then 0.07 else 0.08
-		-- Dedo que rodea la empuñadura: tramo hacia un lado y punta doblada hacia adelante
-		table.insert(pieces, finger(0.44, thick, base * CFrame.new(-0.04 * mirror, y, -0.29)))
-		table.insert(pieces, { Size = Vector3.one * thick, Offset = base * CFrame.new(-0.27 * mirror, y, -0.29), Color = GLOVE_FINGER, Shape = Enum.PartType.Ball, Material = Enum.Material.SmoothPlastic })
+local function crossbowModel(): ModelSpec
+	local pieces: { PieceSpec } = {}
+	local function add(spec: PieceSpec)
+		table.insert(pieces, spec)
 	end
-	-- Pulgar apoyado en el costado
-	table.insert(pieces, finger(0.4, 0.11, base * CFrame.new(0.26 * mirror, 0.12, -0.14) * CFrame.Angles(0, 0.9 * mirror, 0)))
-	return pieces
+	local V = Vector3.new
+	local wood = Enum.Material.Wood
+	local metal = Enum.Material.Metal
+	-- Culata de madera con almohadilla de goma, empuñadura y guardamonte
+	add({ Size = V(0.3, 0.38, 1.7), Offset = CFrame.new(0, -0.08, 1.0) * CFrame.Angles(0.05, 0, 0), Color = WOOD, Material = wood })
+	add({ Size = V(0.32, 0.58, 0.16), Offset = CFrame.new(0, -0.16, 1.92), Color = RUBBER })
+	add({ Size = V(0.28, 0.62, 0.3), Offset = CFrame.new(0, -0.45, 0.55) * CFrame.Angles(-0.3, 0, 0), Color = WOOD_DARK, Material = wood })
+	add(link(V(0, -0.2, -0.1), V(0, -0.55, 0.05), 0.05, DARK, metal))
+	add(link(V(0, -0.55, 0.05), V(0, -0.52, 0.3), 0.05, DARK, metal))
+	add({ Size = V(0.06, 0.24, 0.07), Offset = CFrame.new(0, -0.24, 0.15), Color = STEEL, Material = metal })
+	-- Riel de metal con la ranura del virote, y el mecanismo de disparo
+	add({ Size = V(0.26, 0.2, 2.5), Offset = CFrame.new(0, 0.14, -0.3), Color = GUNMETAL, Material = metal })
+	add({ Size = V(0.1, 0.06, 2.3), Offset = CFrame.new(0, 0.27, -0.3), Color = DARK, Material = metal })
+	add({ Size = V(0.34, 0.3, 0.5), Offset = CFrame.new(0, 0.05, 0.45), Color = STEEL, Material = metal })
+	-- Arco (prod): bloque central y tres tramos por lado, curvados hacia atrás
+	add({ Size = V(0.4, 0.3, 0.4), Offset = CFrame.new(0, 0.16, -1.3), Color = GUNMETAL, Material = metal })
+	local tips = {}
+	for _, side in { -1, 1 } do
+		local p0 = V(side * 0.2, 0.16, -1.3)
+		local p1 = V(side * 0.85, 0.16, -1.42)
+		local p2 = V(side * 1.4, 0.16, -1.68)
+		local p3 = V(side * 1.7, 0.16, -2.05)
+		add(link(p0, p1, 0.2, DARK, wood))
+		add(link(p1, p2, 0.16, DARK, wood))
+		add(link(p2, p3, 0.12, DARK, wood))
+		add(ball(p3, 0.16, STEEL))
+		tips[side] = p3
+	end
+	-- Estribo en la punta y cuerda tensada hacia el seguro
+	add({ Size = V(0.55, 0.06, 0.06), Offset = CFrame.new(0, 0.14, -1.98), Color = STEEL, Material = metal })
+	for _, side in { -1, 1 } do
+		add({ Size = V(0.06, 0.3, 0.06), Offset = CFrame.new(side * 0.27, 0.0, -1.98), Color = STEEL, Material = metal })
+		add(link(tips[side], V(0, 0.28, -0.72), 0.035, Color3.fromRGB(226, 214, 180)))
+	end
+	-- Virote con punta de acero y plumas rojas
+	add(bolt(V(0, 0.34, -1.95), V(0, 0.34, -0.75), Color3.fromRGB(150, 110, 70)))
+	add({ Size = V(0.16, 0.16, 0.3), Offset = CFrame.new(0, 0.34, -2.1), Color = STEEL, Shape = Enum.PartType.Ball, Material = metal })
+	add({ Size = V(0.04, 0.2, 0.3), Offset = CFrame.new(0, 0.34, -0.85), Color = Color3.fromRGB(200, 60, 50) })
+	add({ Size = V(0.2, 0.04, 0.3), Offset = CFrame.new(0, 0.34, -0.85), Color = Color3.fromRGB(200, 60, 50) })
+	-- Mira: poste adelante y alza atrás
+	add({ Size = V(0.05, 0.12, 0.05), Offset = CFrame.new(0, 0.34, -1.1), Color = BRASS, Material = metal })
+	add({ Size = V(0.2, 0.1, 0.05), Offset = CFrame.new(0, 0.36, -0.1), Color = BRASS, Material = metal })
+	return { Hip = CFrame.new(0.8, -0.72, -2.3), Muzzle = CFrame.new(0, 0.34, -2.2), LeftHand = Vector3.new(-0.05, -0.12, -0.55), Pieces = pieces }
 end
 
--- La mano derecha queda sobre la empuñadura (ajustado mirando el arma en pantalla)
-local RIGHT_HAND_SHIFT = CFrame.new(0.65, -0.3, 0.05)
-
-local function smoothRightArm(): { PieceSpec }
-	local pieces = fingeredHand(RIGHT_HAND_SHIFT * CFrame.new(0.02, -0.5, 0.48) * CFrame.Angles(-0.25, 0, 0), -1)
-	table.insert(pieces, tube(0.3, 0.24, RIGHT_HAND_SHIFT * CFrame.new(0.07, -0.66, 0.92) * CFrame.Angles(0.35, 0, 0), CUFF, Enum.Material.Leather))
-	table.insert(pieces, tube(1.5, 0.22, RIGHT_HAND_SHIFT * CFrame.new(0.13, -0.86, 1.6) * CFrame.Angles(0.35, 0, 0), SLEEVE_CLOTH, Enum.Material.Fabric))
-	table.insert(pieces, tube(0.8, 0.27, RIGHT_HAND_SHIFT * CFrame.new(0.16, -1.1, 2.3) * CFrame.Angles(0.35, 0, 0), SLEEVE_CLOTH, Enum.Material.Fabric))
-	return pieces
+local function flamethrowerModel(): ModelSpec
+	local pieces: { PieceSpec } = {}
+	local function add(spec: PieceSpec)
+		table.insert(pieces, spec)
+	end
+	local V = Vector3.new
+	local metal = Enum.Material.Metal
+	-- Cuerpo, culata corta y empuñadura con guardamonte
+	add({ Size = V(0.38, 0.46, 1.1), Offset = CFrame.new(0, 0, 0.3), Color = GUNMETAL, Material = metal })
+	add({ Size = V(0.3, 0.36, 0.5), Offset = CFrame.new(0, -0.05, 1.05), Color = DARK, Material = metal })
+	add({ Size = V(0.3, 0.6, 0.34), Offset = CFrame.new(0, -0.45, 0.5) * CFrame.Angles(-0.3, 0, 0), Color = RUBBER })
+	add(link(V(0, -0.22, 0.1), V(0, -0.6, 0.2), 0.05, DARK, metal))
+	add(link(V(0, -0.6, 0.2), V(0, -0.55, 0.42), 0.05, DARK, metal))
+	-- Tubo con camisa de refrigeración, aros y boquilla de latón
+	add(link(V(0, 0.04, -0.2), V(0, 0.04, -2.2), 0.2, DARK, metal))
+	add(link(V(0, 0.04, -0.6), V(0, 0.04, -1.75), 0.36, STEEL, metal))
+	for _, z in { -0.7, -1.0, -1.3, -1.6 } do
+		add(link(V(0, 0.04, z), V(0, 0.04, z - 0.07), 0.42, DARK, metal))
+	end
+	add(link(V(0, 0.04, -2.2), V(0, 0.04, -2.42), 0.32, BRASS, metal))
+	add(link(V(0, 0.04, -2.42), V(0, 0.04, -2.48), 0.4, DARK, metal))
+	-- Llama piloto
+	add(link(V(0.12, 0.2, -1.9), V(0.12, 0.2, -2.38), 0.05, BRASS, metal))
+	add({ Size = V(0.2, 0.26, 0.2), Offset = CFrame.new(0.12, 0.24, -2.45), Color = Color3.fromRGB(255, 150, 50), Shape = Enum.PartType.Ball, Neon = true })
+	-- Depósito de combustible a un lado, con correas, tapa roja y manguera
+	add({ Size = V(1.1, 0.46, 0.46), Offset = CFrame.new(0.5, -0.32, 0.95) * CFrame.Angles(0, math.pi / 2, 0), Color = OLIVE, Shape = Enum.PartType.Cylinder, Material = metal })
+	for _, z in { 0.55, 0.95, 1.35 } do
+		add({ Size = V(0.08, 0.5, 0.5), Offset = CFrame.new(0.5, -0.32, z) * CFrame.Angles(0, math.pi / 2, 0), Color = DARK, Shape = Enum.PartType.Cylinder, Material = metal })
+	end
+	add({ Size = V(0.22, 0.22, 0.22), Offset = CFrame.new(0.5, -0.32, 0.38), Color = Color3.fromRGB(200, 50, 40), Shape = Enum.PartType.Ball })
+	add(link(V(0.46, -0.2, 0.38), V(0.2, -0.04, 0.12), 0.08, RUBBER))
+	-- Manómetro en el cuerpo
+	add({ Size = V(0.04, 0.24, 0.24), Offset = CFrame.new(0.2, 0.12, 0.2), Color = BRASS, Shape = Enum.PartType.Cylinder, Material = metal })
+	return { Hip = CFrame.new(0.8, -0.72, -2.3), Muzzle = CFrame.new(0, 0.04, -2.55), LeftHand = Vector3.new(-0.05, -0.22, -1.1), Pieces = pieces }
 end
-local SMOOTH_RIGHT_ARM = smoothRightArm()
 
-local function smoothLeftArm(hand: Vector3): { PieceSpec }
-	local base = CFrame.new(hand)
-	local forearm = base * CFrame.new(-0.58, -0.38, 0.7) * CFrame.Angles(0.3, -0.55, 0)
-	local pieces = fingeredHand(base, 1)
-	table.insert(pieces, tube(0.3, 0.23, forearm * CFrame.new(0, 0, -0.6), CUFF, Enum.Material.Leather))
-	table.insert(pieces, tube(1.5, 0.21, forearm * CFrame.new(0, 0, 0.15), SLEEVE_CLOTH, Enum.Material.Fabric))
-	table.insert(pieces, tube(0.8, 0.26, base * CFrame.new(-1.03, -0.63, 1.4) * CFrame.Angles(0.3, -0.55, 0), SLEEVE_CLOTH, Enum.Material.Fabric))
-	return pieces
-end
-
-local function leftArm(hand: Vector3): { PieceSpec }
-	local base = CFrame.new(hand)
-	return {
-		p(Vector3.new(0.42, 0.32, 0.5), base, SKIN),
-		p(Vector3.new(0.38, 0.38, 1.7), base * CFrame.new(-0.58, -0.38, 0.7) * CFrame.Angles(0.3, -0.55, 0), SKIN),
-		p(Vector3.new(0.44, 0.44, 0.8), base * CFrame.new(-1.03, -0.63, 1.4) * CFrame.Angles(0.3, -0.55, 0), SLEEVE),
-	}
-end
+MODELS.Crossbow = crossbowModel()
+MODELS.Flamethrower = flamethrowerModel()
 
 local Viewmodel = {}
 
@@ -403,14 +492,13 @@ function Viewmodel.setWeapon(weaponId: string, zoomFactor: number, level: number
 	local source = MESH_WEAPONS and meshSpec and meshFolder and meshFolder:FindFirstChild(weaponId)
 	-- Con malla de la tienda no van las piezas de bloques del arma (los brazos sí)
 	local specs = if source then {} else table.clone(model.Pieces)
-	-- Con mallas (estilo realista) van los brazos de guante y tela; el cuchillo
-	-- conserva su guante con tachas
-	local smooth = source ~= nil and not model.Arm
-	local arm = model.Arm or (if smooth then SMOOTH_RIGHT_ARM else RIGHT_ARM)
+	-- Manos reales sobre el arma; el cuchillo conserva su guante con tachas
+	handTone = characterTone()
+	local arm = model.Arm or realRightHand(GRIPS[weaponId] or GRIPS.Pistol)
 	handStart = #specs + 1
 	table.move(arm, 1, #arm, #specs + 1, specs)
 	if model.LeftHand then
-		local left = if smooth then smoothLeftArm(model.LeftHand) else leftArm(model.LeftHand)
+		local left = realLeftHand(model.LeftHand)
 		table.move(left, 1, #left, #specs + 1, specs)
 	end
 	for _, spec in specs do

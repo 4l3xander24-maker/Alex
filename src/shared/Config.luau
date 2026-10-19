@@ -804,14 +804,14 @@ Config.Economy = {
 	-- Premio por completar la dificultad (todas las veces, a cada jugador)
 	ClearBonus = { [1] = 120, [2] = 250, [3] = 450, [4] = 800, [5] = 1400 },
 	-- Aunque pierdas, ganas algo por cada oleada que superaste (por la dificultad)
-	ParticipationPerWave = 8,
+	ParticipationPerWave = 10,
 	-- Maestría: los niveles altos de mejora exigen haber superado una dificultad.
 	-- Gates[tipo][nivel al que subes] = dificultad que tienes que tener abierta
 	-- (superar Normal abre 2, Difícil abre 3, Experto abre 4...).
 	Gates = {
-		Weapon = { [3] = 2, [4] = 3, [5] = 4 },
-		Storage = { [5] = 3, [6] = 3, [7] = 4, [8] = 4 },
-		Armor = { [5] = 3, [6] = 3, [7] = 4, [8] = 4 },
+		Weapon = { [4] = 2, [5] = 3 },
+		Storage = { [5] = 2, [6] = 2, [7] = 3, [8] = 3 },
+		Armor = { [5] = 2, [6] = 2, [7] = 3, [8] = 3 },
 	},
 }
 
