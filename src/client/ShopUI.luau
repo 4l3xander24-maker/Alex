@@ -357,6 +357,12 @@ local function renderCaptain(data: Progression.Profile, coins: number)
 		if pet.Product then
 			description ..= "\n💎 Compañero especial: se compra con Robux."
 		end
+		if data.Pets[id] then
+			local level, xp, nextXp = Progression.petLevel(data, id)
+			description ..= `\n⭐ Nivel {level}/{#Config.PetLevels.XpNeeded}: +{math.floor(Config.PetLevels.DamagePerLevel * (level - 1) * 100)}% daño · {if nextXp then `{xp}/{nextXp} ataques para subir` else "¡nivel máximo!"}`
+		else
+			description ..= `\n⭐ Sube de nivel peleando: hasta +{math.floor(Config.PetLevels.DamagePerLevel * (#Config.PetLevels.XpNeeded - 1) * 100)}% de daño`
+		end
 		row(pet.Icon, pet.DisplayName .. (if data.Pet == id then "  ·  te acompaña" else ""), description, petButtons(data, coins, id), if data.Pet == id then GREEN else nil, nil, { Title = pet.DisplayName, Builder = function()
 			return PetRenderer.buildPreview(id, data.ObjectSkinOn.Pet)
 		end })

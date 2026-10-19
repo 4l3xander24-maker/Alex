@@ -30,6 +30,8 @@ export type Profile = {
 	Achievements: { [string]: boolean }, -- logros ya conseguidos
 	ObjectSkins: { [string]: boolean }, -- skins de minas, rejas y campana que tiene
 	ObjectSkinOn: { Mine: string, Gate: string, Bell: string, Pet: string, Tracer: string, DeathFx: string }, -- la que lleva puesta de cada una
+	SeenVersion: string, -- última versión cuyas novedades ya vio
+	PetXp: { [string]: number }, -- experiencia de cada compañero (sube con sus ataques)
 	Conquests: { [string]: boolean }, -- dificultades que ya superó (clave = id)
 	Titles: { [string]: boolean }, -- títulos ganados (Salón de la fama)
 	Title: string, -- título que muestra
@@ -82,6 +84,8 @@ function Progression.defaultProfile(): Profile
 		Achievements = {},
 		ObjectSkins = {},
 		ObjectSkinOn = { Mine = "", Gate = "", Bell = "", Pet = "", Tracer = "", DeathFx = "" },
+		SeenVersion = "",
+		PetXp = {},
 		Conquests = {},
 		Titles = {},
 		Title = "",
@@ -201,6 +205,20 @@ function Progression.gateText(kind: string, nextLevel: number): string
 	local gate = Progression.upgradeGate(kind, nextLevel)
 	local info = gate and Config.Difficulties[gate - 1]
 	return if info then `🔒 Supera {info.Name}` else ""
+end
+
+-- Nivel de un compañero según sus ataques acumulados (1 a 5), la experiencia y
+-- lo que falta para el siguiente nivel (nil si ya está al máximo)
+function Progression.petLevel(profile: Profile, petId: string): (number, number, number?)
+	local xp = (profile.PetXp and profile.PetXp[petId]) or 0
+	local needed = Config.PetLevels.XpNeeded
+	local level = 1
+	for index = 2, #needed do
+		if xp >= needed[index] then
+			level = index
+		end
+	end
+	return level, xp, needed[level + 1]
 end
 
 function Progression.bellArmorCost(level: number): number?

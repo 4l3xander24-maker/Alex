@@ -23,32 +23,20 @@ local touch = UserInputService.TouchEnabled and not UserInputService.KeyboardEna
 
 local STEPS = {
 	{
-		Title = "Habla con un vendedor",
-		Text = if touch
-			then "Sigue las flechas doradas hasta el campamento y toca el aviso para abrir la tienda."
-			else "Sigue las flechas doradas hasta el campamento y presiona E para abrir la tienda.",
-	},
-	{
 		Title = "Prepárate y empieza",
 		Text = if touch
-			then "Compra armas y mejoras con tus monedas. Cuando estés listo, mantén el aviso de la campana para reconstruirla."
-			else "Compra armas y mejoras con tus monedas. Cuando estés listo, mantén E en la campana para reconstruirla.",
+			then "Sigue las flechas doradas: compra armas con tus monedas y, cuando estés listo, mantén el aviso de la campana para reconstruirla."
+			else "Sigue las flechas doradas: compra armas con tus monedas y, cuando estés listo, mantén E en la campana para reconstruirla.",
 	},
 	{
 		Title = "¡Defiende la campana!",
 		Text = if touch
-			then "Los zombis vienen del bosque por el puente. Usa estos botones para moverte, disparar, recargar y saltar."
-			else "Los zombis vienen del bosque por el puente. Dispara con clic izquierdo, R recarga, 1 a 6 cambia de arma.",
+			then "Los zombis vienen del bosque. Usa los botones para moverte, disparar, recargar y saltar."
+			else "Los zombis vienen del bosque. Dispara con clic izquierdo, R recarga, 1 a 8 cambia de arma.",
 	},
 	{
-		Title = "Poderes",
-		Text = if touch
-			then "La Bruja vende poderes: granada, rayo y campanazo. Úsalos con los botones de arriba a la izquierda."
-			else "La Bruja vende poderes: G granada, Q rayo y F campanazo. ¡Que no destruyan la campana!",
-	},
-	{
-		Title = "Mercado y potenciadores",
-		Text = "Cruza el puente de la aldea hasta la isla del Mercado: el Capitán te vende compañeros que pelean contigo. Los zombis a veces sueltan potenciadores: míralos arriba a la derecha.",
+		Title = "Más ayuda",
+		Text = "La Bruja vende poderes y el Capitán compañeros que pelean contigo. Los zombis sueltan potenciadores: míralos arriba a la derecha.",
 	},
 }
 
@@ -102,7 +90,7 @@ local function setStep(newStep: number)
 	panelTitle.Text = `TUTORIAL {step}/{#STEPS} · {STEPS[step].Title}`
 	panelText.Text = STEPS[step].Text
 	if controls then
-		controls.Visible = step == 3 or step == 4
+		controls.Visible = step == 2 or step == 3
 	end
 	if step == #STEPS then
 		task.delay(POWERS_STEP_TIME, function()
@@ -117,7 +105,7 @@ end
 local function syncStepWithState()
 	local state = gameState()
 	if state == "Intermission" or state == "Wave" then
-		setStep(3)
+		setStep(2)
 	end
 end
 
@@ -187,7 +175,7 @@ local function updateMarkers()
 		marker.Gui.Enabled = lobby and far
 		if marker.Gui.Enabled then
 			-- Dorado lo que el tutorial pide ahora; si no hay tutorial, todo dorado
-			local highlighted = not active or (step == 1 and not marker.IsBell) or (step == 2 and marker.IsBell)
+			local highlighted = not active or step == 1
 			marker.Arrow.TextColor3 = if highlighted then GOLD else WHITE
 			marker.Gui.StudsOffset = Vector3.new(0, (if marker.IsBell then 9 else 5) + bob, 0)
 		end
@@ -345,10 +333,10 @@ end
 
 -- Lo llama el arma cada vez que le pega a un zombi
 function Guide.onEnemyHit()
-	if step == 3 then
+	if step == 2 then
 		hits += 1
 		if hits >= HITS_TO_LEARN then
-			setStep(4)
+			setStep(3)
 		end
 	end
 end
@@ -397,11 +385,6 @@ function Guide.init()
 		setTag(prompt, true)
 	end)
 
-	ProximityPromptService.PromptTriggered:Connect(function(prompt)
-		if prompt:GetAttribute("Shop") then
-			setStep(2)
-		end
-	end)
 	ReplicatedStorage:WaitForChild("GameState"):GetAttributeChangedSignal("State"):Connect(syncStepWithState)
 
 	if Profile.isLoaded() then

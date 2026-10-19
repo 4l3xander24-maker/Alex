@@ -824,6 +824,19 @@ Config.Modifiers = {
 	{ Id = "Fragile", Icon = "🩸", Name = "Golpes mortales", Description = "Recibes un 50% más de daño", Damage = 1.5, Coins = 1.25 },
 }
 
+-- Versión del juego y lista de novedades que ve quien ya había jugado
+Config.Version = {
+	Id = "1.2",
+	Title = "armas nuevas, mochila y más reto",
+	Lines = {
+		"🏹 Ballesta y 🔥 Lanzallamas nuevos en la Armería",
+		"🎒 La cartuchera ahora es la Mochila: te cura al empezar cada oleada",
+		"👑 Salón de la fama y 🗓️ reto semanal en el lobby",
+		"🐾 Tus compañeros suben de nivel mientras pelean",
+		"⚙️ Modificadores opcionales al elegir dificultad",
+	},
+}
+
 -- Bestiario (se ve en la tienda del Veterano): orden y descripción de cada enemigo
 Config.Bestiary = {
 	Order = { "Walker", "Runner", "Cone", "Knight", "Brute", "Bomber", "Spitter", "Parasite", "Colossus", "Mutant", "Fatso", "King", "Dragon", "Queen" },
@@ -1287,6 +1300,14 @@ Config.Pets.Archer = { DisplayName = "Arquera", Icon = "🏹", Price = 3200, Dam
 Config.Pets.Hound = { DisplayName = "Perro de guerra", Icon = "🐕", Price = 1500, Damage = 2.6, Rate = 1.1, Range = 20, Color = Color3.fromRGB(110, 80, 50), Shop = "Captain", Description = "Muerde rápido a los que se te acercan" }
 Config.Pets.Golem = { DisplayName = "Gólem de piedra", Icon = "🗿", Price = 0, Product = "PetGolem", Damage = 4.5, Rate = 0.6, Range = 22, Splash = 9, Color = Color3.fromRGB(120, 124, 132), Shop = "Captain", Description = "Aplasta a varios zombis a la vez" }
 Config.Pets.Phoenix = { DisplayName = "Fénix", Icon = "🔥", Price = 0, Product = "PetPhoenix", Damage = 3.8, Rate = 1.2, Range = 55, Splash = 6, Color = Color3.fromRGB(255, 130, 40), Shop = "Captain", Description = "Lluvia de fuego desde el aire" }
+-- Los compañeros ganan experiencia con cada ataque y suben de nivel: más daño y
+-- ataques más rápidos. XpNeeded[nivel] = ataques acumulados para llegar a ese nivel.
+Config.PetLevels = {
+	XpNeeded = { 0, 120, 400, 900, 1800 },
+	DamagePerLevel = 0.12,
+	RatePerLevel = 0.05,
+}
+
 Config.CompanionOrder = { "Hound", "Soldier", "Archer", "Golem", "Phoenix" }
 
 -- Skins de objetos (las vende el Sastre): cambian cómo se ven tus minas, tus rejas

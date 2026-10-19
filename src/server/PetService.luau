@@ -11,6 +11,7 @@ local Remotes = require(Shared.Remotes)
 local DataService = require(script.Parent.DataService)
 local EnemyService = require(script.Parent.EnemyService)
 local GameState = require(script.Parent.GameState)
+local Progression = require(Shared.Progression)
 
 local TICK = 0.1
 
@@ -50,8 +51,22 @@ local function attack(player: Player, petId: string, now: number, wave: number)
 	if not position then
 		return
 	end
-	nextAttack[player] = now + 1 / pet.Rate
-	local damage = pet.Damage * (1 + Config.Waves.HealthGrowth * math.max(wave - 1, 0))
+	local current = DataService.get(player)
+	local currentLevel = if current then Progression.petLevel(current, petId) else 1
+	nextAttack[player] = now + 1 / (pet.Rate * (1 + Config.PetLevels.RatePerLevel * (currentLevel - 1)))
+	local data = DataService.get(player)
+	local level = if data then Progression.petLevel(data, petId) else 1
+	local levels = Config.PetLevels
+	local damage = pet.Damage * (1 + Config.Waves.HealthGrowth * math.max(wave - 1, 0)) * (1 + levels.DamagePerLevel * (level - 1))
+	-- Cada ataque da experiencia al compañero; al subir de nivel se avisa
+	if data then
+		data.PetXp[petId] = (data.PetXp[petId] or 0) + 1
+		local newLevel = Progression.petLevel(data, petId)
+		if newLevel > level then
+			Remotes.Notify:FireClient(player, `{pet.Icon} ¡{pet.DisplayName} subió al nivel {newLevel}!`)
+			DataService.changed(player, "Profile")
+		end
+	end
 	Remotes.PetAttack:FireAllClients(player, petId, position)
 	if pet.Splash then
 		for _, enemyId in EnemyService.getInRadius(position, pet.Splash, time) do
