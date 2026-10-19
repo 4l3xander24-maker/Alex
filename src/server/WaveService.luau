@@ -465,7 +465,7 @@ local function runWave(wave: number): boolean
 	currentWave = wave
 	GameState.set("Wave", wave)
 	GameState.set("State", "Wave")
-	PlayerService.onWaveStart()
+	PlayerService.onWaveStart(wave)
 	rollWaveEvent(wave)
 	rollObjective(wave)
 	-- Avisa qué zombis vienen en esta oleada

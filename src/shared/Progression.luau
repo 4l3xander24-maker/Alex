@@ -177,12 +177,12 @@ end
 
 -- Cuántas veces más balas puedes cargar gracias a la cartuchera
 function Progression.ammoStorageMultiplier(profile: Profile): number
-	return 1 + (profile.AmmoStorage or 0) * Config.AmmoStorage.PerLevel
+	return 1 + math.min(profile.AmmoStorage or 0, Config.AmmoStorage.MaxLevel) * Config.AmmoStorage.PerLevel
 end
 
 -- Costo de subir la cartuchera al siguiente nivel (nil si ya está al máximo)
 function Progression.ammoStorageCost(level: number): number?
-	return Config.AmmoStorage.Prices[level + 1]
+	return Config.AmmoStorage.Prices[math.min(level, Config.AmmoStorage.MaxLevel) + 1]
 end
 
 -- Dificultad que hay que tener abierta para subir `kind` ("Weapon", "Storage",

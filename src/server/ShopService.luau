@@ -140,16 +140,16 @@ function actions.UpgradeStorage(player, data)
 	local level = data.AmmoStorage or 0
 	local cost = Progression.ammoStorageCost(level)
 	if not cost then
-		return false, "La cartuchera ya está al máximo"
+		return false, "La mochila ya está al máximo"
 	end
 	if not Progression.gateMet(data, "Storage", level + 1) then
-		return false, Progression.gateText("Storage", level + 1) .. " para subir la cartuchera"
+		return false, Progression.gateText("Storage", level + 1) .. " para subir la mochila"
 	end
 	if not DataService.spendCoins(player, cost) then
 		return false, NOT_ENOUGH
 	end
 	data.AmmoStorage = level + 1
-	return true, `Cartuchera nivel {level + 1}: puedes cargar más balas`
+	return true, `🎒 Mochila nivel {level + 1}: más cura al empezar cada oleada`
 end
 
 function actions.UpgradeBell(player, data)

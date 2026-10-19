@@ -233,10 +233,13 @@ local function renderQuartermaster(data: Progression.Profile, coins: number)
 	local storage = Config.AmmoStorage
 	local level = data.AmmoStorage or 0
 	local multiplier = Progression.ammoStorageMultiplier(data)
-	sectionHeader("Cartuchera  ·  más balas máximas y más balas al empezar")
+	sectionHeader("Mochila de suministros  ·  te cura al empezar cada oleada y te da un escudo")
 	local cost = Progression.ammoStorageCost(level)
-	local pistol = Progression.getWeaponStats(data, "Pistol", false)
-	row("🎒", `Cartuchera  ·  Nv {level}/{storage.MaxLevel}`, `Ahora cargas x{string.format("%.2f", multiplier)} balas (pistola: {pistol.StartReserve} al empezar, máximo {pistol.MaxReserve}).\nCada nivel: +{math.floor(storage.PerLevel * 100)}% en todas las armas.`, {
+	local current = math.min(level, storage.MaxLevel)
+	local healNow = if current > 0 then `{math.floor(storage.Heal[current] * 100)}%` else "nada"
+	local shieldNow = if current > 0 and storage.Shield[current] then `escudo de {storage.Shield[current]} s cada {storage.ShieldEvery} oleadas` else "sin escudo todavía"
+	local nextHeal = if current < storage.MaxLevel then `{math.floor(storage.Heal[current + 1] * 100)}%` else ""
+	row("🎒", `Mochila  ·  Nv {current}/{storage.MaxLevel}`, `Al empezar cada oleada: curas {healNow} de tu vida, {shieldNow}. Y +{math.floor(storage.PerLevel * 100)}% de balas de reserva por nivel (ahora x{string.format("%.2f", multiplier)}).{if nextHeal ~= "" then `\nSiguiente nivel: curas {nextHeal}.` else ""}`, {
 		if cost
 			then { Text = if Progression.gateMet(data, "Storage", level + 1) then `Mejorar 💰{cost}` else Progression.gateText("Storage", level + 1), Enabled = Progression.gateMet(data, "Storage", level + 1) and coins >= cost, OnClick = function()
 				runAction("UpgradeStorage", "")

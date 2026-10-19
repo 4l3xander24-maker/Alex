@@ -70,7 +70,7 @@ mejorar tus estadísticas y aprender talentos.
   | Bruno, el Armero | Armería | Armas nuevas, mejoras de arma (5 niveles, cambian el color), equipar |
   | Morgana, la Bruja | Caldero | Poderes y sus mejoras |
   | Don Ramiro, el Veterano | Campo de entrenamiento | Puntos de mejora y talentos |
-  | Gustavo, el Intendente | Intendencia | Cartuchera (más balas) y trampas: minas y rejas |
+  | Gustavo, el Intendente | Intendencia | Mochila de suministros y trampas: minas y rejas |
 - **Islas y mar** (`IslandBuilder`, `Config.Arena.Islands`): al sur del canal (z > -122) todo es mar 50 studs
   abajo, con dos islas de pasto sobre roca: la **principal** (campana, castillo, campamento y un muelle hacia la
   aldea) y la **aldea** (casas, pozo, carreta, la Bruja y el molino). Al norte, el bosque hasta una cordillera.
@@ -148,7 +148,7 @@ mejorar tus estadísticas y aprender talentos.
 - Empiezas cada partida con la reserva inicial de cada arma.
 - **Cada zombi eliminado te da balas** para el arma que tienes en la mano (o la última que usaste si lo
   mataste con el cuchillo), hasta el máximo de reserva.
-- La **cartuchera** del Intendente (8 niveles) sube un 25% por nivel el máximo y las balas iniciales.
+- La **mochila de suministros** del Intendente (5 niveles): al empezar cada oleada cura 10–30% de la vida y, desde el nivel 3, da un escudo corto (3–5 s) cada 2 oleadas; además +10% de balas de reserva por nivel.
 
 ## Trampas (Intendente, duran una partida)
 | Trampa | Precio | Efecto |

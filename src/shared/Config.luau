@@ -810,7 +810,7 @@ Config.Economy = {
 	-- (superar Normal abre 2, Difícil abre 3, Experto abre 4...).
 	Gates = {
 		Weapon = { [4] = 2, [5] = 3 },
-		Storage = { [5] = 2, [6] = 2, [7] = 3, [8] = 3 },
+		Storage = { [4] = 2, [5] = 3 },
 		Armor = { [5] = 2, [6] = 2, [7] = 3, [8] = 3 },
 	},
 }
@@ -1170,11 +1170,17 @@ Config.WeaponTiers = {
 	{ Name = "Legendaria", Main = Color3.fromRGB(70, 20, 110), Accent = Color3.fromRGB(200, 90, 255), Glow = true },
 }
 
--- Cartuchera del Intendente: sube el máximo de balas y las balas iniciales
+-- Mochila de suministros (antes "cartuchera"): al empezar cada oleada te cura un
+-- poco y, desde el nivel 3, te da un escudo corto cada 2 oleadas. Además suma un
+-- poco de reserva de balas. Pensada para ayudar, no para volverte invencible.
 Config.AmmoStorage = {
-	MaxLevel = 8,
-	PerLevel = 0.25,
-	Prices = { 60, 120, 220, 380, 600, 900, 1300, 1800 },
+	MaxLevel = 5,
+	PerLevel = 0.10, -- +10% de balas de reserva por nivel
+	Prices = { 80, 160, 300, 520, 850 },
+	Heal = { 0.10, 0.15, 0.20, 0.25, 0.30 }, -- fracción de la vida máxima, al empezar la oleada
+	-- Escudo (segundos) al empezar la oleada; sale solo cada ShieldEvery oleadas
+	Shield = { [3] = 3, [4] = 4, [5] = 5 },
+	ShieldEvery = 2,
 }
 
 -- Trampas que vende el Intendente. Duran solo una partida.

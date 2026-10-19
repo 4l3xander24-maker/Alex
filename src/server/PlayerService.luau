@@ -110,9 +110,27 @@ function PlayerService.onKill(player: Player)
 end
 
 -- Último aliento se recarga en cada oleada
-function PlayerService.onWaveStart()
+function PlayerService.onWaveStart(wave: number)
 	for _, state in states do
 		state.LastStandUsed = false
+	end
+	-- Mochila de suministros: cura al empezar la oleada y, de vez en cuando, un escudo corto
+	local pack = Config.AmmoStorage
+	for _, player in Players:GetPlayers() do
+		local data = DataService.get(player)
+		local level = math.min(if data then data.AmmoStorage or 0 else 0, pack.MaxLevel)
+		if level > 0 then
+			local humanoid = getHumanoid(player)
+			if humanoid and humanoid.Health > 0 and humanoid.Health < humanoid.MaxHealth then
+				PlayerService.heal(player, humanoid.MaxHealth * pack.Heal[level])
+				Remotes.Notify:FireClient(player, "🎒 Mochila: te curas un poco")
+			end
+			local shield = pack.Shield[level]
+			if shield and wave % pack.ShieldEvery == 0 then
+				player:SetAttribute("ShieldUntil", workspace:GetServerTimeNow() + shield)
+				Remotes.Notify:FireClient(player, `🎒 Mochila: escudo {shield} s`)
+			end
+		end
 	end
 end
 

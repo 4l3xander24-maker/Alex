@@ -20,7 +20,7 @@ Todo son **estimaciones en papel** (modelo en `tools/balance.py` y las cuentas d
 Multiplicadores: Botín (hasta +50%) y Codicia (+25%) ≈ x1,5; el pase de monedas x2 multiplica por encima.
 
 ## Cuánto cuesta todo
-- Armas: 6.700 · Mejoras de armas: 31.400 · Cartuchera: 5.400 · Campana: 5.900 · Poderes: 1.700 → **núcleo ≈ 51.000**
+- Armas: 6.700 · Mejoras de armas: 31.400 · Mochila: 1.910 · Campana: 5.900 · Poderes: 1.700 → **núcleo ≈ 51.000**
 - Compañeros 6.900 y skins/cosméticos: otros 40.000+ (largo plazo).
 
 Si todas las partidas se completaran, el núcleo saldría en ~29 partidas (~19 con Botín/Codicia, ~10 con el pase x2). **No se completan todas:** se pierde mucho, sobre todo en Experto o más, así que en la práctica son 60–80 partidas (≈12–16 horas), y el pase x2 las acorta a la mitad.
@@ -28,10 +28,10 @@ Si todas las partidas se completaran, el núcleo saldría en ~29 partidas (~19 c
 ## Qué cambió en esta ronda
 1. **Menos monedas por zombi:** x0,45 de lo original (`Economy.KillCoinScale`).
 2. **Mejoras de armas más caras arriba:** factores de costo 0,35 / 0,5 / 0,75 / 1,2 / 1,8 (antes 0,35 / 0,5 / 0,7 / 1,0 / 1,3). Los niveles 4 y 5 cuestan bastante más.
-3. **Cartuchera y refuerzo de campana:** niveles altos más caros.
+3. **Mochila de suministros** (antes cartuchera): ahora cura al empezar cada oleada (10–30%) y da escudo corto cada 2 oleadas desde el nivel 3; 5 niveles, 80–850 monedas. Refuerzo de campana: niveles altos más caros.
 4. **Maestría (candados):** subir al nivel alto exige haber superado una dificultad.
    - Armas: niveles 1–3 libres; el nivel 4 pide superar **Normal** y el 5, **Difícil**.
-   - Cartuchera y campana: niveles 5–6 piden superar **Normal**; 7–8, **Difícil**.
+   - Mochila: nivel 4 pide superar **Normal** y el 5 **Difícil**. Campana: niveles 5–6 piden **Normal**; 7–8, **Difícil**.
    - (Ajustado: antes pedían una dificultad más; ahora el primer candado llega más tarde y con una meta alcanzable.)
    - Así no basta con juntar monedas: hay que mejorar el juego para pasar el siguiente reto. Es el motivo para volver a intentar.
 5. **Premio por completar** la dificultad cada vez (120 / 250 / 450 / 800 / 1.400), además del premio de la primera vez.
