@@ -44,8 +44,34 @@ function WaveService.setStartPrompt(prompt: ProximityPrompt)
 	end)
 end
 
+-- Modificadores elegidos para esta partida (Config.Modifiers) y su efecto combinado
+local effective: any = nil
+
+local function applyModifiers(ids: { string })
+	local base = Config.Difficulties[difficultyId]
+	local merged = table.clone(base)
+	local speed = 1
+	local names = {}
+	for _, id in ids do
+		for _, modifier in Config.Modifiers do
+			if modifier.Id == id then
+				merged.Count *= modifier.Count or 1
+				merged.Health *= modifier.Health or 1
+				merged.Damage = (merged.Damage or 1) * (modifier.Damage or 1)
+				merged.Coins *= modifier.Coins or 1
+				merged.Xp *= modifier.Coins or 1
+				speed *= modifier.Speed or 1
+				table.insert(names, `{modifier.Icon} {modifier.Name}`)
+			end
+		end
+	end
+	effective = if #ids > 0 then merged else nil
+	EnemyService.setSpeedScale(speed)
+	GameState.set("Modifiers", table.concat(names, "  "))
+end
+
 function WaveService.getDifficulty()
-	return Config.Difficulties[difficultyId]
+	return effective or Config.Difficulties[difficultyId]
 end
 
 -- La dificultad se decide en equipo: cada jugador vota y gana la mayoría. Empieza
@@ -53,6 +79,7 @@ end
 -- DifficultyVoteTime segundos gana la más votada (en empate, la más fácil).
 local DIFFICULTY_VOTE_TIME = 15
 local difficultyVotes: { [Player]: number } = {}
+local leaderModifiers: { string } = {} -- los marca quien vota primero
 local difficultyTimer = 0
 
 local function tally(): ({ [number]: number }, number)
@@ -83,6 +110,7 @@ local function finishDifficultyVote()
 	end
 	local info = Config.Difficulties[best]
 	difficultyId = best
+	applyModifiers(leaderModifiers)
 	GameState.set("Difficulty", best)
 	startRequested = true
 	difficultyTimer += 1
@@ -94,10 +122,13 @@ local function finishDifficultyVote()
 	local suffix = if #Players:GetPlayers() > 1 then ` (ganó con {bestCount} de {voted} votos)` else ""
 	for _, other in Players:GetPlayers() do
 		Remotes.Notify:FireClient(other, `🔔 {info.Icon} {info.Name}{suffix}: ¡la campana se reconstruye y la partida empieza!`)
+		if #leaderModifiers > 0 then
+			Remotes.Notify:FireClient(other, `⚙️ Modificadores: {GameState.get("Modifiers")}`)
+		end
 	end
 end
 
-Remotes.SelectDifficulty.OnServerEvent:Connect(function(player, id)
+Remotes.SelectDifficulty.OnServerEvent:Connect(function(player, id, modifiers)
 	if typeof(id) ~= "number" or GameState.get("State") ~= "Lobby" or startRequested then
 		return
 	end
@@ -107,6 +138,17 @@ Remotes.SelectDifficulty.OnServerEvent:Connect(function(player, id)
 		return -- esa dificultad todavía tiene candado
 	end
 	local firstVote = next(difficultyVotes) == nil
+	if firstVote then
+		-- Los modificadores salen de quien vota primero (solo los que existen)
+		leaderModifiers = {}
+		if typeof(modifiers) == "table" then
+			for _, modifier in Config.Modifiers do
+				if table.find(modifiers, modifier.Id) then
+					table.insert(leaderModifiers, modifier.Id)
+				end
+			end
+		end
+	end
 	difficultyVotes[player] = id
 	local counts, voted = tally()
 	local total = #Players:GetPlayers()

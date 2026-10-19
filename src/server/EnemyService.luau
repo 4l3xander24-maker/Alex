@@ -93,6 +93,7 @@ local function flatDistance(a: Vector3, b: Vector3): number
 end
 
 -- Cambia el recorrido del zombi y lo anota para mandarlo a los clientes
+local speedScale = 1 -- modificador de partida (zombis veloces)
 local timeScale = 1 -- 1 = normal; muy bajo = cámara súper lenta (ver setTimeScale)
 
 local function setRoute(enemy: Enemy, points: { Vector3 }, now: number)
@@ -277,7 +278,7 @@ local function create(typeName: string, healthMultiplier: number, start: Vector3
 	end
 	origin = Vector3.new(origin.X, halfHeight, origin.Z)
 	local spawnTime = workspace:GetServerTimeNow()
-	local speed = info.Speed * Config.Waves.SpeedMultiplier
+	local speed = info.Speed * Config.Waves.SpeedMultiplier * speedScale
 
 	nextId += 1
 	local enemy: Enemy = {
@@ -476,6 +477,10 @@ function EnemyService.setTimeScale(scale: number, now: number)
 	end
 	timeScale = scale
 	EnemyService.flushUpdates()
+end
+
+function EnemyService.setSpeedScale(scale: number)
+	speedScale = scale
 end
 
 function EnemyService.isSlowed(): boolean

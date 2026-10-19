@@ -37,8 +37,51 @@ local function label(props: { [string]: any }): TextLabel
 	return text
 end
 
+-- Modificadores marcados (opcionales: más difícil y más premios)
+local chosen: { [string]: boolean } = {}
+
+local function chosenList(): { string }
+	local ids = {}
+	for id, on in chosen do
+		if on then
+			table.insert(ids, id)
+		end
+	end
+	return ids
+end
+
 local function close()
 	gui.Enabled = false
+end
+
+local function modifierCard(index: number, modifier)
+	local button = Instance.new("TextButton")
+	button.Size = UDim2.new(1, 0, 0, 44)
+	button.BackgroundColor3 = CARD
+	button.AutoButtonColor = false
+	button.LayoutOrder = 100 + index
+	button.Font = Enum.Font.GothamBold
+	button.TextSize = 14
+	button.TextXAlignment = Enum.TextXAlignment.Left
+	button.TextColor3 = Color3.new(1, 1, 1)
+	button.Parent = list
+	corner(button, 8)
+	local stroke = Instance.new("UIStroke")
+	stroke.Thickness = 2
+	stroke.Parent = button
+	local padding = Instance.new("UIPadding")
+	padding.PaddingLeft = UDim.new(0, 12)
+	padding.Parent = button
+	local function refresh()
+		local on = chosen[modifier.Id] == true
+		button.Text = `{if on then "✅" else "⬜"} {modifier.Icon} {modifier.Name}  ·  {modifier.Description}  ·  premios x{modifier.Coins}`
+		stroke.Color = if on then GOLD else GREY
+	end
+	refresh()
+	button.Activated:Connect(function()
+		chosen[modifier.Id] = not chosen[modifier.Id]
+		refresh()
+	end)
 end
 
 local function card(index: number, info, locked: boolean, previous)
@@ -86,7 +129,7 @@ local function card(index: number, info, locked: boolean, previous)
 	corner(button, 8)
 	if not locked then
 		button.Activated:Connect(function()
-			Remotes.SelectDifficulty:FireServer(info.Id)
+			Remotes.SelectDifficulty:FireServer(info.Id, chosenList())
 			close()
 		end)
 	end
@@ -94,7 +137,7 @@ end
 
 local function open(unlocked: number)
 	for _, child in list:GetChildren() do
-		if child:IsA("Frame") then
+		if child:IsA("Frame") or child:IsA("TextButton") then
 			child:Destroy()
 		end
 	end
@@ -102,6 +145,11 @@ local function open(unlocked: number)
 	for index = 1, shown do
 		local info = Config.Difficulties[index]
 		card(index, info, index > unlocked, Config.Difficulties[index - 1])
+	end
+	-- Modificadores opcionales (valen los de quien vota primero)
+	chosen = {}
+	for index, modifier in Config.Modifiers do
+		modifierCard(index, modifier)
 	end
 	gui.Enabled = true
 end

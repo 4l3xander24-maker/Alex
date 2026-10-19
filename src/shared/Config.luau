@@ -803,6 +803,36 @@ Config.Economy = {
 	KillCoinScale = 0.45,
 }
 
+-- Modificadores opcionales de la partida: se eligen al votar la dificultad (vale
+-- lo que marque quien vota primero). Hacen el juego más duro y pagan más.
+Config.Modifiers = {
+	{ Id = "Fast", Icon = "💨", Name = "Zombis veloces", Description = "Caminan un 30% más rápido", Speed = 1.3, Coins = 1.25 },
+	{ Id = "Tanky", Icon = "🧱", Name = "Piel dura", Description = "Tienen un 50% más de vida", Health = 1.5, Coins = 1.25 },
+	{ Id = "Horde", Icon = "🌊", Name = "Hordas gigantes", Description = "Un 40% más de zombis", Count = 1.4, Coins = 1.2 },
+	{ Id = "Fragile", Icon = "🩸", Name = "Golpes mortales", Description = "Recibes un 50% más de daño", Damage = 1.5, Coins = 1.25 },
+}
+
+-- Bestiario (se ve en la tienda del Veterano): orden y descripción de cada enemigo
+Config.Bestiary = {
+	Order = { "Walker", "Runner", "Cone", "Knight", "Brute", "Bomber", "Spitter", "Parasite", "Colossus", "Mutant", "Fatso", "King", "Dragon", "Queen" },
+	Text = {
+		Walker = "El zombi común. Lento y fácil de eliminar.",
+		Runner = "Veloz y frágil: llega antes de que reacciones.",
+		Cone = "Con cono de tránsito en la cabeza: aguanta un poco más.",
+		Knight = "Casco, armadura y espada. Resistente y peligroso de cerca.",
+		Brute = "Enorme y fuerte. Pega duro: mantén la distancia.",
+		Bomber = "Chaleco de dinamita: explota al morir. Elimínalo de lejos.",
+		Spitter = "Escupe ácido desde lejos y marca el suelo antes de caer.",
+		Parasite = "Al morir suelta 3 corredores. No lo dejes llegar.",
+		Colossus = "Gigante acorazado. También llega como mini-jefe cada 3 oleadas.",
+		Mutant = "Tentáculos y mucha vida. Dispara con calma.",
+		Fatso = "JEFE (oleada 5). Lanza ácido y suelta 8 zombis al morir.",
+		King = "JEFE (oleada 10). Su pisotón golpea en un área enorme.",
+		Dragon = "JEFE volador (oleada 15). Escupe fuego desde el aire.",
+		Queen = "JEFE (oleada 20). Invoca zombis sin parar: elimínala rápido.",
+	},
+}
+
 -- Conquistas: la primera vez que superas una dificultad ganas monedas; el primer
 -- jugador del mundo en superar Experto o más sube al Salón de la fama (sin límite
 -- de tiempo), con título, monedas extra y, en Experto, un rastro exclusivo.
@@ -1068,8 +1098,43 @@ Config.Weapons = {
 		Pierce = 1,
 		Zoom = 1.3,
 	},
+	Crossbow = {
+		DisplayName = "Ballesta",
+		Icon = "🏹",
+		Price = 1200,
+		Damage = 6, -- un virote atraviesa hasta 4 zombis en fila
+		FireRate = 1.4,
+		Magazine = 6,
+		StartReserve = 18,
+		MaxReserve = 60,
+		AmmoPerKill = 1,
+		ReloadTime = 2.0,
+		Range = 320,
+		Pellets = 1,
+		Spread = 0.004,
+		Pierce = 3,
+		Zoom = 1.8,
+	},
+	Flamethrower = {
+		DisplayName = "Lanzallamas",
+		Icon = "🔥",
+		Price = 1600,
+		Flame = true, -- en vez de balas, lanza fuego (efecto en WeaponController)
+		Damage = 0.9,
+		FireRate = 14,
+		Magazine = 90,
+		StartReserve = 180,
+		MaxReserve = 540,
+		AmmoPerKill = 2,
+		ReloadTime = 3.2,
+		Range = 26, -- corto alcance: a cambio quema a varios a la vez
+		Pellets = 2,
+		Spread = 0.11,
+		Pierce = 3,
+		Zoom = 1.1,
+	},
 }
-Config.WeaponOrder = { "Machete", "Pistol", "Shotgun", "Rifle", "Sniper", "Minigun" }
+Config.WeaponOrder = { "Machete", "Pistol", "Shotgun", "Rifle", "Sniper", "Minigun", "Crossbow", "Flamethrower" }
 
 -- Mejoras de arma en el Armero (por nivel de mejora)
 Config.WeaponUpgrade = {

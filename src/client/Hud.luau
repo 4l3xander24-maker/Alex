@@ -469,7 +469,7 @@ function Hud.init(actions: Actions)
 
 	-- Abajo a la derecha: armas y munición. Cada casilla muestra el modelo 3D
 	-- del arma (ReplicatedStorage.WeaponModels); sin modelo, su emoji.
-	local weaponRow = makeRow(gui, Vector2.new(1, 1), UDim2.new(1, -16, 1, -82), Vector2.new(470, 44))
+	local weaponRow = makeRow(gui, Vector2.new(1, 1), UDim2.new(1, -16, 1, -82), Vector2.new(640, 44))
 	local weaponSlots: { [string]: TextButton } = {}
 	local weaponModels = ReplicatedStorage:FindFirstChild("WeaponModels")
 	for slotIndex, id in Config.WeaponOrder do
@@ -478,7 +478,7 @@ function Hud.init(actions: Actions)
 		-- Casilla que también se toca para cambiar de arma (celular)
 		local slot = Instance.new("TextButton")
 		slot.LayoutOrder = slotIndex
-		slot.Size = UDim2.fromOffset(76, 46)
+		slot.Size = UDim2.fromOffset(74, 46)
 		slot.BackgroundTransparency = 0.3
 		slot.BackgroundColor3 = PANEL_COLOR
 		slot.Font = Enum.Font.GothamBlack

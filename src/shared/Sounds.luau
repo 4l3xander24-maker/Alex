@@ -13,6 +13,8 @@ return {
 		Rifle = { Id = 9118173988, Volume = 0.45, PitchRange = { 0.97, 1.05 } },
 		Sniper = { Id = 9113198012, Volume = 0.65, Pitch = 0.8 },
 		Minigun = { Id = 9116344855, Volume = 0.3, PitchRange = { 1.0, 1.1 } },
+		Crossbow = { Id = 9113198012, Volume = 0.5, PitchRange = { 1.6, 1.8 } },
+		Flamethrower = { Id = 9116344855, Volume = 0.22, PitchRange = { 0.5, 0.6 } },
 	},
 	Reload = { Id = 9113104176, Volume = 0.5 },
 	Equip = { Id = 9113104176, Volume = 0.3, Pitch = 1.5 }, -- al cambiar de arma

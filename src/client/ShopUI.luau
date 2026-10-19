@@ -17,6 +17,8 @@ local Progression = require(Shared.Progression)
 local Remotes = require(Shared.Remotes)
 local Notify = require(script.Parent.Notify)
 local PetRenderer = require(script.Parent.PetRenderer)
+local EnemyPreview = require(script.Parent.EnemyPreview)
+local Viewmodel = require(script.Parent.Viewmodel)
 local Preview3D = require(Shared.Preview3D)
 local Profile = require(script.Parent.Profile)
 local RobuxShop = require(Shared.RobuxShop)
@@ -170,8 +172,17 @@ local function row(icon: string, name: string, description: string, buttons: { B
 	end
 end
 
+-- Vista 3D de un arma: la malla de la tienda o, si no tiene, las piezas del arma en mano
+local function weaponPreview(weaponId: string, skin: any?): Model
+	local folder = ReplicatedStorage:FindFirstChild("WeaponModels")
+	if folder and folder:FindFirstChild(weaponId) then
+		return Preview3D.weapon(weaponId, skin)
+	end
+	return Viewmodel.buildPreview(weaponId, skin)
+end
+
 local function renderArmory(data: Progression.Profile, coins: number)
-	sectionHeader("Armas  ·  cambia de arma con las teclas 1-6  ·  cada mejora cambia su color")
+	sectionHeader("Armas  ·  cambia de arma con las teclas 1-8  ·  cada mejora cambia su color")
 	for slot, id in Config.WeaponOrder do
 		local weapon = Config.Weapons[id]
 		local level = data.Weapons[id]
@@ -212,7 +223,7 @@ local function renderArmory(data: Progression.Profile, coins: number)
 			end })
 		end
 		row(weapon.Icon, name, description, buttons, nameColor, nil, { Title = weapon.DisplayName, Builder = function()
-			return Preview3D.weapon(id)
+			return weaponPreview(id)
 		end })
 	end
 end
@@ -433,7 +444,7 @@ local function renderTailor(data: Progression.Profile, coins: number)
 		end
 		row(skin.Icon, `Skin {skin.Name}`, `{Progression.describeSkinBonus(skin)}{if skin.Glow then ".  Brilla con luz propia." else "."}`, buttons, if data.WeaponSkin == skin.Id then GREEN else nil, nil, { Title = `Skin {skin.Name}`, Builder = function()
 			local weaponId = if data.Equipped ~= "Machete" then data.Equipped else "Rifle"
-			return Preview3D.weapon(weaponId, skin)
+			return weaponPreview(weaponId, skin)
 		end })
 	end
 	renderObjectSkins(data, coins)
@@ -495,6 +506,20 @@ local function briefText(line: Frame, text: string)
 		TextWrapped = false,
 		TextTruncate = Enum.TextTruncate.AtEnd,
 	})
+end
+
+-- Bestiario: cada enemigo con su vista 3D, su vida, velocidad y premio
+local function renderBestiary()
+	sectionHeader("Bestiario  ·  conoce a tus enemigos")
+	for _, typeName in Config.Bestiary.Order do
+		local info = Config.Enemies[typeName]
+		if info then
+			local stats = `Vida {info.MaxHealth} · Velocidad {info.Speed} · {info.Coins} 💰`
+			row(if info.IsBoss then "👹" else "🧟", info.DisplayName, `{Config.Bestiary.Text[typeName]}\n{stats}`, {}, if info.IsBoss then GOLD else nil, nil, { Title = info.DisplayName, Builder = function()
+				return EnemyPreview.model(typeName)
+			end })
+		end
+	end
 end
 
 local function renderTrainer(data: Progression.Profile)
@@ -616,6 +641,7 @@ function ShopUI.render()
 		renderTailor(data, coins)
 	else
 		renderTrainer(data)
+		renderBestiary()
 	end
 end
 

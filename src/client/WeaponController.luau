@@ -20,7 +20,7 @@ local Sfx = require(script.Parent.Sfx)
 local TRACER_COLOR = Color3.fromRGB(255, 220, 90)
 local TRACER_TIME = 0.05
 local SWITCH_DELAY = 0.3
-local NUMBER_KEYS = { Enum.KeyCode.One, Enum.KeyCode.Two, Enum.KeyCode.Three, Enum.KeyCode.Four, Enum.KeyCode.Five, Enum.KeyCode.Six }
+local NUMBER_KEYS = { Enum.KeyCode.One, Enum.KeyCode.Two, Enum.KeyCode.Three, Enum.KeyCode.Four, Enum.KeyCode.Five, Enum.KeyCode.Six, Enum.KeyCode.Seven, Enum.KeyCode.Eight }
 
 local player = Players.LocalPlayer
 local random = Random.new()
@@ -93,6 +93,36 @@ local function tracerSkin(): any
 		end
 	end
 	return nil
+end
+
+-- Lanzallamas: una llamarada corta que sale del cañón hacia donde apuntas
+local function flameBurst(from: Vector3, to: Vector3)
+	local direction = to - from
+	if direction.Magnitude < 0.1 then
+		return
+	end
+	local holder = Instance.new("Part")
+	holder.Anchored = true
+	holder.CanCollide = false
+	holder.CanQuery = false
+	holder.CanTouch = false
+	holder.Transparency = 1
+	holder.Size = Vector3.one * 0.2
+	holder.CFrame = CFrame.lookAt(from, to)
+	holder.Parent = workspace.CurrentCamera
+	local emitter = Instance.new("ParticleEmitter")
+	emitter.Rate = 0
+	emitter.Lifetime = NumberRange.new(0.25, 0.45)
+	emitter.Speed = NumberRange.new(38, 52)
+	emitter.SpreadAngle = Vector2.new(9, 9)
+	emitter.EmissionDirection = Enum.NormalId.Front
+	emitter.LightEmission = 1
+	emitter.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.5), NumberSequenceKeypoint.new(1, 2.4) })
+	emitter.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.1), NumberSequenceKeypoint.new(1, 1) })
+	emitter.Color = ColorSequence.new({ ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 240, 150)), ColorSequenceKeypoint.new(0.4, Color3.fromRGB(255, 140, 40)), ColorSequenceKeypoint.new(1, Color3.fromRGB(90, 40, 30)) })
+	emitter.Parent = holder
+	emitter:Emit(4)
+	Debris:AddItem(holder, 0.6)
 end
 
 local function drawTracer(from: Vector3, to: Vector3)
@@ -170,7 +200,11 @@ local function fire(weaponStats)
 		local pelletDirection = applySpread(direction, weaponStats.Spread)
 		local result = workspace:Raycast(origin, pelletDirection * weaponStats.Range, params)
 		local hitPoint = if result then result.Position else origin + pelletDirection * weaponStats.Range
-		drawTracer(Viewmodel.getMuzzlePosition(), hitPoint)
+		if Config.Weapons[equipped].Flame then
+			flameBurst(Viewmodel.getMuzzlePosition(), hitPoint)
+		else
+			drawTracer(Viewmodel.getMuzzlePosition(), hitPoint)
+		end
 		if result and result.Instance:IsDescendantOf(enemyFolder) then
 			hitEnemy = true
 		end

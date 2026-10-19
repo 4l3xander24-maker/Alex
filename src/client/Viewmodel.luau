@@ -49,6 +49,36 @@ end
 -- Piezas relativas al centro del arma (el cañón apunta hacia -Z).
 -- Las piezas GUNMETAL y STEEL toman los colores del nivel de mejora.
 local MODELS: { [string]: ModelSpec } = {
+	-- Ballesta: culata de madera, arco cruzado con cuerda y un virote cargado
+	Crossbow = {
+		Muzzle = CFrame.new(0, 0.28, -1.7),
+		LeftHand = Vector3.new(-0.05, -0.3, -0.7),
+		Pieces = {
+			p(Vector3.new(0.3, 0.34, 2.3), CFrame.new(0, 0, 0.35), WOOD),
+			p(Vector3.new(0.16, 0.1, 1.7), CFrame.new(0, 0.22, -0.35), STEEL),
+			p(Vector3.new(2.3, 0.14, 0.18), CFrame.new(0, 0.18, -1.15), DARK),
+			p(Vector3.new(0.18, 0.14, 0.7), CFrame.new(1.2, 0.18, -1.45) * CFrame.Angles(0, 0.5, 0), DARK),
+			p(Vector3.new(0.18, 0.14, 0.7), CFrame.new(-1.2, 0.18, -1.45) * CFrame.Angles(0, -0.5, 0), DARK),
+			p(Vector3.new(2.3, 0.03, 0.03), CFrame.new(0, 0.2, -0.75), STEEL),
+			p(Vector3.new(0.08, 0.08, 1.5), CFrame.new(0, 0.3, -0.85), STEEL),
+			p(Vector3.new(0.12, 0.1, 0.3), CFrame.new(0, 0.3, -1.65), Color3.fromRGB(200, 60, 50)),
+			p(Vector3.new(0.28, 0.6, 0.32), CFrame.new(0, -0.45, 0.8) * CFrame.Angles(-0.3, 0, 0), WOOD),
+		},
+	},
+	-- Lanzallamas: tanque de combustible, tubo y llama piloto
+	Flamethrower = {
+		Muzzle = CFrame.new(0, 0.05, -2.4),
+		LeftHand = Vector3.new(-0.05, -0.3, -0.9),
+		Pieces = {
+			p(Vector3.new(0.34, 0.4, 1.0), CFrame.new(0, 0, 0.2), GUNMETAL),
+			p(Vector3.new(0.2, 0.2, 1.9), CFrame.new(0, 0.05, -1.2), DARK),
+			p(Vector3.new(0.34, 0.34, 0.3), CFrame.new(0, 0.05, -2.15), STEEL),
+			{ Size = Vector3.new(0.65, 0.65, 1.3), Offset = CFrame.new(0.4, -0.35, 0.9), Color = OLIVE, Shape = Enum.PartType.Cylinder, Material = Enum.Material.Metal },
+			p(Vector3.new(0.7, 0.14, 0.14), CFrame.new(0.4, -0.35, 0.25), STEEL),
+			p(Vector3.new(0.14, 0.14, 0.14), CFrame.new(0, 0.05, -2.32), Color3.fromRGB(255, 140, 40), true),
+			p(Vector3.new(0.3, 0.6, 0.34), CFrame.new(0, -0.45, 0.5) * CFrame.Angles(-0.3, 0, 0), DARK),
+		},
+	},
 	Machete = (function(): ModelSpec
 		-- Todo relativo al puño. `knife` apunta la hoja hacia la derecha y un poco
 		-- adelante, con la punta levantada.
@@ -260,6 +290,28 @@ local function leftArm(hand: Vector3): { PieceSpec }
 end
 
 local Viewmodel = {}
+
+-- Vista 3D del arma en mano (para la tienda cuando no hay malla): las mismas
+-- piezas de bloques, con los colores de la skin si lleva una.
+function Viewmodel.buildPreview(weaponId: string, skin: any?): Model
+	local model = Instance.new("Model")
+	local spec = MODELS[weaponId] or MODELS.Pistol
+	for index, piece in spec.Pieces do
+		local part = Instance.new("Part")
+		part.Name = "Piece" .. index
+		part.Size = piece.Size
+		part.CFrame = piece.Offset
+		part.Color = if skin and (piece.Color == GUNMETAL or piece.Color == STEEL) then skin.Main:Lerp(skin.Accent, 0.4) else piece.Color
+		part.Material = if piece.Neon or (skin and skin.Glow and piece.Color == GUNMETAL) then Enum.Material.Neon else piece.Material or Enum.Material.SmoothPlastic
+		if piece.Shape then
+			part.Shape = piece.Shape
+		end
+		part.Anchored = true
+		part.CanCollide = false
+		part.Parent = model
+	end
+	return model
+end
 
 local folder = Instance.new("Folder")
 folder.Name = "Viewmodel"
