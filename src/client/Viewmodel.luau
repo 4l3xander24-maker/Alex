@@ -36,7 +36,7 @@ local HIP_OFFSET = CFrame.new(1.05, -0.92, -2.1)
 local AIM_OFFSET = CFrame.new(0, -0.55, -1.7)
 local BASE_FOV = 80
 
-type PieceSpec = { Size: Vector3, Offset: CFrame, Color: Color3, Neon: boolean?, Shape: Enum.PartType?, Material: Enum.Material? }
+type PieceSpec = { Clone: BasePart?, Size: Vector3, Offset: CFrame, Color: Color3, Neon: boolean?, Shape: Enum.PartType?, Material: Enum.Material? }
 -- Arm reemplaza la mano derecha de siempre; sin LeftHand no hay mano izquierda;
 -- Hip cambia dónde se ve el arma en la pantalla
 type ModelSpec = { Pieces: { PieceSpec }, Muzzle: CFrame, LeftHand: Vector3?, Arm: { PieceSpec }?, Hip: CFrame? }
@@ -228,7 +228,51 @@ end
 
 -- Mano derecha sobre el mango. grip: dónde está el centro del mango (el mango es
 -- vertical en el eje Y de `grip`, el cañón hacia -Z).
+-- Mano y antebrazo con las piezas reales del personaje (R15): se ven igual que
+-- el avatar, con su ropa y su tono de piel. nil si el personaje es R6.
+local function avatarArm(right: boolean, wrist: Vector3, dir: Vector3, roll: number): { PieceSpec }?
+	local character = player.Character
+	local side = if right then "Right" else "Left"
+	local hand = character and character:FindFirstChild(side .. "Hand")
+	local lower = character and character:FindFirstChild(side .. "LowerArm")
+	local upper = character and character:FindFirstChild(side .. "UpperArm")
+	if not (hand and hand:IsA("BasePart") and lower and lower:IsA("BasePart")) then
+		-- Personaje R6: brazo limpio de bloque con el color de piel del avatar, sin
+		-- dedos sueltos: puño, pulgar y manga, como al sostener una herramienta
+		local arm = character and (character:FindFirstChild(side .. " Arm"))
+		local tone = if arm and arm:IsA("BasePart") then arm.Color else SKIN
+		local dd = dir.Unit
+		local function frame6(center: Vector3): CFrame
+			return CFrame.lookAt(center, center + dd) * CFrame.Angles(-math.pi / 2, 0, 0)
+		end
+		local sign = if right then -1 else 1
+		local list6: { PieceSpec } = {}
+		table.insert(list6, { Size = Vector3.new(0.3, 0.5, 0.3), Offset = frame6(wrist - dd * 0.02), Color = tone, Material = Enum.Material.SmoothPlastic })
+		table.insert(list6, { Size = Vector3.new(0.27, 0.45, 0.27), Offset = frame6(wrist + dd * 0.46), Color = tone, Material = Enum.Material.SmoothPlastic })
+		table.insert(list6, { Size = Vector3.new(0.13, 0.3, 0.13), Offset = frame6(wrist - dd * 0.1 + Vector3.new(0.17 * -sign, 0.1, 0)), Color = tone, Material = Enum.Material.SmoothPlastic })
+		table.insert(list6, { Size = Vector3.new(0.36, 1.8, 0.36), Offset = frame6(wrist + dd * 1.55), Color = SLEEVE_CLOTH, Material = Enum.Material.Fabric })
+		table.insert(list6, { Size = Vector3.new(0.4, 0.12, 0.4), Offset = frame6(wrist + dd * 0.7), Color = CUFF, Material = Enum.Material.Leather })
+		return list6
+	end
+	local d = dir.Unit
+	-- Eje del brazo: +Y de la pieza apunta hacia el codo (hacia la cámara)
+	local function frame(center: Vector3): CFrame
+		return CFrame.lookAt(center, center + d) * CFrame.Angles(-math.pi / 2, 0, 0) * CFrame.Angles(0, roll, 0)
+	end
+	local list: { PieceSpec } = {}
+	table.insert(list, { Clone = hand :: BasePart, Size = (hand :: BasePart).Size, Offset = frame(wrist - d * 0.1), Color = SKIN })
+	table.insert(list, { Clone = lower :: BasePart, Size = (lower :: BasePart).Size, Offset = frame(wrist + d * 0.55), Color = SKIN })
+	if upper and upper:IsA("BasePart") then
+		table.insert(list, { Clone = upper :: BasePart, Size = (upper :: BasePart).Size, Offset = frame(wrist + d * 1.75), Color = SKIN })
+	end
+	return list
+end
+
 local function realRightHand(grip: CFrame): { PieceSpec }
+	local avatar = avatarArm(true, grip:PointToWorldSpace((player:GetAttribute("HandPosR") :: Vector3?) or Vector3.new(-0.05, 0.25, -0.15)), grip:VectorToWorldSpace(Vector3.new(0.18, -0.42, 1)), math.rad(player:GetAttribute("RollR") or 0))
+	if avatar then
+		return avatar
+	end
 	local list: { PieceSpec } = {}
 	local function at(x: number, y: number, z: number): Vector3
 		return grip:PointToWorldSpace(Vector3.new(x, y, z))
@@ -251,6 +295,10 @@ end
 
 -- Mano izquierda bajo el cañón. barrel: dónde queda el centro del guardamanos.
 local function realLeftHand(barrel: Vector3): { PieceSpec }
+	local avatar = avatarArm(false, barrel + ((player:GetAttribute("HandPosL") :: Vector3?) or Vector3.new(0.05, 0.05, -0.1)), Vector3.new(-0.4, -0.45, 1), math.rad(player:GetAttribute("RollL") or 0))
+	if avatar then
+		return avatar
+	end
 	local list: { PieceSpec } = {}
 	local c = barrel + Vector3.new(0, 0.3, 0)
 	local function at(x: number, y: number, z: number): Vector3
@@ -433,7 +481,24 @@ local walkTime = 0
 local muzzlePosition = Vector3.zero
 
 local function newPart(spec: PieceSpec): Part
-	local part = Instance.new("Part")
+	local part: Part
+	if spec.Clone then
+		-- Pieza real del personaje (malla de la mano o el antebrazo, con su textura)
+		part = spec.Clone:Clone() :: any
+		for _, child in part:GetChildren() do
+			if not (child:IsA("SurfaceAppearance") or child:IsA("Decal") or child:IsA("Texture")) then
+				child:Destroy()
+			end
+		end
+		part.Anchored = true
+		part.CanCollide = false
+		part.CanQuery = false
+		part.CanTouch = false
+		part.CastShadow = false
+		part.Parent = folder
+		return part
+	end
+	part = Instance.new("Part")
 	part.Size = spec.Size
 	part.Color = spec.Color
 	part.Material = if spec.Neon then Enum.Material.Neon else spec.Material or Enum.Material.SmoothPlastic
@@ -457,8 +522,16 @@ end
 
 -- Cambia el modelo del arma. zoomFactor viene de Config.Weapons y tier de
 -- Config.WeaponTiers según el nivel de mejora.
+local lastTier: any = nil
+local lastZoom = 1
+local nextAvatarCheck = 0
+local handsFromAvatar = false
+
 function Viewmodel.setWeapon(weaponId: string, zoomFactor: number, level: number, tier)
-	if weaponId == currentWeapon and level == currentLevel then
+	lastTier, lastZoom = tier, zoomFactor
+	-- Si las manos se armaron antes de que cargara el personaje, se rehacen cuando está
+	local avatarReady = player.Character ~= nil and player.Character:FindFirstChild("RightHand") ~= nil
+	if weaponId == currentWeapon and level == currentLevel and (handsFromAvatar or not avatarReady) then
 		return
 	end
 	if weaponId ~= currentWeapon and currentWeapon ~= "" then
@@ -494,6 +567,7 @@ function Viewmodel.setWeapon(weaponId: string, zoomFactor: number, level: number
 	local specs = if source then {} else table.clone(model.Pieces)
 	-- Manos reales sobre el arma; el cuchillo conserva su guante con tachas
 	handTone = characterTone()
+	handsFromAvatar = player.Character ~= nil and player.Character:FindFirstChild("RightHand") ~= nil
 	local arm = model.Arm or realRightHand(GRIPS[weaponId] or GRIPS.Pistol)
 	handStart = #specs + 1
 	table.move(arm, 1, #arm, #specs + 1, specs)
@@ -584,6 +658,15 @@ local function update(dt: number)
 		return
 	end
 
+	-- Si el personaje cargó después de armar las manos, se rehacen con sus piezas
+	if not handsFromAvatar and os.clock() > nextAvatarCheck then
+		nextAvatarCheck = os.clock() + 1
+		local character = player.Character
+		if character and character:FindFirstChild("RightHand") and lastTier then
+			Viewmodel.setWeapon(currentWeapon, lastZoom, currentLevel, lastTier)
+		end
+	end
+
 	recoil *= math.exp(-dt * 14)
 	reloadAlpha += ((if reloading then 1 else 0) - reloadAlpha) * math.min(1, dt * 10)
 
@@ -663,6 +746,18 @@ function Viewmodel.getMuzzlePosition(): Vector3
 	end
 	-- Sin arma visible (mirando por el visor) la bala sale de la cámara
 	return (workspace.CurrentCamera.CFrame * CFrame.new(0, -0.3, -1)).Position
+end
+
+-- Ajuste en vivo de las manos (pruebas): cambiar RollR, RollL, HandPosR o HandPosL
+-- del jugador las rehace al instante
+for _, name in { "RollR", "RollL", "HandPosR", "HandPosL" } do
+	player:GetAttributeChangedSignal(name):Connect(function()
+		if lastTier then
+			local weapon, level = currentWeapon, currentLevel
+			currentLevel = -99
+			Viewmodel.setWeapon(weapon, lastZoom, level, lastTier)
+		end
+	end)
 end
 
 function Viewmodel.init(weaponId: string, zoomFactor: number, tier)
