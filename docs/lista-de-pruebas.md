@@ -60,6 +60,14 @@ Datos al reportar:
 - [ ] ¿Se calienta el celular o se cierra el juego?
 - [ ] ¿El texto y los botones se leen bien en tu pantalla?
 
+## 8b. Novedades (probar también)
+- [ ] Armas nuevas: **Ballesta** (tecla 7) y **Lanzallamas** (tecla 8) se compran en la Armería y se sienten distintas.
+- [ ] Antes de empezar, al elegir dificultad hay **modificadores opcionales** (zombis veloces, piel dura, hordas, golpes mortales): se aplican y pagan más.
+- [ ] En el Entrenamiento (Don Ramiro) hay un **bestiario** con la vista 3D de cada enemigo.
+- [ ] Lobby: tableros **Salón de la fama** y **Reto semanal** se leen bien.
+- [ ] Música: suena un golpe al empezar y cambia a una pista más intensa desde la oleada 6.
+- [ ] Dificultad Experto en adelante: ¿se puede superar? ¿Hasta qué oleada llegaste?
+
 ## 9. Para opinar (corto)
 1. Lo que más te gustó: ______
 2. Lo que menos te gustó: ______
