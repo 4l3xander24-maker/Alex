@@ -174,10 +174,6 @@ local MODELS: { [string]: ModelSpec } = {
 local MESH_WEAPONS = Config.UseStoreModels and not Config.Style.Blocky
 local MUSKET_TURN = CFrame.Angles(0, math.pi, 0) * CFrame.Angles(0, 0, math.pi / 2)
 local MESHES: { [string]: { Length: number, Center: CFrame, Turn: CFrame?, LongAxis: string? } } = {
-	-- Ballesta y lanzallamas de la Creator Store (la ballesta viene con el arco a lo ancho y
-	-- el lanzallamas acostado a lo largo de X)
-	Crossbow = { Length = 2.6, Center = CFrame.new(0, 0.15, -1.0) },
-	Flamethrower = { Length = 3.8, LongAxis = "X", Center = CFrame.new(0, 0.2, -1.1), Turn = CFrame.Angles(0, math.pi / 2, 0) },
 	Pistol = { Length = 2.3, Center = CFrame.new(0, -0.05, -0.7), Turn = MUSKET_TURN },
 	Shotgun = { Length = 4.2, Center = CFrame.new(0, -0.05, -0.9), Turn = MUSKET_TURN },
 	Rifle = { Length = 4.9, Center = CFrame.new(0, -0.05, -0.4), Turn = MUSKET_TURN },
@@ -240,8 +236,7 @@ local function avatarArm(right: boolean, wrist: Vector3, dir: Vector3, roll: num
 	local hand = character and character:FindFirstChild(side .. "Hand")
 	local lower = character and character:FindFirstChild(side .. "LowerArm")
 	local upper = character and character:FindFirstChild(side .. "UpperArm")
-	-- Se decidió dejar las manos de bloque (más limpias en pantalla)
-	if true or not (hand and hand:IsA("BasePart") and lower and lower:IsA("BasePart")) then
+	if not (hand and hand:IsA("BasePart") and lower and lower:IsA("BasePart")) then
 		-- Personaje R6: brazo limpio de bloque con el color de piel del avatar, sin
 		-- dedos sueltos: puño, pulgar y manga, como al sostener una herramienta
 		local arm = character and (character:FindFirstChild(side .. " Arm"))
@@ -274,7 +269,7 @@ local function avatarArm(right: boolean, wrist: Vector3, dir: Vector3, roll: num
 end
 
 local function realRightHand(grip: CFrame): { PieceSpec }
-	local avatar = avatarArm(true, grip:PointToWorldSpace((player:GetAttribute("HandPosR") :: Vector3?) or Vector3.new(0.3, 0.0, 0.12)), grip:VectorToWorldSpace(Vector3.new(0.18, -0.42, 1)), math.rad(player:GetAttribute("RollR") or 0))
+	local avatar = avatarArm(true, grip:PointToWorldSpace((player:GetAttribute("HandPosR") :: Vector3?) or Vector3.new(-0.05, 0.25, -0.15)), grip:VectorToWorldSpace(Vector3.new(0.18, -0.42, 1)), math.rad(player:GetAttribute("RollR") or 0))
 	if avatar then
 		return avatar
 	end
@@ -300,7 +295,7 @@ end
 
 -- Mano izquierda bajo el cañón. barrel: dónde queda el centro del guardamanos.
 local function realLeftHand(barrel: Vector3): { PieceSpec }
-	local avatar = avatarArm(false, barrel + ((player:GetAttribute("HandPosL") :: Vector3?) or Vector3.new(-0.3, 0.12, 0.1)), Vector3.new(-0.4, -0.45, 1), math.rad(player:GetAttribute("RollL") or 0))
+	local avatar = avatarArm(false, barrel + ((player:GetAttribute("HandPosL") :: Vector3?) or Vector3.new(0.05, 0.05, -0.1)), Vector3.new(-0.4, -0.45, 1), math.rad(player:GetAttribute("RollL") or 0))
 	if avatar then
 		return avatar
 	end
