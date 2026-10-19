@@ -998,7 +998,7 @@ Config.Monetization = {
 		ObjTracerAurum = { Id = 3719358010, Name = "Rastro de oro", Icon = "✨", Description = "Skin Premium de rastro de balas.", ObjectSkin = "TracerAurum" },
 		ObjDfLightning = { Id = 3719363441, Name = "Efecto Rayo", Icon = "⚡", Description = "Skin Premium de efecto al eliminar.", ObjectSkin = "DfLightning" },
 		ObjDfGold = { Id = 3719363499, Name = "Efecto Lluvia de oro", Icon = "🪙", Description = "Skin Premium de efecto al eliminar.", ObjectSkin = "DfGold" },
-		ObjFireSpirit = { Id = 0, Name = "Fogata espectral", Icon = "👻", Description = "Skin Premium de la fogata del campamento.", ObjectSkin = "FireSpirit" },
+		ObjFireSpirit = { Id = 3720070226, Name = "Fogata espectral", Icon = "👻", Description = "Skin Premium de la fogata del campamento.", ObjectSkin = "FireSpirit" },
 		ObjDfRainbow = { Id = 3719363534, Name = "Efecto Arcoíris", Icon = "🌈", Description = "Skin Premium de efecto al eliminar.", ObjectSkin = "DfRainbow" },
 		ObjBellFire = { Id = 3719283103, Name = "Campana infernal", Icon = "🌋", Description = "Skin Premium de campana.", ObjectSkin = "BellFire" },
 		SkinBlood = { Id = 3719236493, Name = "Skin Sangrienta", Icon = "🟥", Description = "Skin de arma roja brillante.", WeaponSkin = "Blood" },
