@@ -151,7 +151,7 @@ local MODELS: { [string]: ModelSpec } = {
 	},
 	Minigun = {
 		Muzzle = CFrame.new(0, -0.03, -2.4),
-		LeftHand = Vector3.new(0, 0.62, 0.1),
+		-- (sin mano izquierda: el brazo taparía la pantalla)
 		Pieces = {
 			p(Vector3.new(0.6, 0.6, 1.3), CFrame.new(0, -0.05, 0.2), GUNMETAL),
 			p(Vector3.new(0.14, 0.14, 1.9), CFrame.new(-0.14, 0.05, -1.4), DARK),
