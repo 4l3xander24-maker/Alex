@@ -173,7 +173,11 @@ local MODELS: { [string]: ModelSpec } = {
 -- y quede parada (las del paquete de mosquetes vienen acostadas y al revés).
 local MESH_WEAPONS = Config.UseStoreModels and not Config.Style.Blocky
 local MUSKET_TURN = CFrame.Angles(0, math.pi, 0) * CFrame.Angles(0, 0, math.pi / 2)
-local MESHES: { [string]: { Length: number, Center: CFrame, Turn: CFrame? } } = {
+local MESHES: { [string]: { Length: number, Center: CFrame, Turn: CFrame?, LongAxis: string? } } = {
+	-- Ballesta y lanzallamas de la Creator Store (la ballesta viene con el arco a lo ancho y
+	-- el lanzallamas acostado a lo largo de X)
+	Crossbow = { Length = 2.6, Center = CFrame.new(0, 0.15, -1.0) },
+	Flamethrower = { Length = 3.8, LongAxis = "X", Center = CFrame.new(0, 0.2, -1.1), Turn = CFrame.Angles(0, math.pi / 2, 0) },
 	Pistol = { Length = 2.3, Center = CFrame.new(0, -0.05, -0.7), Turn = MUSKET_TURN },
 	Shotgun = { Length = 4.2, Center = CFrame.new(0, -0.05, -0.9), Turn = MUSKET_TURN },
 	Rifle = { Length = 4.9, Center = CFrame.new(0, -0.05, -0.4), Turn = MUSKET_TURN },
@@ -596,7 +600,8 @@ function Viewmodel.setWeapon(weaponId: string, zoomFactor: number, level: number
 	if source and meshSpec then
 		local mesh = source:Clone() :: Model
 		local box, size = mesh:GetBoundingBox()
-		mesh:ScaleTo(meshSpec.Length / size.Z)
+		local longest = if meshSpec.LongAxis == "X" then size.X else size.Z
+		mesh:ScaleTo(meshSpec.Length / longest)
 		box = mesh:GetBoundingBox()
 		local turn = meshSpec.Turn or CFrame.identity
 		for _, descendant in mesh:GetDescendants() do

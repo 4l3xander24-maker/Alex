@@ -9,6 +9,8 @@ local VIEW_UP = Vector3.new(0, 1, 0)
 -- Excepciones: la hoja del alfanje es plana en X-Z, se mira desde arriba
 local VIEWS: { [string]: { From: Vector3, Up: Vector3 } } = {
 	Machete = { From = Vector3.new(0, 1, 0), Up = Vector3.new(1, 0, 0) },
+	Crossbow = { From = Vector3.new(0, 1, 0), Up = Vector3.new(1, 0, 0) },
+	Flamethrower = { From = Vector3.new(0, 0, 1), Up = Vector3.new(0, 1, 0) },
 }
 local FOV = 30
 local MARGIN = 1.2 -- deja un poco de aire alrededor
