@@ -236,7 +236,8 @@ local function avatarArm(right: boolean, wrist: Vector3, dir: Vector3, roll: num
 	local hand = character and character:FindFirstChild(side .. "Hand")
 	local lower = character and character:FindFirstChild(side .. "LowerArm")
 	local upper = character and character:FindFirstChild(side .. "UpperArm")
-	if not (hand and hand:IsA("BasePart") and lower and lower:IsA("BasePart")) then
+	-- Se decidió dejar las manos de bloque (más limpias en pantalla)
+	if true or not (hand and hand:IsA("BasePart") and lower and lower:IsA("BasePart")) then
 		-- Personaje R6: brazo limpio de bloque con el color de piel del avatar, sin
 		-- dedos sueltos: puño, pulgar y manga, como al sostener una herramienta
 		local arm = character and (character:FindFirstChild(side .. " Arm"))
@@ -247,11 +248,11 @@ local function avatarArm(right: boolean, wrist: Vector3, dir: Vector3, roll: num
 		end
 		local sign = if right then -1 else 1
 		local list6: { PieceSpec } = {}
-		table.insert(list6, { Size = Vector3.new(0.3, 0.5, 0.3), Offset = frame6(wrist - dd * 0.02), Color = tone, Material = Enum.Material.SmoothPlastic })
-		table.insert(list6, { Size = Vector3.new(0.27, 0.45, 0.27), Offset = frame6(wrist + dd * 0.46), Color = tone, Material = Enum.Material.SmoothPlastic })
-		table.insert(list6, { Size = Vector3.new(0.13, 0.3, 0.13), Offset = frame6(wrist - dd * 0.1 + Vector3.new(0.17 * -sign, 0.1, 0)), Color = tone, Material = Enum.Material.SmoothPlastic })
-		table.insert(list6, { Size = Vector3.new(0.36, 1.8, 0.36), Offset = frame6(wrist + dd * 1.55), Color = SLEEVE_CLOTH, Material = Enum.Material.Fabric })
-		table.insert(list6, { Size = Vector3.new(0.4, 0.12, 0.4), Offset = frame6(wrist + dd * 0.7), Color = CUFF, Material = Enum.Material.Leather })
+		table.insert(list6, { Size = Vector3.new(0.5, 0.62, 0.5), Offset = frame6(wrist - dd * 0.05), Color = tone, Material = Enum.Material.SmoothPlastic })
+		table.insert(list6, { Size = Vector3.new(0.46, 0.5, 0.46), Offset = frame6(wrist + dd * 0.52), Color = tone, Material = Enum.Material.SmoothPlastic })
+		table.insert(list6, { Size = Vector3.new(0.2, 0.34, 0.2), Offset = frame6(wrist - dd * 0.12 + Vector3.new(0.3 * -sign, 0.12, 0)), Color = tone, Material = Enum.Material.SmoothPlastic })
+		table.insert(list6, { Size = Vector3.new(0.56, 1.8, 0.56), Offset = frame6(wrist + dd * 1.55), Color = SLEEVE_CLOTH, Material = Enum.Material.Fabric })
+		table.insert(list6, { Size = Vector3.new(0.6, 0.12, 0.6), Offset = frame6(wrist + dd * 0.78), Color = CUFF, Material = Enum.Material.Leather })
 		return list6
 	end
 	local d = dir.Unit
@@ -269,7 +270,7 @@ local function avatarArm(right: boolean, wrist: Vector3, dir: Vector3, roll: num
 end
 
 local function realRightHand(grip: CFrame): { PieceSpec }
-	local avatar = avatarArm(true, grip:PointToWorldSpace((player:GetAttribute("HandPosR") :: Vector3?) or Vector3.new(-0.05, 0.25, -0.15)), grip:VectorToWorldSpace(Vector3.new(0.18, -0.42, 1)), math.rad(player:GetAttribute("RollR") or 0))
+	local avatar = avatarArm(true, grip:PointToWorldSpace((player:GetAttribute("HandPosR") :: Vector3?) or Vector3.new(0.3, 0.0, 0.12)), grip:VectorToWorldSpace(Vector3.new(0.18, -0.42, 1)), math.rad(player:GetAttribute("RollR") or 0))
 	if avatar then
 		return avatar
 	end
@@ -295,7 +296,7 @@ end
 
 -- Mano izquierda bajo el cañón. barrel: dónde queda el centro del guardamanos.
 local function realLeftHand(barrel: Vector3): { PieceSpec }
-	local avatar = avatarArm(false, barrel + ((player:GetAttribute("HandPosL") :: Vector3?) or Vector3.new(0.05, 0.05, -0.1)), Vector3.new(-0.4, -0.45, 1), math.rad(player:GetAttribute("RollL") or 0))
+	local avatar = avatarArm(false, barrel + ((player:GetAttribute("HandPosL") :: Vector3?) or Vector3.new(-0.3, 0.12, 0.1)), Vector3.new(-0.4, -0.45, 1), math.rad(player:GetAttribute("RollL") or 0))
 	if avatar then
 		return avatar
 	end
