@@ -228,11 +228,14 @@ local function fingeredHand(base: CFrame, mirror: number): { PieceSpec }
 	return pieces
 end
 
+-- La mano derecha queda sobre la empuñadura (ajustado mirando el arma en pantalla)
+local RIGHT_HAND_SHIFT = CFrame.new(0.65, -0.3, 0.05)
+
 local function smoothRightArm(): { PieceSpec }
-	local pieces = fingeredHand(CFrame.new(0.02, -0.5, 0.48) * CFrame.Angles(-0.25, 0, 0), -1)
-	table.insert(pieces, tube(0.3, 0.24, CFrame.new(0.07, -0.66, 0.92) * CFrame.Angles(0.35, 0, 0), CUFF, Enum.Material.Leather))
-	table.insert(pieces, tube(1.5, 0.22, CFrame.new(0.13, -0.86, 1.6) * CFrame.Angles(0.35, 0, 0), SLEEVE_CLOTH, Enum.Material.Fabric))
-	table.insert(pieces, tube(0.8, 0.27, CFrame.new(0.16, -1.1, 2.3) * CFrame.Angles(0.35, 0, 0), SLEEVE_CLOTH, Enum.Material.Fabric))
+	local pieces = fingeredHand(RIGHT_HAND_SHIFT * CFrame.new(0.02, -0.5, 0.48) * CFrame.Angles(-0.25, 0, 0), -1)
+	table.insert(pieces, tube(0.3, 0.24, RIGHT_HAND_SHIFT * CFrame.new(0.07, -0.66, 0.92) * CFrame.Angles(0.35, 0, 0), CUFF, Enum.Material.Leather))
+	table.insert(pieces, tube(1.5, 0.22, RIGHT_HAND_SHIFT * CFrame.new(0.13, -0.86, 1.6) * CFrame.Angles(0.35, 0, 0), SLEEVE_CLOTH, Enum.Material.Fabric))
+	table.insert(pieces, tube(0.8, 0.27, RIGHT_HAND_SHIFT * CFrame.new(0.16, -1.1, 2.3) * CFrame.Angles(0.35, 0, 0), SLEEVE_CLOTH, Enum.Material.Fabric))
 	return pieces
 end
 local SMOOTH_RIGHT_ARM = smoothRightArm()
@@ -270,6 +273,7 @@ local flashPart: Part
 local flashLight: PointLight
 local muzzleOffset = MODELS.Pistol.Muzzle
 local hipOffset = HIP_OFFSET
+local handStart = math.huge -- desde qué pieza empiezan las manos y brazos
 
 local currentWeapon = ""
 local currentLevel = -1
@@ -351,6 +355,7 @@ function Viewmodel.setWeapon(weaponId: string, zoomFactor: number, level: number
 	-- conserva su guante con tachas
 	local smooth = source ~= nil and not model.Arm
 	local arm = model.Arm or (if smooth then SMOOTH_RIGHT_ARM else RIGHT_ARM)
+	handStart = #specs + 1
 	table.move(arm, 1, #arm, #specs + 1, specs)
 	if model.LeftHand then
 		local left = if smooth then smoothLeftArm(model.LeftHand) else leftArm(model.LeftHand)
@@ -475,8 +480,11 @@ local function update(dt: number)
 		* CFrame.new(bobX, bobY - 0.5 * reloadAlpha, recoil * 0.22)
 		* CFrame.Angles(recoil * 0.15 * sway - 0.7 * reloadAlpha, 0, 0.5 * reloadAlpha)
 
+	-- Ajuste fino de las manos (prueba en vivo: atributo HandShift del jugador)
+	local tweak = player:GetAttribute("HandShift")
+	local shift = if typeof(tweak) == "Vector3" then CFrame.new(tweak) else CFrame.identity
 	for index, offset in offsets do
-		cframes[index] = root * offset
+		cframes[index] = root * (if index >= handStart then shift * offset else offset)
 	end
 	local muzzle = root * muzzleOffset
 	muzzlePosition = muzzle.Position
