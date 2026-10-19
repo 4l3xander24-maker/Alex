@@ -47,13 +47,17 @@ return {
 	BossRoar = { Ids = { 9113607285, 9113607683 }, Volume = 0.9, PitchRange = { 0.3, 0.4 } }, -- llega un jefe
 	BossBell = { Id = 9114352428, Volume = 0.7, Pitch = 0.6, Distance = 500 },
 
+	MatchStart = { Id = 9043657526, Volume = 0.55 }, -- golpe épico al reconstruir la campana y empezar
+
 	-- Música según el momento de la partida (en bucle)
 	Music = {
 		Lobby = { Id = 1839906422, Volume = 0.25 },
 		Wave = { Id = 9047425352, Volume = 0.3 },
+		Intense = { Id = 1836253572, Volume = 0.32 }, -- oleadas altas o campana a punto de caer
 		Boss = { Id = 1846862303, Volume = 0.35 },
 		GameOver = { Id = 1836102253, Volume = 0.3 },
 	},
+	IntenseFromWave = 6, -- desde qué oleada suena la pista intensa
 	MusicFade = 2, -- segundos para pasar de una canción a otra
 	-- Viento de fondo, siempre sonando bajito
 	Ambience = { Id = 9114228832, Volume = 0.15 },

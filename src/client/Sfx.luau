@@ -144,13 +144,30 @@ local function setMusic(track: string)
 	musicSound = sound
 end
 
+-- La pista intensa entra en las oleadas altas o con la campana casi caída (con
+-- histéresis: entra por debajo del 35% de vida y sale por encima del 55%)
+local lowBell = false
+local function wantsIntense(): boolean
+	local folder = ReplicatedStorage:FindFirstChild("GameState")
+	if not folder then
+		return false
+	end
+	local ratio = (folder:GetAttribute("BellHealth") or 0) / math.max(folder:GetAttribute("BellMaxHealth") or 1, 1)
+	if ratio < 0.35 and ratio > 0 then
+		lowBell = true
+	elseif ratio > 0.55 then
+		lowBell = false
+	end
+	return lowBell or (folder:GetAttribute("Wave") or 0) >= Sounds.IntenseFromWave
+end
+
 local function updateMusic(state: string?)
 	if state == "GameOver" then
 		setMusic("GameOver")
 	elseif bossesAlive > 0 then
 		setMusic("Boss")
 	elseif state == "Wave" or state == "Intermission" then
-		setMusic("Wave")
+		setMusic(if wantsIntense() then "Intense" else "Wave")
 	else
 		setMusic("Lobby")
 	end
@@ -236,6 +253,7 @@ function Sfx.init()
 		if lastState == "Lobby" and state == "Intermission" then
 			-- Reconstruyeron la campana: martillazo y campanazo
 			Sfx.play("Rebuild")
+			Sfx.play("MatchStart")
 			if position then
 				task.delay(0.6, Sfx.playAt, "BellToll", position)
 			end
@@ -247,8 +265,12 @@ function Sfx.init()
 		lastState = state
 		updateMusic(state)
 	end)
+	folder:GetAttributeChangedSignal("Wave"):Connect(function()
+		updateMusic(currentState())
+	end)
 	folder:GetAttributeChangedSignal("BellHealth"):Connect(function()
 		local health = folder:GetAttribute("BellHealth") or 0
+		updateMusic(currentState())
 		local position = bellPosition()
 		if health < lastBellHealth and position then
 			Sfx.playAt("BellHit", position)
