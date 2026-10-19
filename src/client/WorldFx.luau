@@ -77,6 +77,7 @@ end
 local function applyQuality()
 	local low = getQualityLevel() <= LOW_QUALITY_LEVEL
 	lowQuality = low
+	Players.LocalPlayer:SetAttribute("LowQuality", low) -- EnemyRenderer omite adornos de zombis
 	for _, effect in Lighting:GetChildren() do
 		if effect:IsA("DepthOfFieldEffect") or effect:IsA("SunRaysEffect") then
 			effect.Enabled = not low

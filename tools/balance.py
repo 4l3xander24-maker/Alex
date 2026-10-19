@@ -6,7 +6,7 @@ HP = {"Walker": 3, "Runner": 2, "Cone": 7, "Knight": 10, "Brute": 14, "Mutant": 
 LINEUPS = [["Walker"], ["Runner"], ["Walker", "Cone"], ["Brute"], ["Walker", "Runner"], ["Mutant", "Bomber"], ["Cone", "Knight", "Parasite"], ["Runner", "Brute", "Bomber"], ["Mutant", "Knight", "Colossus"], ["Walker", "Runner", "Cone"]]
 BOSS_HP = [150, 220, 300, 240]
 # nombre: (Count, Growth, Health, Spawn, Goal)
-DIFFS = {"Normal": (.88, 1.30, .55, .91, 8), "Dificil": (1.1, 1.25, 1.15, 1.1, 10), "Experto": (1.3, 1.2, 1.45, 1.25, 12), "Pesadilla": (1.55, 1.18, 1.8, 1.4, 14), "Infierno": (2.0, 1.15, 2.5, 1.7, 16)}
+DIFFS = {"Normal": (.88, 1.30, .55, .91, 8), "Dificil": (1.1, 1.22, 1.05, 1.1, 10), "Experto": (1.15, 1.15, 1.15, 1.15, 12), "Pesadilla": (1.4, 1.13, 1.4, 1.3, 14), "Infierno": (1.7, 1.1, 1.7, 1.5, 16)}
 
 def avg_hp(w):
     l = LINEUPS[w - 1] if w <= 10 else list(HP)

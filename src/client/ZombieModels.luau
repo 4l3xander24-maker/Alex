@@ -26,6 +26,7 @@ export type PartSpec = {
 	Mesh: BasePart?, -- pieza de malla a copiar (zombi de la tienda) en vez de un bloque
 	Turn: CFrame?, -- giro propio de la pieza (las mallas vienen mirando al revés)
 	Shape: Enum.PartType?, -- bola o cilindro (por defecto, bloque)
+	Detail: boolean?, -- adorno que se omite en celulares flojos (ver EnemyRenderer)
 }
 
 -- Colores que no dependen del tipo de zombi
@@ -149,9 +150,9 @@ local function zombie(info): { PartSpec }
 	-- Costillas al aire por el desgarro de la camisa y la panza podrida
 	if not buff then
 		for index = 0, 2 do
-			table.insert(list, part("RibBone" .. index, v(0.5 - index * 0.06, 0.06, 0.07), hip, v(-0.45, 0.6 - index * 0.14, front - 0.02), torsoTilt, "Bone", "Torso"))
+			table.insert(list, part("RibBone" .. index, v(0.5 - index * 0.06, 0.06, 0.07), hip, v(-0.45, 0.6 - index * 0.14, front - 0.02), torsoTilt, "Bone", "Torso", { Detail = true }))
 		end
-		table.insert(list, part("RotBelly", v(0.34, 0.3, 0.07), hip, v(0.55, 0.3, front - 0.02), torsoTilt, "Rot", "Torso"))
+		table.insert(list, part("RotBelly", v(0.34, 0.3, 0.07), hip, v(0.55, 0.3, front - 0.02), torsoTilt, "Rot", "Torso", { Detail = true }))
 	end
 
 	-- Cabeza cuadrada (más chica en el bruto)
@@ -162,8 +163,8 @@ local function zombie(info): { PartSpec }
 	table.insert(list, part("Head", v(headSize * 1.05, headSize, headSize), headPivot, v(0, headSize / 2, 0), headTilt, "Skin", "Head"))
 	face(list, headPivot, headTilt, headSize / 2, -headSize / 2 - 0.01, headSize / 1.2)
 	-- Herida en la frente y un lado de la cara podrido
-	table.insert(list, part("HeadWound", v(0.34, 0.1, 0.06), headPivot, v(0.12 * headSize, headSize * 0.9, -headSize / 2 - 0.02), headTilt, "Blood", "Head"))
-	table.insert(list, part("RotCheek", v(0.3, 0.34, 0.06), headPivot, v(-0.3 * headSize, headSize * 0.42, -headSize / 2 - 0.02), headTilt, "Rot", "Head"))
+	table.insert(list, part("HeadWound", v(0.34, 0.1, 0.06), headPivot, v(0.12 * headSize, headSize * 0.9, -headSize / 2 - 0.02), headTilt, "Blood", "Head", { Detail = true }))
+	table.insert(list, part("RotCheek", v(0.3, 0.34, 0.06), headPivot, v(-0.3 * headSize, headSize * 0.42, -headSize / 2 - 0.02), headTilt, "Rot", "Head", { Detail = true }))
 	if info.Hair then
 		table.insert(list, part("Hair", v(headSize * 1.12, 0.32, headSize * 1.08), headPivot, v(0, headSize + 0.1, 0.03), headTilt, "Hair", "Head"))
 		for index, x in { -0.42, -0.1, 0.25, 0.48 } do
@@ -183,7 +184,7 @@ local function zombie(info): { PartSpec }
 		-- Vendas sucias en el brazo izquierdo
 		if side < 0 and not buff then
 			for index, y in { -0.55, -0.9, -1.25 } do
-				table.insert(list, part(name .. "Bandage" .. index, v(armSize.X + 0.07, 0.17, armSize.Z + 0.07), shoulder, v(0, y + 0.5, 0), tilt, "Bandage", "Arm", { Material = FABRIC, Role = role }))
+				table.insert(list, part(name .. "Bandage" .. index, v(armSize.X + 0.07, 0.17, armSize.Z + 0.07), shoulder, v(0, y + 0.5, 0), tilt, "Bandage", "Arm", { Material = FABRIC, Role = role, Detail = true }))
 			end
 		end
 		-- Caballero: espada oxidada en la mano derecha, apuntando adelante

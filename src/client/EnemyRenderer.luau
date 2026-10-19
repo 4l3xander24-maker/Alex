@@ -159,7 +159,12 @@ local function createBody(typeName: string, info, scale: number, id: number): ({
 	-- Un tono distinto por zombi (no a los jefes, que tienen su look). Todas las
 	-- piezas del mismo color de un zombi salen con la misma semilla, así coinciden.
 	local varied = not info.IsBoss
+	-- En celulares flojos se omiten los adornos pequeños (vendas, heridas, costillas)
+	local lowDetail = Players.LocalPlayer:GetAttribute("LowQuality") == true
 	for _, spec in ZombieModels.get(typeName, info) do
+		if lowDetail and spec.Detail then
+			continue
+		end
 		local color, glows = ZombieModels.resolveColor(info, spec.Color)
 		if varied and not glows then
 			local seed = id * 7
