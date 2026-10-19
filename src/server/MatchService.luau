@@ -105,6 +105,13 @@ function MatchService.award(player: Player, wave: number, team: { TeamRow }?)
 		return
 	end
 	local data = DataService.get(player)
+	-- Aunque pierdas, ganas algo por cada oleada que superaste
+	if data and entry.Waves > 0 then
+		local info = Config.Difficulties[GameState.get("Difficulty") or 1]
+		local consolation = math.floor(Config.Economy.ParticipationPerWave * entry.Waves * (info and info.Coins or 1))
+		DataService.addCoins(player, consolation)
+		entry.Coins += consolation
+	end
 	local previousBest = if data then data.BestWave else 0
 	local newRecord = data ~= nil and entry.Waves > previousBest
 	if data and newRecord then

@@ -54,6 +54,9 @@ function actions.UpgradeWeapon(player, data, id)
 	if level >= Config.WeaponUpgrade.MaxLevel then
 		return false, "Esta arma ya está al máximo"
 	end
+	if not Progression.gateMet(data, "Weapon", level + 1) then
+		return false, Progression.gateText("Weapon", level + 1) .. " para subir esta mejora"
+	end
 	if not DataService.spendCoins(player, Progression.weaponUpgradeCost(id, level)) then
 		return false, NOT_ENOUGH
 	end
@@ -139,6 +142,9 @@ function actions.UpgradeStorage(player, data)
 	if not cost then
 		return false, "La cartuchera ya está al máximo"
 	end
+	if not Progression.gateMet(data, "Storage", level + 1) then
+		return false, Progression.gateText("Storage", level + 1) .. " para subir la cartuchera"
+	end
 	if not DataService.spendCoins(player, cost) then
 		return false, NOT_ENOUGH
 	end
@@ -151,6 +157,9 @@ function actions.UpgradeBell(player, data)
 	local cost = Progression.bellArmorCost(level)
 	if not cost then
 		return false, "La campana ya está reforzada al máximo"
+	end
+	if not Progression.gateMet(data, "Armor", level + 1) then
+		return false, Progression.gateText("Armor", level + 1) .. " para reforzar la campana"
 	end
 	if not DataService.spendCoins(player, cost) then
 		return false, NOT_ENOUGH

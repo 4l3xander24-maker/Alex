@@ -401,7 +401,7 @@ Config.Bell = {
 	Armor = {
 		MaxLevel = 8,
 		HealthPerLevel = 15, -- +15 de vida por nivel (40 -> 160 al máximo)
-		Prices = { 70, 150, 270, 430, 620, 850, 1150, 1500 },
+		Prices = { 70, 150, 270, 450, 680, 980, 1380, 1900 },
 	},
 	BarHeight = 28, -- altura de la barra de vida sobre la campana (studs)
 }
@@ -801,6 +801,18 @@ Config.Powerups = {
 -- alarga cuántas partidas hacen falta para comprarlo todo.
 Config.Economy = {
 	KillCoinScale = 0.45,
+	-- Premio por completar la dificultad (todas las veces, a cada jugador)
+	ClearBonus = { [1] = 120, [2] = 250, [3] = 450, [4] = 800, [5] = 1400 },
+	-- Aunque pierdas, ganas algo por cada oleada que superaste (por la dificultad)
+	ParticipationPerWave = 8,
+	-- Maestría: los niveles altos de mejora exigen haber superado una dificultad.
+	-- Gates[tipo][nivel al que subes] = dificultad que tienes que tener abierta
+	-- (superar Normal abre 2, Difícil abre 3, Experto abre 4...).
+	Gates = {
+		Weapon = { [3] = 2, [4] = 3, [5] = 4 },
+		Storage = { [5] = 3, [6] = 3, [7] = 4, [8] = 4 },
+		Armor = { [5] = 3, [6] = 3, [7] = 4, [8] = 4 },
+	},
 }
 
 -- Modificadores opcionales de la partida: se eligen al votar la dificultad (vale
@@ -1144,7 +1156,7 @@ Config.WeaponUpgrade = {
 	ReloadPerLevel = 0.06,
 	BaseCost = 130, -- el costo crece con el precio del arma y el nivel
 	-- Cuánto del precio base cuesta cada mejora (las primeras son baratas)
-	CostFactor = { 0.35, 0.5, 0.7, 1.0, 1.3 },
+	CostFactor = { 0.35, 0.5, 0.75, 1.2, 1.8 },
 }
 
 -- El arma cambia de color con cada mejora para que se note que es más fuerte.
@@ -1162,7 +1174,7 @@ Config.WeaponTiers = {
 Config.AmmoStorage = {
 	MaxLevel = 8,
 	PerLevel = 0.25,
-	Prices = { 60, 120, 220, 360, 540, 780, 1080, 1450 },
+	Prices = { 60, 120, 220, 380, 600, 900, 1300, 1800 },
 }
 
 -- Trampas que vende el Intendente. Duran solo una partida.

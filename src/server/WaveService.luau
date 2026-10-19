@@ -529,6 +529,14 @@ local function runWave(wave: number): boolean
 	if wave == info.Goal then
 		Remotes.Notify:FireAllClients(`🏆 ¡Dificultad {info.Name} superada!`)
 		ConquestService.onCleared(difficultyId)
+		-- Premio por completar la dificultad (cada vez que se logra)
+		local bonus = Config.Economy.ClearBonus[difficultyId] or 0
+		for _, player in Players:GetPlayers() do
+			if bonus > 0 and DataService.get(player) then
+				DataService.addCoins(player, bonus)
+				Remotes.Notify:FireClient(player, `🏁 Dificultad completada: +{bonus} monedas`)
+			end
+		end
 		local nextInfo = Config.Difficulties[difficultyId + 1]
 		for _, player in Players:GetPlayers() do
 			local data = DataService.get(player)

@@ -210,7 +210,8 @@ local function renderArmory(data: Progression.Profile, coins: number)
 			if level < Config.WeaponUpgrade.MaxLevel then
 				local cost = Progression.weaponUpgradeCost(id, level)
 				local nextTier = Progression.weaponTier(level + 1)
-				table.insert(buttons, { Text = `{nextTier.Name} 💰{cost}`, Enabled = coins >= cost, OnClick = function()
+				local open = Progression.gateMet(data, "Weapon", level + 1)
+				table.insert(buttons, { Text = if open then `{nextTier.Name} 💰{cost}` else Progression.gateText("Weapon", level + 1), Enabled = open and coins >= cost, OnClick = function()
 					runAction("UpgradeWeapon", id)
 				end })
 			else
@@ -237,7 +238,7 @@ local function renderQuartermaster(data: Progression.Profile, coins: number)
 	local pistol = Progression.getWeaponStats(data, "Pistol", false)
 	row("🎒", `Cartuchera  ·  Nv {level}/{storage.MaxLevel}`, `Ahora cargas x{string.format("%.2f", multiplier)} balas (pistola: {pistol.StartReserve} al empezar, máximo {pistol.MaxReserve}).\nCada nivel: +{math.floor(storage.PerLevel * 100)}% en todas las armas.`, {
 		if cost
-			then { Text = `Mejorar 💰{cost}`, Enabled = coins >= cost, OnClick = function()
+			then { Text = if Progression.gateMet(data, "Storage", level + 1) then `Mejorar 💰{cost}` else Progression.gateText("Storage", level + 1), Enabled = Progression.gateMet(data, "Storage", level + 1) and coins >= cost, OnClick = function()
 				runAction("UpgradeStorage", "")
 			end }
 			else { Text = "Máximo", Enabled = false },
@@ -249,7 +250,7 @@ local function renderQuartermaster(data: Progression.Profile, coins: number)
 	sectionHeader("Campana  ·  más vida para la campana (queda guardado)")
 	row("🔔", `Refuerzo de la campana  ·  Nv {armorLevel}/{armor.MaxLevel}`, `Vida de la campana: {Config.Bell.MaxHealth + armorLevel * armor.HealthPerLevel}. Cada nivel: +{armor.HealthPerLevel}.\nEn la partida cuenta el refuerzo más alto del servidor.`, {
 		if armorCost
-			then { Text = `Mejorar 💰{armorCost}`, Enabled = coins >= armorCost, OnClick = function()
+			then { Text = if Progression.gateMet(data, "Armor", armorLevel + 1) then `Mejorar 💰{armorCost}` else Progression.gateText("Armor", armorLevel + 1), Enabled = Progression.gateMet(data, "Armor", armorLevel + 1) and coins >= armorCost, OnClick = function()
 				runAction("UpgradeBell", "")
 			end }
 			else { Text = "Máximo", Enabled = false },

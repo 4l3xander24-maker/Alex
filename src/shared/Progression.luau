@@ -185,6 +185,24 @@ function Progression.ammoStorageCost(level: number): number?
 	return Config.AmmoStorage.Prices[level + 1]
 end
 
+-- Dificultad que hay que tener abierta para subir `kind` ("Weapon", "Storage",
+-- "Armor") al nivel `nextLevel`; nil si no hay requisito
+function Progression.upgradeGate(kind: string, nextLevel: number): number?
+	return Config.Economy.Gates[kind][nextLevel]
+end
+
+function Progression.gateMet(profile: Profile, kind: string, nextLevel: number): boolean
+	local gate = Progression.upgradeGate(kind, nextLevel)
+	return gate == nil or (profile.Difficulty or 1) >= gate
+end
+
+-- "Supera Difícil para desbloquear" (la dificultad anterior a la requerida)
+function Progression.gateText(kind: string, nextLevel: number): string
+	local gate = Progression.upgradeGate(kind, nextLevel)
+	local info = gate and Config.Difficulties[gate - 1]
+	return if info then `🔒 Supera {info.Name}` else ""
+end
+
 function Progression.bellArmorCost(level: number): number?
 	return Config.Bell.Armor.Prices[level + 1]
 end
