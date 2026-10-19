@@ -30,6 +30,10 @@ export type Profile = {
 	Achievements: { [string]: boolean }, -- logros ya conseguidos
 	ObjectSkins: { [string]: boolean }, -- skins de minas, rejas y campana que tiene
 	ObjectSkinOn: { Mine: string, Gate: string, Bell: string, Pet: string, Tracer: string, DeathFx: string }, -- la que lleva puesta de cada una
+	Conquests: { [string]: boolean }, -- dificultades que ya superó (clave = id)
+	Titles: { [string]: boolean }, -- títulos ganados (Salón de la fama)
+	Title: string, -- título que muestra
+	WeeklyClaimed: number, -- última semana cuyo premio ya cobró
 	Daily: { Day: string, Kills: number, BossKills: number, Waves: number, Claimed: { [string]: boolean } }, -- misiones del día
 }
 
@@ -78,6 +82,10 @@ function Progression.defaultProfile(): Profile
 		Achievements = {},
 		ObjectSkins = {},
 		ObjectSkinOn = { Mine = "", Gate = "", Bell = "", Pet = "", Tracer = "", DeathFx = "" },
+		Conquests = {},
+		Titles = {},
+		Title = "",
+		WeeklyClaimed = 0,
 		Daily = { Day = "", Kills = 0, BossKills = 0, Waves = 0, Claimed = {} },
 	}
 end

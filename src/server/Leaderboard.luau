@@ -71,4 +71,99 @@ function Leaderboard.top(stat: string, count: number): { Row }?
 	return if ok then result else nil
 end
 
+-- Salón de la fama: el primer jugador del mundo en superar cada dificultad.
+-- Se guarda una sola vez por dificultad (el que llega después no lo cambia).
+local HALL_STORE = "CampanaMaldita_Hall_v1"
+export type HallRecord = { UserId: number, Name: string, At: number }
+
+local function hallStore(): DataStore?
+	local ok, store = pcall(function()
+		return DataStoreService:GetDataStore(HALL_STORE)
+	end)
+	return if ok then store else nil
+end
+
+function Leaderboard.hallRead(difficultyId: number): HallRecord?
+	local store = hallStore()
+	if not store then
+		return nil
+	end
+	local ok, result = pcall(function()
+		return store:GetAsync(`Diff{difficultyId}`)
+	end)
+	return if ok and type(result) == "table" then result else nil
+end
+
+-- true si este jugador quedó como el primero (nadie lo había superado antes)
+function Leaderboard.hallClaim(difficultyId: number, record: HallRecord): boolean
+	local store = hallStore()
+	if not store then
+		return false
+	end
+	local won = false
+	local ok, err = pcall(function()
+		store:UpdateAsync(`Diff{difficultyId}`, function(old)
+			if old ~= nil then
+				return nil -- ya tenía dueño: se cancela
+			end
+			won = true
+			return record
+		end)
+	end)
+	if not ok then
+		warn(`Salón de la fama: {err}`)
+		return false
+	end
+	return won
+end
+
+-- Ranking semanal: se guarda el mejor puntaje de cada jugador en la semana
+local function weeklyStore(weekId: number): OrderedDataStore?
+	local ok, store = pcall(function()
+		return DataStoreService:GetOrderedDataStore(`Weekly_v1_{weekId}`)
+	end)
+	return if ok then store else nil
+end
+
+function Leaderboard.weeklySubmit(weekId: number, userId: number, score: number)
+	if userId <= 0 or score <= 0 then
+		return
+	end
+	task.spawn(function()
+		local store = weeklyStore(weekId)
+		if not store then
+			return
+		end
+		local ok, err = pcall(function()
+			store:UpdateAsync(tostring(userId), function(old)
+				if old == nil or score > old then
+					return score
+				end
+				return nil
+			end)
+		end)
+		if not ok then
+			warn(`Ranking semanal: {err}`)
+		end
+	end)
+end
+
+function Leaderboard.weeklyTop(weekId: number, count: number): { Row }?
+	local store = weeklyStore(weekId)
+	if not store then
+		return nil
+	end
+	local ok, result = pcall(function()
+		local rows: { Row } = {}
+		for _, entry in store:GetSortedAsync(false, count):GetCurrentPage() do
+			local userId = tonumber(entry.key)
+			if userId then
+				table.insert(rows, { UserId = userId, Value = entry.value })
+			end
+		end
+		return rows
+	end)
+	return if ok then result else nil
+end
+
 return Leaderboard

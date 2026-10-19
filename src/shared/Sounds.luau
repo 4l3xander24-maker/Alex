@@ -39,6 +39,14 @@ return {
 	Powerup = { Id = 1836473422, Volume = 0.35, Pitch = 1.5 }, -- al conseguir un potenciador
 	XpPickup = { Id = 9113849651, Volume = 0.25, PitchRange = { 1.6, 1.9 } },
 
+	-- Interfaz y avisos (reutilizan audios de arriba con otro tono)
+	UiClick = { Id = 9113104176, Volume = 0.22, Pitch = 2.2 }, -- botones de las tiendas
+	Tick = { Id = 9113632114, Volume = 0.4, Pitch = 0.9 }, -- cada segundo al final de la cuenta de Continuar
+	Heartbeat = { Id = 9113449851, Volume = 0.55, Pitch = 0.45 }, -- latido en cámara lenta y con la campana casi caída
+	WaveClear = { Id = 1836473422, Volume = 0.4, Pitch = 0.85 }, -- terminó la oleada
+	BossRoar = { Ids = { 9113607285, 9113607683 }, Volume = 0.9, PitchRange = { 0.3, 0.4 } }, -- llega un jefe
+	BossBell = { Id = 9114352428, Volume = 0.7, Pitch = 0.6, Distance = 500 },
+
 	-- Música según el momento de la partida (en bucle)
 	Music = {
 		Lobby = { Id = 1839906422, Volume = 0.25 },

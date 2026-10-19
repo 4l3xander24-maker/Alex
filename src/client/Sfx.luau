@@ -162,12 +162,24 @@ local function currentState(): string?
 	return if folder then folder:GetAttribute("State") else nil
 end
 
+local function bellPosition(): Vector3?
+	local map = workspace:FindFirstChild("Map")
+	local bell = map and map:FindFirstChild("Bell")
+	return if bell and bell:IsA("Model") then bell:GetPivot().Position else nil
+end
+
 function Sfx.onEnemySpawned(typeName: string)
 	local info = Config.Enemies[typeName]
 	-- Los zombis no hacen ruido al caminar: solo al morir
 	if info and info.IsBoss then
 		bossesAlive += 1
 		updateMusic(currentState())
+		-- Rugido grave y campanazo lento: llega un jefe
+		Sfx.play("BossRoar")
+		local position = bellPosition()
+		if position then
+			task.delay(0.4, Sfx.playAt, "BossBell", position)
+		end
 	end
 end
 
@@ -208,12 +220,6 @@ local function watchHealth(character: Model)
 	end)
 end
 
-local function bellPosition(): Vector3?
-	local map = workspace:FindFirstChild("Map")
-	local bell = map and map:FindFirstChild("Bell")
-	return if bell and bell:IsA("Model") then bell:GetPivot().Position else nil
-end
-
 function Sfx.init()
 	local ambience = newSound(Sounds.Ambience, SoundService, true)
 	ambience.Looped = true
@@ -235,6 +241,8 @@ function Sfx.init()
 			end
 		elseif state == "Wave" and position then
 			Sfx.playAt("BellToll", position)
+		elseif lastState == "Wave" and state == "Intermission" then
+			Sfx.play("WaveClear")
 		end
 		lastState = state
 		updateMusic(state)
@@ -252,6 +260,26 @@ function Sfx.init()
 		task.spawn(watchHealth, player.Character)
 	end
 	player.CharacterAdded:Connect(watchHealth)
+
+	-- Latido: con la campana casi caída y durante la cámara lenta de Continuar;
+	-- en los últimos segundos de la cuenta, un tic por segundo
+	task.spawn(function()
+		local lastTick = 0
+		while true do
+			task.wait(1.1)
+			local endsAt = folder:GetAttribute("ContinueEnds") or 0
+			local left = endsAt - workspace:GetServerTimeNow()
+			local maxHealth = folder:GetAttribute("BellMaxHealth") or 1
+			local lowBell = (folder:GetAttribute("BellHealth") or 0) > 0 and (folder:GetAttribute("BellHealth") or 0) / maxHealth < 0.2 and folder:GetAttribute("State") == "Wave"
+			if left > 0 or lowBell then
+				Sfx.play("Heartbeat")
+				if left > 0 and left <= 5 and os.clock() - lastTick > 0.9 then
+					lastTick = os.clock()
+					task.delay(0.5, Sfx.play, "Tick")
+				end
+			end
+		end
+	end)
 
 end
 

@@ -13,6 +13,7 @@ local TeleportService = game:GetService("TeleportService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local MatchRegistry = require(ReplicatedStorage.Shared.MatchRegistry)
+local Weekly = require(ReplicatedStorage.Shared.Weekly)
 local Props = require(script.Props)
 local ModelLibrary = require(script.ModelLibrary)
 local Leaderboard = require(script.Leaderboard)
@@ -278,7 +279,14 @@ local function buildScenery(map: Instance)
 		local position = Vector3.new(math.cos(angle) * radius, 0, math.sin(angle) * radius)
 		local nearCastle = position.Z < -50 and math.abs(position.X) < 75
 		local onPath = position.Z > PLAZA_RADIUS and math.abs(position.X) < 10
-		if not nearCastle and not onPath then
+		-- Los tableros (rankings, salón de la fama, reto semanal) quedan despejados
+		local nearBoard = false
+		for _, spot in { Vector3.new(-46, 0, 44), Vector3.new(46, 0, 44), Vector3.new(-34, 0, 24), Vector3.new(34, 0, 24) } do
+			if (position - spot).Magnitude < 16 then
+				nearBoard = true
+			end
+		end
+		if not nearCastle and not onPath and not nearBoard then
 			buildTree(scenery, position)
 			placed += 1
 		end
@@ -403,6 +411,36 @@ local function fillBoard(labels: { TextLabel }, stat: string, suffix: string)
 			label.Text = "  ¡Sé el primero!"
 		else
 			label.Text = ""
+		end
+	end
+end
+
+-- Salón de la fama: el primer jugador del mundo en superar cada dificultad
+local HALL_DIFFICULTIES = { 3, 4, 5 }
+local function fillHall(labels: { TextLabel })
+	for index, difficultyId in HALL_DIFFICULTIES do
+		local info = Config.Difficulties[difficultyId]
+		local record = Leaderboard.hallRead(difficultyId)
+		if labels[index] then
+			labels[index].Text = if record then `  {info.Icon} {info.Name}: {record.Name}` else `  {info.Icon} {info.Name}: ¡aún nadie!`
+		end
+	end
+end
+
+-- Reto semanal: el modificador de la semana y el top de puntos
+local function fillWeekly(labels: { TextLabel })
+	local challenge, week = Weekly.current()
+	labels[1].Text = `  {challenge.Icon} {challenge.Name}`
+	labels[2].Text = `  Termina en {Weekly.timeLeftText()}  ·  1.º {Config.Weekly.Prizes[1]} 💰`
+	local rows = Leaderboard.weeklyTop(week, #labels - 2)
+	for index = 3, #labels do
+		local row = rows and rows[index - 2]
+		if row then
+			labels[index].Text = `  {index - 2}. {nameOf(row.UserId)}  ·  {row.Value} pts`
+		elseif index == 3 then
+			labels[index].Text = if rows then "  ¡Sé el primero!" else "  Sin conexión (solo en Roblox)"
+		else
+			labels[index].Text = ""
 		end
 	end
 end
@@ -906,6 +944,8 @@ for index = 1, rooms.Count do
 end
 local waveBoard = buildBoard(map, Vector3.new(-34, 0, 24), "MEJOR OLEADA", 8)
 local killBoard = buildBoard(map, Vector3.new(34, 0, 24), "MÁS ZOMBIS", 8)
+local hallBoard = buildBoard(map, Vector3.new(-46, 0, 44), "SALÓN DE LA FAMA", 3)
+local weeklyBoard = buildBoard(map, Vector3.new(46, 0, 44), "RETO SEMANAL", 10)
 -- El terreno de Roblox queda un poco más arriba de lo que se rellena (va en
 -- bloques de 4 studs): se mide el piso de verdad y todo sube esa altura, así
 -- nada queda metido bajo el suelo
@@ -937,6 +977,8 @@ task.spawn(function()
 	while true do
 		fillBoard(waveBoard, "BestWave", "oleadas")
 		fillBoard(killBoard, "Kills", "zombis")
+		fillHall(hallBoard)
+		fillWeekly(weeklyBoard)
 		task.wait(BOARD_REFRESH)
 	end
 end)

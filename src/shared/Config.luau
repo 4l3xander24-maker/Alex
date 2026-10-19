@@ -803,6 +803,29 @@ Config.Economy = {
 	KillCoinScale = 0.45,
 }
 
+-- Conquistas: la primera vez que superas una dificultad ganas monedas; el primer
+-- jugador del mundo en superar Experto o más sube al Salón de la fama (sin límite
+-- de tiempo), con título, monedas extra y, en Experto, un rastro exclusivo.
+Config.Conquest = {
+	Rewards = { [2] = 300, [3] = 1000, [4] = 2000, [5] = 4000 }, -- todos, la primera vez
+	FirstFrom = 3, -- desde qué dificultad cuenta el "primero del mundo"
+	FirstBonus = { [3] = 5000, [4] = 8000, [5] = 15000 },
+	FirstTitle = { [3] = "Conquistador de Experto", [4] = "Rey de la Pesadilla", [5] = "Señor del Infierno" },
+	FirstSkin = { [3] = "TracerCrown" }, -- skin exclusiva (Config.ObjectSkins)
+}
+
+-- Reto semanal: el modificador de las oleadas cambia cada semana y hay ranking
+-- aparte; los 3 primeros de la semana cobran su premio al volver a entrar.
+Config.Weekly = {
+	Challenges = {
+		{ Id = "Swarm", Event = "Swarm", Icon = "🐝", Name = "Semana del Enjambre", Description = "Hordas enormes pero más débiles" },
+		{ Id = "Armored", Event = "Armored", Icon = "🛡️", Name = "Semana Blindada", Description = "Menos zombis, muy resistentes y con mejor premio" },
+		{ Id = "Golden", Event = "Golden", Icon = "🤑", Name = "Semana del Oro", Description = "Todos dan el doble de monedas" },
+	},
+	Prizes = { 1500, 1000, 600 }, -- monedas para el puesto 1, 2 y 3
+	Top = 10, -- cuántos se ven en el tablero del lobby
+}
+
 Config.Waves = {
 	FirstIntermission = 3,
 	Intermission = 12,
@@ -1205,6 +1228,7 @@ Config.ObjectSkins = {
 	{ Id = "TracerGreen", Kind = "Tracer", Name = "Rastro verde", Icon = "🟢", CoinPrice = 600, Main = Color3.fromRGB(90, 255, 120), Accent = Color3.fromRGB(200, 255, 210) },
 	{ Id = "TracerPink", Kind = "Tracer", Name = "Rastro rosa", Icon = "🌸", CoinPrice = 900, Main = Color3.fromRGB(255, 110, 190), Accent = Color3.fromRGB(255, 200, 230) },
 	{ Id = "TracerStorm", Kind = "Tracer", Name = "Rastro de tormenta", Icon = "⚡", Product = "ObjTracerStorm", Premium = true, Main = Color3.fromRGB(110, 220, 255), Accent = Color3.fromRGB(255, 255, 255) },
+	{ Id = "TracerCrown", Kind = "Tracer", Name = "Rastro del Conquistador", Icon = "👑", Exclusive = true, Premium = true, Main = Color3.fromRGB(255, 190, 40), Accent = Color3.fromRGB(255, 80, 60) },
 	{ Id = "TracerAurum", Kind = "Tracer", Name = "Rastro de oro", Icon = "✨", Product = "ObjTracerAurum", Premium = true, Main = Color3.fromRGB(255, 210, 70), Accent = Color3.fromRGB(255, 245, 190) },
 	-- Efectos al eliminar zombis: estallido de cubos con los colores de Colors (los ve todo el equipo)
 	{ Id = "DfConfetti", Kind = "DeathFx", Name = "Confeti de fiesta", Icon = "🎉", CoinPrice = 700, Colors = { Color3.fromRGB(255, 90, 120), Color3.fromRGB(255, 220, 80), Color3.fromRGB(90, 200, 255), Color3.fromRGB(120, 255, 140) }, Main = Color3.fromRGB(255, 220, 80), Accent = Color3.fromRGB(255, 255, 255), Rise = 14 },

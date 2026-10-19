@@ -162,7 +162,10 @@ local function row(icon: string, name: string, description: string, buttons: { B
 		button.Parent = frame
 		round(button, 8)
 		if spec.Enabled and spec.OnClick then
-			button.Activated:Connect(spec.OnClick)
+			button.Activated:Connect(function()
+				Sfx.play("UiClick")
+				spec.OnClick()
+			end)
 		end
 	end
 end
@@ -379,6 +382,8 @@ local function renderObjectSkins(data: Progression.Profile, coins: number)
 					table.insert(buttons, { Text = if equipped == skin.Id then "Puesta" else "Poner", Enabled = equipped ~= skin.Id, OnClick = function()
 						runAction("EquipObjectSkin", `{kind}:{skin.Id}`)
 					end })
+				elseif skin.Exclusive then
+					table.insert(buttons, { Text = "Exclusiva 👑", Enabled = false, OnClick = function() end })
 				elseif skin.Product then
 					table.insert(buttons, { Text = "Robux 💎", Enabled = true, OnClick = function()
 						buyProduct(skin.Product)
@@ -388,7 +393,7 @@ local function renderObjectSkins(data: Progression.Profile, coins: number)
 						runAction("BuyObjectSkin", skin.Id)
 					end })
 				end
-				local description = if skin.Premium then "★ PREMIUM: brilla y suelta chispas. Solo con Robux." else "Cambia el color. Se compra con monedas."
+				local description = if skin.Exclusive then "👑 EXCLUSIVA: solo la gana el primer jugador del mundo en superar Experto." elseif skin.Premium then "★ PREMIUM: brilla y suelta chispas. Solo con Robux." else "Cambia el color. Se compra con monedas."
 				row(skin.Icon, (if skin.Premium then "★ " else "") .. skin.Name, description, buttons, if skin.Premium then Color3.fromRGB(235, 190, 255) elseif equipped == skin.Id then GREEN else nil, skin.Premium, { Title = skin.Name, Builder = function()
 					return objectSkinModel(skin, data)
 				end })
@@ -471,7 +476,10 @@ local function pixelButton(parent: Instance, text: string, position: UDim2, size
 		stroke.Thickness = 2
 		stroke.Parent = button
 	end
-	button.Activated:Connect(onClick)
+	button.Activated:Connect(function()
+		Sfx.play("UiClick")
+		onClick()
+	end)
 	return button
 end
 

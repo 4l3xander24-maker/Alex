@@ -11,6 +11,9 @@ local CombatService = require(script.Parent.CombatService)
 local DataService = require(script.Parent.DataService)
 local EnemyService = require(script.Parent.EnemyService)
 local GameState = require(script.Parent.GameState)
+local Weekly = require(ReplicatedStorage.Shared.Weekly)
+local ConquestService = require(script.Parent.ConquestService)
+local WeeklyService = require(script.Parent.WeeklyService)
 local LobbyReturn = require(script.Parent.LobbyReturn)
 local MatchService = require(script.Parent.MatchService)
 local PlayerService = require(script.Parent.PlayerService)
@@ -188,6 +191,17 @@ local function rollWaveEvent(wave: number)
 	waveEvent = nil
 	GameState.set("WaveEvent", "")
 	local events = Config.WaveEvents
+	-- El reto semanal pone su evento en todas las oleadas (menos las de jefe)
+	local weekly = Weekly.current()
+	if weekly and wave % waves.BossEvery ~= 0 and events.Types[weekly.Event] then
+		local info = events.Types[weekly.Event]
+		waveEvent = info
+		GameState.set("WaveEvent", `{weekly.Icon} {weekly.Name}`)
+		if wave == 1 then
+			Remotes.Notify:FireAllClients(`🗓️ Reto semanal: {weekly.Name} · {weekly.Description}`)
+		end
+		return
+	end
 	if wave < events.FirstWave or wave % waves.BossEvery == 0 or random:NextNumber() >= events.Chance then
 		return
 	end
@@ -472,6 +486,7 @@ local function runWave(wave: number): boolean
 	local info = WaveService.getDifficulty()
 	if wave == info.Goal then
 		Remotes.Notify:FireAllClients(`🏆 ¡Dificultad {info.Name} superada!`)
+		ConquestService.onCleared(difficultyId)
 		local nextInfo = Config.Difficulties[difficultyId + 1]
 		for _, player in Players:GetPlayers() do
 			local data = DataService.get(player)
@@ -584,6 +599,7 @@ function WaveService.start()
 			EnemyService.clear()
 			GameState.set("EnemiesLeft", 0)
 			MatchService.endMatch(wave)
+			WeeklyService.submit(wave, difficultyId)
 			currentWave = 0
 			GameState.set("Wave", 0)
 			-- Votación: reintentar aquí mismo o volver al lobby (solo si vinieron de una sala)
