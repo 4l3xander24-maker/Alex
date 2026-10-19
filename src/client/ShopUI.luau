@@ -383,13 +383,15 @@ local function objectSkinModel(skin, data: Progression.Profile): Model
 		return PetRenderer.buildPreview(if data.Pet ~= "" then data.Pet else "Wolf", skin.Id)
 	elseif skin.Kind == "Tracer" then
 		return Preview3D.tracer(skin)
+	elseif skin.Kind == "Campfire" then
+		return Preview3D.campfire(skin)
 	end
 	return Preview3D.deathFx(skin)
 end
 
-local KIND_NAMES = { Mine = "Minas", Gate = "Rejas", Bell = "Campana", Pet = "Compañeros", Tracer = "Rastro de balas", DeathFx = "Efecto al eliminar" }
+local KIND_NAMES = { Mine = "Minas", Gate = "Rejas", Bell = "Campana", Pet = "Compañeros", Tracer = "Rastro de balas", DeathFx = "Efecto al eliminar", Campfire = "Fogata del campamento" }
 local function renderObjectSkins(data: Progression.Profile, coins: number)
-	for _, kind in { "Mine", "Gate", "Bell", "Pet", "Tracer", "DeathFx" } do
+	for _, kind in { "Mine", "Gate", "Bell", "Pet", "Tracer", "DeathFx", "Campfire" } do
 		local equipped = data.ObjectSkinOn[kind]
 		sectionHeader(`Skins de {KIND_NAMES[kind]:lower()}`)
 		row("⬜", "Normal", "El aspecto de siempre.", { { Text = if equipped == "" then "Puesta" else "Poner", Enabled = equipped ~= "", OnClick = function()

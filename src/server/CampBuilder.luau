@@ -843,6 +843,32 @@ local function buildPlaza(map: Instance)
 	end
 end
 
+-- Skin de la fogata (Config.ObjectSkins tipo Campfire); nil = el fuego de siempre
+local DEFAULT_FIRE = FIRE_COLOR
+function CampBuilder.setFireSkin(skin: any)
+	local holder = workspace:FindFirstChild("Campfire", true)
+	if not holder then
+		return
+	end
+	local main = if skin then skin.Main else DEFAULT_FIRE
+	local second = if skin then skin.Accent else Color3.fromRGB(255, 210, 90)
+	for _, descendant in holder.Parent:GetChildren() do
+		if descendant.Name == "VoxelFlame" and descendant:IsA("BasePart") then
+			descendant.Color = main:Lerp(second, (descendant:GetAttribute("Dance") or 1) / 5)
+		end
+	end
+	for _, descendant in holder:GetDescendants() do
+		if descendant:IsA("Fire") then
+			descendant.Color = main
+			descendant.SecondaryColor = second
+		elseif descendant:IsA("PointLight") then
+			descendant.Color = main
+		elseif descendant:IsA("ParticleEmitter") then
+			descendant.Color = ColorSequence.new(main)
+		end
+	end
+end
+
 function CampBuilder.build(map: Instance)
 	buildPlaza(map)
 	buildMarket(map)

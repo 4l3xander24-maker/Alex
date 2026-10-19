@@ -29,7 +29,7 @@ export type Profile = {
 	WeaponSkin: string, -- skin de arma puesta ("" = ninguna)
 	Achievements: { [string]: boolean }, -- logros ya conseguidos
 	ObjectSkins: { [string]: boolean }, -- skins de minas, rejas y campana que tiene
-	ObjectSkinOn: { Mine: string, Gate: string, Bell: string, Pet: string, Tracer: string, DeathFx: string }, -- la que lleva puesta de cada una
+	ObjectSkinOn: { Mine: string, Gate: string, Bell: string, Pet: string, Tracer: string, DeathFx: string, Campfire: string }, -- la que lleva puesta de cada una
 	SeenVersion: string, -- última versión cuyas novedades ya vio
 	PetXp: { [string]: number }, -- experiencia de cada compañero (sube con sus ataques)
 	Conquests: { [string]: boolean }, -- dificultades que ya superó (clave = id)
@@ -83,7 +83,7 @@ function Progression.defaultProfile(): Profile
 		WeaponSkin = "",
 		Achievements = {},
 		ObjectSkins = {},
-		ObjectSkinOn = { Mine = "", Gate = "", Bell = "", Pet = "", Tracer = "", DeathFx = "" },
+		ObjectSkinOn = { Mine = "", Gate = "", Bell = "", Pet = "", Tracer = "", DeathFx = "", Campfire = "" },
 		SeenVersion = "",
 		PetXp = {},
 		Conquests = {},

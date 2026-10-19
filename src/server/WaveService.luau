@@ -14,6 +14,7 @@ local GameState = require(script.Parent.GameState)
 local Weekly = require(ReplicatedStorage.Shared.Weekly)
 local ConquestService = require(script.Parent.ConquestService)
 local WeeklyService = require(script.Parent.WeeklyService)
+local CampBuilder = require(script.Parent.CampBuilder)
 local LobbyReturn = require(script.Parent.LobbyReturn)
 local MatchService = require(script.Parent.MatchService)
 local PlayerService = require(script.Parent.PlayerService)
@@ -480,8 +481,12 @@ local function runWave(wave: number): boolean
 	local bosses = WaveService.getBosses(wave)
 	local nextBossIn = 0
 
-	-- Mini-jefe: un Coloso reforzado en las oleadas que no tienen jefe
-	if wave >= waves.MiniBossEvery and wave % waves.MiniBossEvery == 0 and wave % waves.BossEvery ~= 0 then
+	-- Reto semanal con jefe propio (p. ej. el Segador): sale cada 3 oleadas
+	local weeklyChallenge = Weekly.current()
+	if weeklyChallenge.Boss and wave >= waves.MiniBossEvery and wave % waves.MiniBossEvery == 0 and wave % waves.BossEvery ~= 0 then
+		EnemyService.spawn(weeklyChallenge.Boss, healthMultiplier)
+		announceBoss(weeklyChallenge.Boss)
+	elseif wave >= waves.MiniBossEvery and wave % waves.MiniBossEvery == 0 and wave % waves.BossEvery ~= 0 then
 		EnemyService.spawn("Colossus", healthMultiplier * waves.MiniBossHealth)
 		Remotes.Notify:FireAllClients("💪 ¡Mini-jefe! Un Coloso reforzado viene con la horda")
 	end
@@ -626,6 +631,15 @@ function WaveService.start()
 				end
 			end
 			BellTower.setSkin(bellSkin)
+			-- Fogata del campamento: la skin del primer jugador que tenga una puesta
+			local fireSkin = nil
+			for _, player in Players:GetPlayers() do
+				fireSkin = TrapService.skinOf(player, "Campfire")
+				if fireSkin then
+					break
+				end
+			end
+			CampBuilder.setFireSkin(fireSkin)
 			BellTower.setArmorLevel((WaveService.getBellMaxHealth() - Config.Bell.MaxHealth) // Config.Bell.Armor.HealthPerLevel)
 			-- Todos empiezan la partida con la munición inicial
 			CombatService.resetAll()

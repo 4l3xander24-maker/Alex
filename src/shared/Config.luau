@@ -699,6 +699,30 @@ Config.Enemies = {
 		Pants = Color3.fromRGB(34, 24, 50),
 		Eyes = Color3.fromRGB(190, 90, 255),
 	},
+	Reaper = {
+		DisplayName = "Segador",
+		Icon = "💀",
+		MaxHealth = 110,
+		Speed = 4.4,
+		DamagePerSecond = 30,
+		PlayerDamage = 60,
+		Coins = 70,
+		IsBoss = true,
+		Size = Vector2.new(13, 20),
+		SpriteSize = Vector2.new(13, 20),
+		HitRadius = 5.5,
+		HitExtra = 4,
+		Sprite = "",
+		Model = "Zombie",
+		Horns = true,
+		Cape = true,
+		Summon = { Type = "Runner", Count = 3, Every = 8 },
+		Strike = { Name = "Guadaña", Every = 6, Range = 40, Radius = 14, Damage = 45, Delay = 1.0, Color = Color3.fromRGB(190, 90, 255) },
+		Skin = Color3.fromRGB(200, 205, 215),
+		Shirt = Color3.fromRGB(26, 22, 34),
+		Pants = Color3.fromRGB(20, 18, 26),
+		Eyes = Color3.fromRGB(255, 70, 90),
+	},
 	Dragon = {
 		DisplayName = "Dragón Zombi",
 		Icon = "🐉",
@@ -839,7 +863,7 @@ Config.Version = {
 
 -- Bestiario (se ve en la tienda del Veterano): orden y descripción de cada enemigo
 Config.Bestiary = {
-	Order = { "Walker", "Runner", "Cone", "Knight", "Brute", "Bomber", "Spitter", "Parasite", "Colossus", "Mutant", "Fatso", "King", "Dragon", "Queen" },
+	Order = { "Walker", "Runner", "Cone", "Knight", "Brute", "Bomber", "Spitter", "Parasite", "Colossus", "Mutant", "Fatso", "King", "Dragon", "Queen", "Reaper" },
 	Text = {
 		Walker = "El zombi común. Lento y fácil de eliminar.",
 		Runner = "Veloz y frágil: llega antes de que reacciones.",
@@ -855,6 +879,7 @@ Config.Bestiary = {
 		King = "JEFE (oleada 10). Su pisotón golpea en un área enorme.",
 		Dragon = "JEFE volador (oleada 15). Escupe fuego desde el aire.",
 		Queen = "JEFE (oleada 20). Invoca zombis sin parar: elimínala rápido.",
+		Reaper = "JEFE de la semana del Segador (cada 3 oleadas). Su guadaña golpea en un área grande y llama corredores.",
 	},
 }
 
@@ -876,6 +901,7 @@ Config.Weekly = {
 		{ Id = "Swarm", Event = "Swarm", Icon = "🐝", Name = "Semana del Enjambre", Description = "Hordas enormes pero más débiles" },
 		{ Id = "Armored", Event = "Armored", Icon = "🛡️", Name = "Semana Blindada", Description = "Menos zombis, muy resistentes y con mejor premio" },
 		{ Id = "Golden", Event = "Golden", Icon = "🤑", Name = "Semana del Oro", Description = "Todos dan el doble de monedas" },
+		{ Id = "Reaper", Event = "Golden", Boss = "Reaper", Icon = "💀", Name = "Semana del Segador", Description = "Un jefe nuevo, el Segador, aparece cada 3 oleadas. ¡Premios dobles!" },
 	},
 	Prizes = { 1500, 1000, 600 }, -- monedas para el puesto 1, 2 y 3
 	Top = 10, -- cuántos se ven en el tablero del lobby
@@ -972,6 +998,7 @@ Config.Monetization = {
 		ObjTracerAurum = { Id = 3719358010, Name = "Rastro de oro", Icon = "✨", Description = "Skin Premium de rastro de balas.", ObjectSkin = "TracerAurum" },
 		ObjDfLightning = { Id = 3719363441, Name = "Efecto Rayo", Icon = "⚡", Description = "Skin Premium de efecto al eliminar.", ObjectSkin = "DfLightning" },
 		ObjDfGold = { Id = 3719363499, Name = "Efecto Lluvia de oro", Icon = "🪙", Description = "Skin Premium de efecto al eliminar.", ObjectSkin = "DfGold" },
+		ObjFireSpirit = { Id = 0, Name = "Fogata espectral", Icon = "👻", Description = "Skin Premium de la fogata del campamento.", ObjectSkin = "FireSpirit" },
 		ObjDfRainbow = { Id = 3719363534, Name = "Efecto Arcoíris", Icon = "🌈", Description = "Skin Premium de efecto al eliminar.", ObjectSkin = "DfRainbow" },
 		ObjBellFire = { Id = 3719283103, Name = "Campana infernal", Icon = "🌋", Description = "Skin Premium de campana.", ObjectSkin = "BellFire" },
 		SkinBlood = { Id = 3719236493, Name = "Skin Sangrienta", Icon = "🟥", Description = "Skin de arma roja brillante.", WeaponSkin = "Blood" },
@@ -1335,6 +1362,10 @@ Config.ObjectSkins = {
 	{ Id = "TracerCrown", Kind = "Tracer", Name = "Rastro del Conquistador", Icon = "👑", Exclusive = true, Premium = true, Main = Color3.fromRGB(255, 190, 40), Accent = Color3.fromRGB(255, 80, 60) },
 	{ Id = "TracerAurum", Kind = "Tracer", Name = "Rastro de oro", Icon = "✨", Product = "ObjTracerAurum", Premium = true, Main = Color3.fromRGB(255, 210, 70), Accent = Color3.fromRGB(255, 245, 190) },
 	-- Efectos al eliminar zombis: estallido de cubos con los colores de Colors (los ve todo el equipo)
+	{ Id = "FireBlue", Kind = "Campfire", Name = "Fogata azul", Icon = "🔵", CoinPrice = 1500, Main = Color3.fromRGB(80, 150, 255), Accent = Color3.fromRGB(190, 225, 255) },
+	{ Id = "FireGreen", Kind = "Campfire", Name = "Fogata verde", Icon = "🟢", CoinPrice = 2200, Main = Color3.fromRGB(70, 230, 110), Accent = Color3.fromRGB(200, 255, 200) },
+	{ Id = "FireViolet", Kind = "Campfire", Name = "Fogata violeta", Icon = "🟣", CoinPrice = 3000, Main = Color3.fromRGB(170, 90, 255), Accent = Color3.fromRGB(235, 200, 255) },
+	{ Id = "FireSpirit", Kind = "Campfire", Name = "Fogata espectral", Icon = "👻", Product = "ObjFireSpirit", Premium = true, Main = Color3.fromRGB(120, 255, 235), Accent = Color3.fromRGB(255, 255, 255) },
 	{ Id = "DfConfetti", Kind = "DeathFx", Name = "Confeti de fiesta", Icon = "🎉", CoinPrice = 700, Colors = { Color3.fromRGB(255, 90, 120), Color3.fromRGB(255, 220, 80), Color3.fromRGB(90, 200, 255), Color3.fromRGB(120, 255, 140) }, Main = Color3.fromRGB(255, 220, 80), Accent = Color3.fromRGB(255, 255, 255), Rise = 14 },
 	{ Id = "DfSmoke", Kind = "DeathFx", Name = "Nube de humo", Icon = "💨", CoinPrice = 1200, Colors = { Color3.fromRGB(210, 210, 215), Color3.fromRGB(150, 152, 160), Color3.fromRGB(100, 102, 110) }, Main = Color3.fromRGB(190, 190, 200), Accent = Color3.fromRGB(240, 240, 245), Rise = 6, Big = true },
 	{ Id = "DfEmber", Kind = "DeathFx", Name = "Brasas", Icon = "🔥", CoinPrice = 1800, Colors = { Color3.fromRGB(255, 120, 30), Color3.fromRGB(255, 190, 60), Color3.fromRGB(200, 60, 20) }, Main = Color3.fromRGB(255, 140, 40), Accent = Color3.fromRGB(255, 220, 120), Rise = 12 },

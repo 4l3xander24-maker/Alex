@@ -188,6 +188,18 @@ function Preview3D.tracer(skin: any): Model
 	return model
 end
 
+-- Fogata: troncos cruzados y llamas del color de la skin
+function Preview3D.campfire(skin: any): Model
+	local model = Instance.new("Model")
+	for _, yaw in { 0.4, -0.4 + math.pi / 2 } do
+		newPart(model, "Log", Vector3.new(4, 0.8, 0.8), CFrame.new(0, 0.4, 0) * CFrame.Angles(0, yaw, 0.15), Color3.fromRGB(86, 58, 36), Enum.Material.Wood, Enum.PartType.Cylinder)
+	end
+	for index, layer in { { 1.6, 1.4, skin.Main }, { 1.2, 1.2, skin.Main:Lerp(skin.Accent, 0.4) }, { 0.8, 1.0, skin.Accent:Lerp(skin.Main, 0.3) }, { 0.4, 0.8, skin.Accent } } do
+		newPart(model, "Flame", Vector3.new(layer[1], layer[2], layer[1]), CFrame.new(0, 0.9 + index * 0.9, 0), layer[3], Enum.Material.Neon, Enum.PartType.Ball)
+	end
+	return model
+end
+
 -- Efecto al morir un zombi: un estallido de cubos
 function Preview3D.deathFx(skin: any): Model
 	local model = Instance.new("Model")

@@ -11,6 +11,7 @@ local Progression = require(Shared.Progression)
 local Remotes = require(Shared.Remotes)
 local DataService = require(script.Parent.DataService)
 local GameState = require(script.Parent.GameState)
+local CampBuilder = require(script.Parent.CampBuilder)
 
 local NOT_ENOUGH = "No tienes suficientes monedas"
 local CLOSED = "🔒 Las tiendas solo abren antes de la partida"
@@ -282,17 +283,23 @@ function actions.BuyObjectSkin(player, data, id)
 	end
 	data.ObjectSkins[id] = true
 	data.ObjectSkinOn[skin.Kind] = id
+	if skin.Kind == "Campfire" then
+		CampBuilder.setFireSkin(skin)
+	end
 	return true, `{skin.Icon} ¡{skin.Name} puesta!`
 end
 
 -- id = "Mine:MineIce" para ponerla, "Mine:" para volver a la normal
-function actions.EquipObjectSkin(_player, data, id)
+function actions.EquipObjectSkin(player, data, id)
 	local kind, skinId = string.match(id, "^(%a+):(.*)$")
 	if not kind or data.ObjectSkinOn[kind] == nil then
 		return false, "Acción inválida"
 	end
 	if skinId == "" then
 		data.ObjectSkinOn[kind] = ""
+		if kind == "Campfire" then
+			CampBuilder.setFireSkin(nil)
+		end
 		return true, "Skin normal"
 	end
 	local skin = objectSkin(skinId)
@@ -300,6 +307,9 @@ function actions.EquipObjectSkin(_player, data, id)
 		return false, "No tienes esta skin"
 	end
 	data.ObjectSkinOn[kind] = skinId
+	if kind == "Campfire" then
+		CampBuilder.setFireSkin(skin) -- la fogata es del campamento: se ve al instante
+	end
 	return true, `{skin.Icon} {skin.Name} puesta`
 end
 
