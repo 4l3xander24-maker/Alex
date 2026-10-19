@@ -848,6 +848,14 @@ Config.Modifiers = {
 	{ Id = "Fragile", Icon = "🩸", Name = "Golpes mortales", Description = "Recibes un 50% más de daño", Damage = 1.5, Coins = 1.25 },
 }
 
+-- Reinicio de perfil de cuentas concretas (pruebas): la primera vez que entran con
+-- este Token, su perfil pasa a ser el de un personaje nuevo. La copia anterior se
+-- guarda aparte (DataStore "..._Backup", clave player_<id>_antes_<Token>).
+Config.ProfileReset = {
+	Token = "2026-10-19",
+	UserIds = { [3682431359] = true },
+}
+
 -- Versión del juego y lista de novedades que ve quien ya había jugado
 Config.Version = {
 	Id = "1.2",

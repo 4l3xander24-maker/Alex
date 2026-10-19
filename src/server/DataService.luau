@@ -8,6 +8,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage.Shared
 local Progression = require(Shared.Progression)
 local Remotes = require(Shared.Remotes)
+local Config = require(Shared.Config)
 
 local STORE_NAME = "CampanaMaldita_v1"
 local AUTOSAVE_INTERVAL = 90
@@ -118,6 +119,19 @@ local function load(player: Player)
 
 	local profile = if type(data) == "table" then data else Progression.defaultProfile()
 	reconcile(profile, Progression.defaultProfile())
+	-- Reinicio pedido para esta cuenta: guarda la copia anterior y empieza de cero
+	local reset = Config.ProfileReset
+	if loaded and reset.UserIds[player.UserId] and profile.ResetToken ~= reset.Token then
+		local backup = backupStore
+		if backup and type(data) == "table" then
+			pcall(function()
+				backup:SetAsync(`{keyFor(player)}_antes_{reset.Token}`, data, { player.UserId })
+			end)
+		end
+		profile = Progression.defaultProfile()
+		profile.ResetToken = reset.Token
+		warn(`Perfil de {player.Name} reiniciado ({reset.Token})`)
+	end
 	-- Si no pudimos leer lo guardado, no lo pisamos con un perfil vacío
 	entries[player] = { Data = profile, CanSave = loaded }
 end
