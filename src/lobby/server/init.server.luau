@@ -623,7 +623,7 @@ local function buildRoom(map: Instance, index: number, center: Vector3, capacity
 	hintLabel.TextScaled = true
 	hintLabel.TextColor3 = Color3.new(1, 1, 1)
 	hintLabel.TextStrokeTransparency = 0.6
-	hintLabel.Text = if capacity == 1 then "SOLO 1 JUGADOR" else `PARA {capacity} JUGADORES`
+	hintLabel.Text = if capacity == 1 then "SOLO" else `{capacity} PERSONAS`
 	hintLabel.Parent = hint
 	for step = 0, 5 do
 		local angle = step / 6 * math.pi * 2 + 0.3
@@ -668,20 +668,33 @@ local function buildRoom(map: Instance, index: number, center: Vector3, capacity
 	gui.PixelsPerStud = 40
 	gui.LightInfluence = 0.2
 	gui.Parent = sign
+	-- Título grande en una sola línea (rojo), debajo para cuántos es y al final el estado
 	local title = Instance.new("TextLabel")
-	title.Size = UDim2.fromScale(1, 0.55)
+	title.Size = UDim2.fromScale(1, 0.5)
 	title.BackgroundTransparency = 1
-	title.Font = Enum.Font.Arcade
-	title.TextScaled = true
-	title.TextColor3 = GOLD
-	title.Text = if capacity == 1 then `SALA {index} · SOLO` else `SALA {index} · {capacity}`
+	title.Font = Enum.Font.GothamBlack
+	title.TextScaled = false
+	title.TextSize = 170
+	title.TextColor3 = Color3.fromRGB(235, 50, 45)
+	title.Text = `SALA {index}`
 	title.Parent = gui
+	local who = Instance.new("TextLabel")
+	who.Position = UDim2.fromScale(0.05, 0.5)
+	who.Size = UDim2.fromScale(0.9, 0.26)
+	who.BackgroundTransparency = 1
+	who.Font = Enum.Font.GothamBlack
+	who.TextScaled = false
+	who.TextSize = 96
+	who.TextColor3 = GOLD
+	who.Text = if capacity == 1 then "SOLO" else `{capacity} PERSONAS`
+	who.Parent = gui
 	local label = Instance.new("TextLabel")
-	label.Position = UDim2.fromScale(0.05, 0.55)
-	label.Size = UDim2.fromScale(0.9, 0.4)
+	label.Position = UDim2.fromScale(0.05, 0.78)
+	label.Size = UDim2.fromScale(0.9, 0.18)
 	label.BackgroundTransparency = 1
 	label.Font = Enum.Font.GothamBold
-	label.TextScaled = true
+	label.TextScaled = false
+	label.TextSize = 66
 	label.TextColor3 = Color3.new(1, 1, 1)
 	label.Parent = gui
 	model.Parent = map
@@ -690,13 +703,13 @@ end
 
 local function refresh(room: Room)
 	local count = #room.Members
-	local text = `{count}/{room.Capacity} {if room.Capacity == 1 then "jugador" else "jugadores"}`
+	local text = `{count}/{room.Capacity}`
 	if room.Launching then
 		text ..= "  ·  ¡Saliendo!"
 	elseif room.EndsAt then
-		text ..= `  ·  sale en {math.max(0, math.ceil(room.EndsAt - os.clock()))} s`
+		text ..= `  ·  {math.max(0, math.ceil(room.EndsAt - os.clock()))} s`
 	else
-		text ..= "  ·  Entra aquí"
+		text ..= "  ·  Entra"
 	end
 	room.Label.Text = text
 	local color = if count >= room.Capacity then FULL elseif count > 0 then GOLD else FREE
