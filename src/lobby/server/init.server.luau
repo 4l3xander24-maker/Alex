@@ -778,8 +778,16 @@ local function leave(player: Player)
 	refresh(room)
 end
 
+-- Quien ya salió hacia la partida no puede entrar a otra sala mientras tarde el
+-- teletransporte (en celulares lentos pasa de los 8 s)
+local teleportingUntil: { [Player]: number } = {}
+
 local function join(player: Player, room: Room)
 	if roomOf[player] == room or room.Launching or #room.Members >= room.Capacity then
+		return
+	end
+	local current = roomOf[player]
+	if (current and current.Launching) or (teleportingUntil[player] or 0) > os.clock() then
 		return
 	end
 	leave(player)
@@ -811,6 +819,9 @@ local function launch(room: Room)
 			table.insert(userIds, member.UserId)
 		end
 		MatchRegistry.register(userIds, code, privateId)
+		for _, member in members do
+			teleportingUntil[member] = os.clock() + 40
+		end
 		local options = Instance.new("TeleportOptions")
 		options.ReservedServerAccessCode = code
 		options:SetTeleportData({ Room = room.Index, Players = #members })
@@ -819,6 +830,7 @@ local function launch(room: Room)
 	if not ok then
 		warn(`Sala {room.Index}: {err}`)
 		for _, player in members do
+			teleportingUntil[player] = nil
 			status:FireClient(player, room.Index, #members, nil, tostring(err))
 		end
 	end
@@ -998,6 +1010,12 @@ end)
 
 Players.PlayerRemoving:Connect(function(player)
 	leave(player)
+	teleportingUntil[player] = nil
+end)
+
+-- Si Roblox rechaza el teletransporte, el jugador puede volver a intentarlo
+TeleportService.TeleportInitFailed:Connect(function(player)
+	teleportingUntil[player] = nil
 end)
 
 -- Botón Cancelar del cliente: sales de la sala y te saca del círculo
@@ -1039,7 +1057,14 @@ task.spawn(function()
 					end
 				end
 			end
-			if inside then
+			local current = roomOf[player]
+			local busy = (current ~= nil and current.Launching and current ~= inside) or (teleportingUntil[player] or 0) > os.clock()
+			if inside and busy then
+				-- Ya va camino a la partida: no entra a otra sala
+				if current == nil and root then
+					pushOut(player, inside)
+				end
+			elseif inside then
 				join(player, inside)
 				-- Sala llena o saliendo: no te deja pasar
 				if roomOf[player] ~= inside and root then
