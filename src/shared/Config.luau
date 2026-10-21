@@ -791,7 +791,7 @@ Config.Objectives = {
 	FirstWave = 2,
 	KillsBase = 8, -- cuántos pide en la primera oleada con objetivo
 	KillsPerWave = 1.2,
-	RewardPerKill = 4, -- monedas por cada zombi pedido, a cada jugador
+	RewardPerKill = 2, -- monedas por cada zombi pedido, a cada jugador
 }
 
 -- Eventos de oleada: a veces una oleada (no de jefe, desde la 3) trae un giro.
@@ -816,7 +816,7 @@ Config.Powerups = {
 		Heal = { Name = "Curación total", Icon = "💚", Color = Color3.fromRGB(110, 230, 120), Weight = 3 },
 		Damage = { Name = "Daño x2", Icon = "💥", Color = Color3.fromRGB(255, 110, 90), Weight = 3, Duration = 15, Multiplier = 2 },
 		Shield = { Name = "Escudo", Icon = "🛡️", Color = Color3.fromRGB(110, 190, 255), Weight = 2, Duration = 8 },
-		Coins = { Name = "Lluvia de monedas", Icon = "💰", Color = Color3.fromRGB(255, 215, 90), Weight = 2, Base = 20, PerWave = 5 },
+		Coins = { Name = "Lluvia de monedas", Icon = "💰", Color = Color3.fromRGB(255, 215, 90), Weight = 2, Base = 12, PerWave = 3 },
 	},
 }
 
@@ -824,11 +824,11 @@ Config.Powerups = {
 -- enemigo, la dificultad, el evento y los bonus). Subir los costos y bajar esto
 -- alarga cuántas partidas hacen falta para comprarlo todo.
 Config.Economy = {
-	KillCoinScale = 0.45,
+	KillCoinScale = 0.25,
 	-- Premio por completar la dificultad (todas las veces, a cada jugador)
-	ClearBonus = { [1] = 120, [2] = 250, [3] = 450, [4] = 800, [5] = 1400 },
+	ClearBonus = { [1] = 80, [2] = 170, [3] = 320, [4] = 560, [5] = 980 },
 	-- Aunque pierdas, ganas algo por cada oleada que superaste (por la dificultad)
-	ParticipationPerWave = 10,
+	ParticipationPerWave = 5,
 	-- Maestría: los niveles altos de mejora exigen haber superado una dificultad.
 	-- Gates[tipo][nivel al que subes] = dificultad que tienes que tener abierta
 	-- (superar Normal abre 2, Difícil abre 3, Experto abre 4...).

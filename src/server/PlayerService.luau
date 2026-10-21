@@ -183,7 +183,16 @@ local function watchDeath(player: Player, character: Model)
 	humanoid.Died:Connect(function()
 		if inMatch then
 			fallen[player] = true
-			if reviveEnabled then
+			-- Si ya no queda nadie en pie, la oferta que sale es la de Continuar (la de
+			-- toda la partida): no se muestra además la de revivir solo a uno
+			local someoneAlive = false
+			for _, other in Players:GetPlayers() do
+				if other ~= player and not fallen[other] then
+					someoneAlive = true
+					break
+				end
+			end
+			if reviveEnabled and someoneAlive then
 				reviveUntil[player] = os.clock() + Config.Monetization.ReviveWindow
 				Remotes.ReviveOffer:FireClient(player, Config.Monetization.ReviveWindow)
 			end
