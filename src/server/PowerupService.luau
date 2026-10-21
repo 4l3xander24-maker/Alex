@@ -8,7 +8,6 @@ local Shared = ReplicatedStorage.Shared
 local Config = require(Shared.Config)
 local Remotes = require(Shared.Remotes)
 local CombatService = require(script.Parent.CombatService)
-local DataService = require(script.Parent.DataService)
 local PlayerService = require(script.Parent.PlayerService)
 
 local random = Random.new()
@@ -43,8 +42,6 @@ function PowerupService.apply(name: string, wave: number)
 			player:SetAttribute("DamageBoostUntil", now + info.Duration)
 		elseif name == "Shield" then
 			player:SetAttribute("ShieldUntil", now + info.Duration)
-		elseif name == "Coins" and DataService.get(player) then
-			DataService.addCoins(player, info.Base + info.PerWave * wave)
 		end
 		Remotes.Boost:FireClient(player, name, info.Duration or 0)
 	end

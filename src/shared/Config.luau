@@ -816,7 +816,6 @@ Config.Powerups = {
 		Heal = { Name = "Curación total", Icon = "💚", Color = Color3.fromRGB(110, 230, 120), Weight = 3 },
 		Damage = { Name = "Daño x2", Icon = "💥", Color = Color3.fromRGB(255, 110, 90), Weight = 3, Duration = 15, Multiplier = 2 },
 		Shield = { Name = "Escudo", Icon = "🛡️", Color = Color3.fromRGB(110, 190, 255), Weight = 2, Duration = 8 },
-		Coins = { Name = "Lluvia de monedas", Icon = "💰", Color = Color3.fromRGB(255, 215, 90), Weight = 2, Base = 12, PerWave = 3 },
 	},
 }
 
