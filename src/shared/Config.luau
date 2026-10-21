@@ -803,7 +803,6 @@ Config.WaveEvents = {
 	Types = {
 		Swarm = { Name = "Enjambre", Icon = "🐝", Count = 1.4, Health = 0.75, Spawn = 1.3, Coins = 1.0, Description = "Muchísimos zombis, pero más débiles" },
 		Armored = { Name = "Blindados", Icon = "🛡️", Count = 0.7, Health = 1.6, Spawn = 1.0, Coins = 1.5, Description = "Menos zombis, muy resistentes y con mejor premio" },
-		Golden = { Name = "Fiebre del oro", Icon = "🤑", Count = 1.0, Health = 1.0, Spawn = 1.0, Coins = 2.0, Description = "Todos dan el doble de monedas" },
 	},
 }
 
@@ -907,8 +906,7 @@ Config.Weekly = {
 	Challenges = {
 		{ Id = "Swarm", Event = "Swarm", Icon = "🐝", Name = "Semana del Enjambre", Description = "Hordas enormes pero más débiles" },
 		{ Id = "Armored", Event = "Armored", Icon = "🛡️", Name = "Semana Blindada", Description = "Menos zombis, muy resistentes y con mejor premio" },
-		{ Id = "Golden", Event = "Golden", Icon = "🤑", Name = "Semana del Oro", Description = "Todos dan el doble de monedas" },
-		{ Id = "Reaper", Event = "Golden", Boss = "Reaper", Icon = "💀", Name = "Semana del Segador", Description = "Un jefe nuevo, el Segador, aparece cada 3 oleadas. ¡Premios dobles!" },
+		{ Id = "Reaper", Boss = "Reaper", Icon = "💀", Name = "Semana del Segador", Description = "Un jefe nuevo, el Segador, aparece cada 3 oleadas." },
 	},
 	Prizes = { 1500, 1000, 600 }, -- monedas para el puesto 1, 2 y 3
 	Top = 10, -- cuántos se ven en el tablero del lobby

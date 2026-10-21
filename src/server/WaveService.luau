@@ -236,7 +236,10 @@ local function rollWaveEvent(wave: number)
 	local events = Config.WaveEvents
 	-- El reto semanal pone su evento en todas las oleadas (menos las de jefe)
 	local weekly = Weekly.current()
-	if weekly and wave % waves.BossEvery ~= 0 and events.Types[weekly.Event] then
+	if weekly and wave == 1 and not weekly.Event then
+		Remotes.Notify:FireAllClients(`🗓️ Reto semanal: {weekly.Name} · {weekly.Description}`)
+	end
+	if weekly and wave % waves.BossEvery ~= 0 and weekly.Event and events.Types[weekly.Event] then
 		local info = events.Types[weekly.Event]
 		waveEvent = info
 		GameState.set("WaveEvent", `{weekly.Icon} {weekly.Name}`)
