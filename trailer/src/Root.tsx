@@ -1,6 +1,6 @@
 import { Composition } from "remotion";
 import { Trailer } from "./Composition";
-import { TrailerMotion } from "./Motion";
+import { TrailerMotion, TrailerShort } from "./Motion";
 
 export const RemotionRoot: React.FC = () => {
   return (
@@ -17,6 +17,14 @@ export const RemotionRoot: React.FC = () => {
         id="TrailerMotion"
         component={TrailerMotion}
         durationInFrames={1080}
+        fps={30}
+        width={1080}
+        height={1920}
+      />
+      <Composition
+        id="TrailerShort"
+        component={TrailerShort}
+        durationInFrames={720}
         fps={30}
         width={1080}
         height={1920}

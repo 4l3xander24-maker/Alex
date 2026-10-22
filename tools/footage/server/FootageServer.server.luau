@@ -50,7 +50,7 @@ task.spawn(function()
 	while true do
 		task.wait(0.4)
 		if workspace:GetAttribute("Take") ~= "collapse" and workspace:GetAttribute("Hold") ~= false then
-			GameState.repairBell(60)
+			GameState.repairBell(600)
 		end
 	end
 end)
@@ -66,8 +66,11 @@ end)
 -- Colocar al jugador junto a la campana, donde llega la horda
 workspace:GetAttributeChangedSignal("Spot"):Connect(function()
 	local character = player.Character
+	local bell = Config.Arena.Bell
 	if workspace:GetAttribute("Spot") == "bell" and character then
-		local bell = Config.Arena.Bell
 		character:PivotTo(CFrame.lookAt(bell + Vector3.new(0, 5, 15), bell + Vector3.new(0, 5, 0)))
+	elseif workspace:GetAttribute("Spot") == "gate" and character then
+		-- En el camino de la horda, mirando hacia la puerta
+		character:PivotTo(CFrame.lookAt(bell + Vector3.new(0, 5, -28), bell + Vector3.new(0, 5, -80)))
 	end
 end)

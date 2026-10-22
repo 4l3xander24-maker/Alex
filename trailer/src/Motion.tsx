@@ -426,24 +426,25 @@ const Rings: React.FC<{ at: number[]; x: number; y: number; color?: string }> = 
 // ───────────────────────── escenas ─────────────────────────
 
 // 0–10 s: el cuento, contado con gráficos
-const Story: React.FC = () => {
+const Story: React.FC<{ k?: number }> = ({ k = 1 }) => {
+  const T = (n: number) => Math.round(n * k);
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const loop = frame % 100;
-  const toll = frame >= 206 ? 206 : frame >= 106 ? 106 : 6;
+  const toll = frame >= T(206) ? T(206) : frame >= T(106) ? T(106) : T(6);
   const since = frame - toll;
-  const swing = 15 * Math.exp(-since / 28) * Math.sin(since * 0.55) * (frame >= 206 ? 1.6 : 1);
-  const cracked = frame >= 206;
-  const sh = shakeAt(frame - 206, 18, 40);
-  const bellY = interpolate(frame, [0, 24], [-300, 470], { ...CLAMP, easing: Easing.bounce });
-  const iris = interpolate(frame, [214, 296], [0, 1700], { ...CLAMP, easing: Easing.in(Easing.cubic) });
+  const swing = 15 * Math.exp(-since / 28) * Math.sin(since * 0.55) * (frame >= T(206) ? 1.6 : 1);
+  const cracked = frame >= T(206);
+  const sh = shakeAt(frame - T(206), 18, 40);
+  const bellY = interpolate(frame, [0, T(24)], [-300, 470], { ...CLAMP, easing: Easing.bounce });
+  const iris = interpolate(frame, [T(214), T(296)], [0, 1700], { ...CLAMP, easing: Easing.in(Easing.cubic) });
   void loop;
   void fps;
   return (
     <AbsoluteFill>
       <Backdrop blocks={false} from="#241036" to={NIGHT} />
       <Embers />
-      <Rings at={[6, 106, 206]} x={540} y={bellY + 150} color={cracked ? BLOOD : GOLD} />
+      <Rings at={[T(6), T(106), T(206)]} x={540} y={bellY + 150} color={cracked ? BLOOD : GOLD} />
       <div
         style={{
           position: "absolute",
@@ -467,16 +468,16 @@ const Story: React.FC = () => {
         />
         <AbsoluteFill style={{ background: "radial-gradient(ellipse at 50% 70%, rgba(120,0,0,0.0), rgba(60,0,0,0.6))" }} />
       </AbsoluteFill>
-      <Sequence from={14} durationInFrames={88}>
+      <Sequence from={T(14)} durationInFrames={T(88)}>
         <KText words={["Durante", "siglos,", "una", "campana", "protegió", "al", "pueblo…"]} size={78} y={1060} font={SERIF} stagger={5} />
       </Sequence>
-      <Sequence from={108} durationInFrames={82}>
+      <Sequence from={T(108)} durationInFrames={T(82)}>
         <KText words={["Esta", "noche,", "volvió", "a", "sonar."]} size={96} y={1090} font={SERIF} color={GOLD} stagger={6} glow={ORANGE} />
       </Sequence>
-      <Sequence from={198} durationInFrames={96}>
+      <Sequence from={T(198)} durationInFrames={T(96)}>
         <KText words={["Y", "los", "muertos", "despertaron."]} size={100} y={1020} font={SERIF} color={BLOOD} stagger={6} glow={BLOOD} />
       </Sequence>
-      <Sequence from={236} durationInFrames={60}>
+      <Sequence from={T(236)} durationInFrames={T(60)}>
         <div style={{ position: "absolute", left: 0, right: 0, top: 1400, display: "flex", justifyContent: "center", gap: 26 }}>
           <ZombieHead size={150} delay={0} />
           <ZombieHead size={190} delay={8} />
@@ -490,7 +491,7 @@ const Story: React.FC = () => {
 // Bloque 1: golpe + título
 const Hit: React.FC = () => (
   <AbsoluteFill>
-    <Full src={staticFile("clips/v1.mp4")} trimBefore={20} punch={0.2} />
+    <Full src={staticFile("clips/n1.mp4")} trimBefore={20} punch={0.2} />
     <AbsoluteFill style={{ background: "linear-gradient(180deg, rgba(0,0,0,0.45), rgba(0,0,0,0) 35%, rgba(0,0,0,0) 55%, rgba(0,0,0,0.7))" }} />
     <Corners />
     <OutlineText text="Campana" size={230} y={720} />
@@ -530,7 +531,7 @@ const Flame: React.FC = () => {
       >
         FUEGO FUEGO
       </div>
-      <Panel src={staticFile("clips/v9.mp4")} trimBefore={40} x={150} y={330} w={780} h={1180} rot={-3} fromY={1100} border={ORANGE} />
+      <Panel src={staticFile("clips/n3.mp4")} trimBefore={10} x={150} y={330} w={780} h={1180} rot={-3} fromY={1100} border={ORANGE} />
       <Sequence from={10}>
         <Tag text="Lanzallamas" x={540} y={1430} color={ORANGE} />
       </Sequence>
@@ -579,9 +580,9 @@ const Tag: React.FC<{ text: string; x: number; y: number; color?: string; rot?: 
 const Strips: React.FC = () => (
   <AbsoluteFill>
     <Backdrop from="#10233a" to={NIGHT} accent="#2a7fff" />
-    <Panel src={staticFile("clips/v2.mp4")} trimBefore={30} x={34} y={190} w={320} h={1300} radius={36} fromY={-1400} delay={0} border="#7fd4ff" />
-    <Panel src={staticFile("clips/v10.mp4")} trimBefore={20} x={380} y={190} w={320} h={1300} radius={36} fromY={1400} delay={4} border={GOLD} />
-    <Panel src={staticFile("clips/v3.mp4")} trimBefore={20} x={726} y={190} w={320} h={1300} radius={36} fromY={-1400} delay={8} border="#9be29b" />
+    <Panel src={staticFile("clips/n2.mp4")} trimBefore={30} x={34} y={190} w={320} h={1300} radius={36} fromY={-1400} delay={0} border="#7fd4ff" />
+    <Panel src={staticFile("clips/n4.mp4")} trimBefore={20} x={380} y={190} w={320} h={1300} radius={36} fromY={1400} delay={4} border={GOLD} />
+    <Panel src={staticFile("clips/n5.mp4")} trimBefore={20} x={726} y={190} w={320} h={1300} radius={36} fromY={-1400} delay={8} border="#9be29b" />
     <Sequence from={14}>
       <Label text="Fusil" x={194} y={1510} color="#7fd4ff" />
     </Sequence>
@@ -689,7 +690,7 @@ const Combo: React.FC = () => {
   const beat = spring({ frame: frame % 8, fps, config: { damping: 8, stiffness: 300 } });
   return (
     <AbsoluteFill>
-      <Full src={staticFile("clips/v5.mp4")} trimBefore={60} punch={0.18} />
+      <Full src={staticFile("clips/n6.mp4")} trimBefore={30} punch={0.18} />
       <AbsoluteFill style={{ background: "linear-gradient(180deg, rgba(0,0,0,0.0) 40%, rgba(0,0,0,0.7))" }} />
       <Corners color={BLOOD} />
       <div
@@ -729,7 +730,7 @@ const Boss: React.FC = () => {
   });
   return (
     <AbsoluteFill>
-      <Full src={staticFile("clips/v8.mp4")} trimBefore={215} punch={0.2} grade="saturate(1.2) contrast(1.15) hue-rotate(-8deg)" />
+      <Full src={staticFile("clips/n8.mp4")} trimBefore={0} punch={0.2} grade="saturate(1.2) contrast(1.15) hue-rotate(-8deg)" />
       <AbsoluteFill style={{ backgroundColor: `rgba(255,20,10,${pulse})` }} />
       <div style={{ ...stripe(1), top: 330 }} />
       <div style={{ ...stripe(-1), top: 1470 }} />
@@ -759,8 +760,8 @@ const Friends: React.FC = () => (
   <AbsoluteFill>
     <Backdrop from="#103a2a" to={NIGHT} accent="#2ecf8b" />
     <KText words={["Con", "tus", "amigos"]} size={130} y={120} stagger={6} stroke="#1a0500" glow="#2ecf8b" />
-    <CirclePanel src={staticFile("clips/v3.mp4")} trimBefore={60} cx={330} cy={760} r={290} delay={4} border="#9be29b" />
-    <CirclePanel src={staticFile("clips/v4.mp4")} trimBefore={60} cx={760} cy={1160} r={290} delay={12} border={GOLD} />
+    <CirclePanel src={staticFile("clips/n7.mp4")} trimBefore={40} cx={330} cy={760} r={290} delay={4} border="#9be29b" />
+    <CirclePanel src={staticFile("clips/n4.mp4")} trimBefore={100} cx={760} cy={1160} r={290} delay={12} border={GOLD} />
     <div style={{ position: "absolute", left: 0, right: 0, top: 1580, display: "flex", justifyContent: "center", gap: 22 }}>
       {[0, 1, 2, 3, 4].map((i) => (
         <ZombieFriend key={i} delay={20 + i * 8} hue={i * 58} />
@@ -834,9 +835,9 @@ const Climax: React.FC = () => {
   const frame = useCurrentFrame();
   return (
     <AbsoluteFill>
-      <Full src={staticFile("clips/v8.mp4")} trimBefore={150} punch={0.22} grade="saturate(1.15) contrast(1.12)" />
+      <Full src={staticFile("clips/n9.mp4")} trimBefore={40} punch={0.22} grade="saturate(1.1) contrast(1.1)" />
       <Sequence from={74}>
-        <Full src={staticFile("clips/v6.mp4")} trimBefore={90} punch={0.24} grade="saturate(1.2) contrast(1.1)" />
+        <Full src={staticFile("clips/n10.mp4")} trimBefore={30} punch={0.24} grade="saturate(1.1) contrast(1.1)" />
       </Sequence>
       <AbsoluteFill style={{ background: "radial-gradient(ellipse at center, rgba(0,0,0,0) 40%, rgba(20,0,0,0.75))" }} />
       <Corners color={GOLD} />
@@ -1035,4 +1036,109 @@ export const TrailerMotion: React.FC = () => {
 const FadeIn: React.FC = () => {
   const frame = useCurrentFrame();
   return <AbsoluteFill style={{ backgroundColor: "#000", opacity: interpolate(frame, [0, 13], [1, 0], CLAMP) }} />;
+};
+
+
+// ───────────────────────── versión corta (≈24 s) ─────────────────────────
+
+const HookCut: React.FC<{ src: string; trimBefore: number; word: string; color: string }> = ({ src, trimBefore, word, color }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const s2 = spring({ frame, fps, config: { damping: 9, stiffness: 260 } });
+  return (
+    <AbsoluteFill>
+      <Full src={src} trimBefore={trimBefore} punch={0.3} />
+      <AbsoluteFill style={{ background: "linear-gradient(180deg, rgba(0,0,0,0.0) 40%, rgba(0,0,0,0.65))" }} />
+      <div
+        style={{
+          position: "absolute",
+          left: 0,
+          right: 0,
+          top: 1180,
+          textAlign: "center",
+          fontFamily: IMPACT,
+          fontSize: 210,
+          letterSpacing: 6,
+          textTransform: "uppercase",
+          color,
+          scale: String(interpolate(s2, [0, 1], [2.2, 1])),
+          WebkitTextStroke: "5px #1a0500",
+          paintOrder: "stroke fill",
+          textShadow: "0 12px 0 #1a0500, 0 0 60px rgba(255,80,40,0.6)",
+        }}
+      >
+        {word}
+      </div>
+    </AbsoluteFill>
+  );
+};
+
+export const TrailerShort: React.FC = () => {
+  const { fps } = useVideoConfig();
+  const wipes = [304, 368, 432, 496, 596];
+  return (
+    <AbsoluteFill style={{ backgroundColor: "#000" }}>
+      <Audio src={staticFile("music_short.wav")} premountFor={fps} />
+
+      <Sequence name="Gancho 1" from={0} durationInFrames={19} premountFor={fps}>
+        <HookCut src={staticFile("clips/n1.mp4")} trimBefore={30} word="Hordas" color={CREAM} />
+      </Sequence>
+      <Sequence name="Gancho 2" from={19} durationInFrames={19} premountFor={fps}>
+        <HookCut src={staticFile("clips/n6.mp4")} trimBefore={60} word="Combos" color={GOLD} />
+      </Sequence>
+      <Sequence name="Gancho 3" from={38} durationInFrames={19} premountFor={fps}>
+        <HookCut src={staticFile("clips/n8.mp4")} trimBefore={20} word="Jefes" color={BLOOD} />
+      </Sequence>
+      <Sequence name="Gancho 4" from={57} durationInFrames={18} premountFor={fps}>
+        <HookCut src={staticFile("clips/n10.mp4")} trimBefore={60} word="Noche" color={CREAM} />
+      </Sequence>
+
+      <Sequence name="Cuento" from={75} durationInFrames={165} premountFor={fps}>
+        <Story k={0.55} />
+      </Sequence>
+
+      <Sequence name="Golpe y título" from={240} durationInFrames={64} premountFor={fps}>
+        <Hit />
+      </Sequence>
+      <Sequence name="Lanzallamas" from={304} durationInFrames={64} premountFor={fps}>
+        <Flame />
+      </Sequence>
+      <Sequence name="Combo" from={368} durationInFrames={64} premountFor={fps}>
+        <Combo />
+      </Sequence>
+      <Sequence name="Jefe" from={432} durationInFrames={64} premountFor={fps}>
+        <Boss />
+      </Sequence>
+      <Sequence name="Clímax" from={496} durationInFrames={100} premountFor={fps}>
+        <Climax />
+      </Sequence>
+      <Sequence name="Cierre" from={596} durationInFrames={124} premountFor={fps}>
+        <End />
+      </Sequence>
+
+      <Sequence name="Flash · golpe" from={240} durationInFrames={14}>
+        <Flash peak={1} frames={14} />
+      </Sequence>
+      <Sequence name="Flash · gancho 1" from={0} durationInFrames={6}>
+        <Flash peak={0.9} frames={6} />
+      </Sequence>
+      <Sequence name="Flash · gancho 2" from={19} durationInFrames={6}>
+        <Flash peak={0.9} frames={6} />
+      </Sequence>
+      <Sequence name="Flash · gancho 3" from={38} durationInFrames={6}>
+        <Flash color="#ffb0a0" peak={0.9} frames={6} />
+      </Sequence>
+      <Sequence name="Flash · gancho 4" from={57} durationInFrames={6}>
+        <Flash peak={0.9} frames={6} />
+      </Sequence>
+      <Sequence name="Flash · repique" from={75 + 113} durationInFrames={12}>
+        <Flash color={BLOOD} peak={0.7} frames={12} />
+      </Sequence>
+      {wipes.map((f, i) => (
+        <Sequence key={f} name={`Transición ${i + 1}`} from={f - 6} durationInFrames={14}>
+          <Wipe colors={i % 2 ? [BLOOD, GOLD, NIGHT, GOLD, BLOOD] : [GOLD, NIGHT, BLOOD, NIGHT, GOLD]} />
+        </Sequence>
+      ))}
+    </AbsoluteFill>
+  );
 };
