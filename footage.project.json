@@ -1,0 +1,71 @@
+{
+  "name": "CampanaMalditaFootage",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "Shared": {
+        "$path": "src/shared"
+      },
+      "WeaponModels": {
+        "$path": "src/weapons"
+      },
+      "ZombieMeshes": {
+        "$path": "src/zombies"
+      }
+    },
+    "ServerScriptService": {
+      "Server": {
+        "$path": "src/server"
+      },
+      "Footage": {
+        "$path": "tools/footage/server"
+      }
+    },
+    "StarterPlayer": {
+      "$properties": {
+        "DevTouchMovementMode": "Scriptable"
+      },
+      "StarterPlayerScripts": {
+        "Client": {
+          "$path": "src/client"
+        },
+        "Footage": {
+          "$path": "tools/footage/client"
+        }
+      },
+      "StarterCharacterScripts": {
+        "Health": {
+          "$path": "src/character/Health.server.luau"
+        }
+      }
+    },
+    "Lighting": {
+      "$properties": {
+        "Technology": "Future",
+        "ShadowSoftness": 0.35,
+        "EnvironmentDiffuseScale": 1,
+        "EnvironmentSpecularScale": 1
+      }
+    },
+    "Workspace": {
+      "$properties": {
+        "StreamingEnabled": true,
+        "StreamingTargetRadius": 600,
+        "StreamingMinRadius": 160
+      },
+      "Terrain": {
+        "$properties": {
+          "Decoration": true
+        }
+      }
+    },
+    "MaterialService": {
+      "$path": "src/materials"
+    },
+    "ServerStorage": {
+      "Models": {
+        "$path": "src/models"
+      }
+    }
+  }
+}

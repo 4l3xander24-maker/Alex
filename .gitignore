@@ -6,3 +6,5 @@ sourcemap.json
 .DS_Store
 __pycache__/
 build/
+docs/promo/footage/
+docs/promo/trailer-*.mp4
