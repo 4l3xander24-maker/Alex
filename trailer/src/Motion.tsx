@@ -279,17 +279,20 @@ const Panel: React.FC<{
 };
 
 // Video a pantalla completa con zoom y temblor
-const Full: React.FC<{ src: string; trimBefore: number; grade?: string; punch?: number }> = ({
+const Full: React.FC<{ src: string; trimBefore: number; grade?: string; punch?: number; pulse?: boolean }> = ({
   src,
   trimBefore,
   grade,
   punch = 0.14,
+  pulse = true,
 }) => {
   const frame = useCurrentFrame();
   const { durationInFrames } = useVideoConfig();
   const zoom = interpolate(frame, [0, 9], [1 + punch, 1], { ...CLAMP, easing: OUT });
   const creep = interpolate(frame, [0, durationInFrames], [1, 1.07]);
   const sh = shakeAt(frame, 10, 10);
+  // pulso suave en cada tiempo de la música
+  const beat = pulse ? 1 + 0.028 * Math.exp(-(((frame + 3) % 16.07) / 4.2)) : 1;
   return (
     <AbsoluteFill style={{ overflow: "hidden", backgroundColor: "#000" }}>
       <Video
@@ -301,9 +304,9 @@ const Full: React.FC<{ src: string; trimBefore: number; grade?: string; punch?: 
         style={{
           width: "100%",
           height: "100%",
-          scale: String(zoom * creep),
+          scale: String(zoom * creep * beat),
           translate: `${sh.x}px ${sh.y}px`,
-          filter: grade ?? "none",
+          filter: `${grade ?? "contrast(1.07) saturate(1.1)"}`,
         }}
       />
     </AbsoluteFill>
@@ -346,6 +349,17 @@ const Wipe: React.FC<{ colors?: string[] }> = ({ colors = [GOLD, BLOOD, NIGHT, O
           </div>
         );
       })}
+    </AbsoluteFill>
+  );
+};
+
+const Grain: React.FC<{ opacity?: number }> = ({ opacity = 0.17 }) => {
+  const frame = useCurrentFrame();
+  const dx = Math.floor(random(`gx${frame % 8}`) * 200);
+  const dy = Math.floor(random(`gy${frame % 8}`) * 200);
+  return (
+    <AbsoluteFill style={{ mixBlendMode: "overlay", opacity, pointerEvents: "none", overflow: "hidden" }}>
+      <Img src={staticFile("grain.png")} style={{ position: "absolute", left: -dx, top: -dy, width: 1300, height: 2140 }} />
     </AbsoluteFill>
   );
 };
@@ -464,6 +478,7 @@ const Story: React.FC<{ k?: number }> = ({ k = 1 }) => {
           src={staticFile("clips/v8.mp4")}
           trimBefore={0}
           punch={0.05}
+          pulse={false}
           grade="saturate(0.8) brightness(0.62) contrast(1.25) sepia(0.3) hue-rotate(-18deg)"
         />
         <AbsoluteFill style={{ background: "radial-gradient(ellipse at 50% 70%, rgba(120,0,0,0.0), rgba(60,0,0,0.6))" }} />
@@ -1026,6 +1041,7 @@ export const TrailerMotion: React.FC = () => {
           <Wipe colors={i % 2 ? [BLOOD, GOLD, NIGHT, GOLD, BLOOD] : [GOLD, NIGHT, BLOOD, NIGHT, GOLD]} />
         </Sequence>
       ))}
+      <Grain />
       <Sequence name="Entrada negra" from={0} durationInFrames={14}>
         <FadeIn />
       </Sequence>
@@ -1139,6 +1155,7 @@ export const TrailerShort: React.FC = () => {
           <Wipe colors={i % 2 ? [BLOOD, GOLD, NIGHT, GOLD, BLOOD] : [GOLD, NIGHT, BLOOD, NIGHT, GOLD]} />
         </Sequence>
       ))}
+      <Grain />
     </AbsoluteFill>
   );
 };

@@ -9,3 +9,6 @@ out
 out/
 public/clips/
 public/music.wav
+sfx_raw/
+public/grain.png
+audio.py.bak
