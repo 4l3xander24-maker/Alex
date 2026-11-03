@@ -14,6 +14,8 @@ https://www.roblox.com/games/107080967531379/Campana-Maldita
 | Vie 7 nov | Armas | 04-armas.mp4 | Pendiente |
 | Sáb 8 nov | Cómo jugar | 05-como-jugar.mp4 | Pendiente |
 | Dom 9 nov | La noche | 06-noche.mp4 | Pendiente |
+| Lun 10 nov | Así es el lobby | 07-lobby.mp4 | Pendiente |
+| Mar 11 nov | Elige tu arma | 08-elige-arma.mp4 | Pendiente |
 
 ## Descripciones
 
@@ -26,6 +28,10 @@ https://www.roblox.com/games/107080967531379/Campana-Maldita
 **05-como-jugar** — `Cómo jugar Campana Maldita en 15 segundos 🔔 1) Elige sala 2) Defiende la campana 3) Mejora tus armas. Gratis en Roblox 👇 #roblox #robloxgame #tutorial #zombies #juegosroblox #campanamaldita #fyp`
 
 **06-noche** — `Oleada tras oleada… la noche trae más zombis 🌙🧟 ¿Cuántas resistes? Busca "Campana Maldita" en Roblox 👇 #roblox #robloxgame #zombies #noche #juegosroblox #campanamaldita #fyp`
+
+**07-lobby** — `Así es el lobby de Campana Maldita 🔔 10 salas: solo o con hasta 5 amigos. Gratis en Roblox 👇 #roblox #robloxgame #zombies #juegosroblox #campanamaldita #fyp`
+
+**08-elige-arma** — `¿Fusil, minigun, ballesta o lanzallamas? 🔫🏹🔥 Elige tu arma y defiende la campana. Gratis en Roblox: "Campana Maldita" 👇 #roblox #robloxgame #zombies #armas #juegosroblox #campanamaldita #fyp`
 
 ## Reglas
 - Responder comentarios en la primera hora.

@@ -1378,3 +1378,59 @@ export const ShortNight: React.FC = () => (
     <Sequence name="Flash 1" from={250} durationInFrames={10}><Flash color={BLOOD} peak={0.6} /></Sequence>
   </ShortFrame>
 );
+
+// ───────────────────────── videos con la biblioteca de clips (15 s) ─────────────────────────
+
+const clip2 = (n: string) => staticFile(`clips2/${n}-alto.mp4`);
+
+// 7 · Así es el lobby
+export const ShortLobby: React.FC = () => (
+  <ShortFrame audio="audio_lobby.wav" cuts={[110, 230, 340]}>
+    <Sequence name="Salas" from={0} durationInFrames={110} premountFor={30}>
+      <Full src={clip2("lobby-salas")} trimBefore={10} punch={0.12} />
+      <Lower words={["10", "salas", "para", "jugar"]} y={1050} size={150} color={GOLD} glow={ORANGE} />
+    </Sequence>
+    <Sequence name="Plaza" from={110} durationInFrames={120} premountFor={30}>
+      <Full src={clip2("lobby-plaza")} trimBefore={20} punch={0.1} />
+      <Lower words={["Solo", "o", "con", "amigos"]} y={1050} size={150} />
+      <Sequence from={40}>
+        <Tag text="Hasta 5 jugadores" x={540} y={1560} color={GOLD} />
+      </Sequence>
+    </Sequence>
+    <Sequence name="Tienda" from={230} durationInFrames={110} premountFor={30}>
+      <Full src={clip2("tienda-armeria")} trimBefore={10} punch={0.08} />
+      <Lower words={["Mejora", "tus", "armas"]} y={1150} size={150} color={CREAM} glow={BLOOD} />
+    </Sequence>
+    <Sequence name="Cierre" from={340} durationInFrames={110} premountFor={30}>
+      <End />
+    </Sequence>
+  </ShortFrame>
+);
+
+// 8 · Elige tu arma
+export const ShortPick: React.FC = () => (
+  <ShortFrame audio="audio_pick.wav" cuts={[70, 140, 210, 280, 360]}>
+    {[
+      ["arma-fusil", "Fusil", "#7fd4ff"],
+      ["arma-minigun", "Minigun", GOLD],
+      ["arma-ballesta", "Ballesta", "#9be29b"],
+      ["arma-lanzallamas", "Lanzallamas", ORANGE],
+    ].map(([n, label, color], i) => (
+      <Sequence key={n} name={String(label)} from={i * 70} durationInFrames={70} premountFor={30}>
+        <Full src={clip2(String(n))} trimBefore={15} punch={0.2} />
+        <AbsoluteFill style={{ background: "linear-gradient(180deg, rgba(0,0,0,0) 55%, rgba(0,0,0,0.7))" }} />
+        <Corners color={String(color)} />
+        <Sequence from={6}>
+          <Tag text={String(label)} x={540} y={1450} color={String(color)} />
+        </Sequence>
+      </Sequence>
+    ))}
+    <Sequence name="Pregunta" from={280} durationInFrames={80} premountFor={30}>
+      <Full src={clip2("horda")} trimBefore={20} punch={0.2} />
+      <Lower words={["¿Cuál", "arma", "eliges?"]} y={1050} size={170} />
+    </Sequence>
+    <Sequence name="Cierre" from={360} durationInFrames={90} premountFor={30}>
+      <End />
+    </Sequence>
+  </ShortFrame>
+);
