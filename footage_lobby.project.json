@@ -1,0 +1,60 @@
+{
+  "name": "CampanaMalditaLobbyFootage",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "Shared": {
+        "$path": "src/shared"
+      }
+    },
+    "ServerScriptService": {
+      "Lobby": {
+        "$path": "src/lobby/server",
+        "Props": {
+          "$path": "src/server/Props.luau"
+        },
+        "ModelLibrary": {
+          "$path": "src/server/ModelLibrary.luau"
+        },
+        "Leaderboard": {
+          "$path": "src/server/Leaderboard.luau"
+        },
+        "StoreService": {
+          "$path": "src/server/StoreService.luau"
+        }
+      }
+    },
+    "ServerStorage": {
+      "Models": {
+        "$path": "src/models"
+      }
+    },
+    "StarterPlayer": {
+      "StarterPlayerScripts": {
+        "LobbyClient": {
+          "$path": "src/lobby/client"
+        },
+        "LobbyFootage": {
+          "$path": "tools/footage/lobby"
+        }
+      }
+    },
+    "Lighting": {
+      "$properties": {
+        "Technology": "Future",
+        "ClockTime": 17.9,
+        "ShadowSoftness": 0.35
+      }
+    },
+    "Workspace": {
+      "Terrain": {
+        "$properties": {
+          "Decoration": true
+        }
+      }
+    },
+    "MaterialService": {
+      "$path": "src/materials"
+    }
+  }
+}

@@ -9,6 +9,7 @@ local StarterGui = game:GetService("StarterGui")
 local player = Players.LocalPlayer
 local client = player:WaitForChild("PlayerScripts"):WaitForChild("Client")
 local WeaponController = require(client:WaitForChild("WeaponController"))
+local ShopUI = require(client:WaitForChild("ShopUI"))
 local Remotes = require(ReplicatedStorage:WaitForChild("Shared").Remotes)
 local Config = require(ReplicatedStorage:WaitForChild("Shared").Config)
 local enemies = workspace:WaitForChild("ClientEnemies")
@@ -22,6 +23,7 @@ local bell = Config.Arena.Bell
 local take = "off"
 local takeStart = os.clock()
 local lastCycle = 0
+local fixedWeapon: string? = nil
 
 local function nearestEnemy(): BasePart?
 	local best, bestDistance = nil, 140
@@ -70,7 +72,7 @@ RunService:BindToRenderStep("FootageDirector", Enum.RenderPriority.Camera.Value 
 		if ammo == 0 then
 			WeaponController.reload()
 		end
-		if os.clock() - lastCycle > 6.5 then
+		if not fixedWeapon and os.clock() - lastCycle > 6.5 then
 			lastCycle = os.clock()
 			WeaponController.cycle()
 			local _, _, _, _, melee = WeaponController.getAmmoState()
@@ -90,9 +92,50 @@ local function onTake()
 	if take ~= "fps" then
 		WeaponController.setTrigger(false)
 	end
+	if take == "shop" then
+		-- Abre la tienda indicada en el atributo Shop y recorre su lista despacio
+		ShopUI.open(workspace:GetAttribute("Shop") or "Armory")
+		task.spawn(function()
+			task.wait(1.2)
+			local gui = player:WaitForChild("PlayerGui"):FindFirstChild("Shop")
+			local list = gui and gui:FindFirstChildWhichIsA("ScrollingFrame", true)
+			if list then
+				local t0 = os.clock()
+				while os.clock() - t0 < 5 and take == "shop" do
+					list.CanvasPosition = Vector2.new(0, (os.clock() - t0) * 90)
+					task.wait()
+				end
+			end
+		end)
+	elseif take == "shopclose" then
+		ShopUI.close()
+		take = "off"
+	elseif take == "menu" then
+		-- Mantiene el aviso de reconstruir la campana para abrir el menú de dificultad
+		local prompt = workspace:FindFirstChild("StartPrompt", true)
+		if prompt and prompt:IsA("ProximityPrompt") then
+			task.spawn(function()
+				prompt:InputHoldBegin()
+				task.wait(prompt.HoldDuration + 0.3)
+				prompt:InputHoldEnd()
+			end)
+		end
+		take = "off"
+	end
 	if take == "start" then
 		Remotes.SelectDifficulty:FireServer(workspace:GetAttribute("Diff") or 3, {})
 		take = "off"
 	end
 end
 workspace:GetAttributeChangedSignal("Take"):Connect(onTake)
+
+-- Arma fija para clips precisos: workspace:SetAttribute("Weapon", "Flamethrower")
+workspace:GetAttributeChangedSignal("Weapon"):Connect(function()
+	local id = workspace:GetAttribute("Weapon")
+	if typeof(id) == "string" and id ~= "" then
+		fixedWeapon = id
+		WeaponController.equip(id)
+	else
+		fixedWeapon = nil
+	end
+end)
