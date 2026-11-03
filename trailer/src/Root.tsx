@@ -1,6 +1,6 @@
 import { Composition } from "remotion";
 import { Trailer } from "./Composition";
-import { TrailerMotion, TrailerShort } from "./Motion";
+import { ShortArms, ShortBoss, ShortCombo, ShortHow, ShortNight, TrailerMotion, TrailerShort } from "./Motion";
 
 export const RemotionRoot: React.FC = () => {
   return (
@@ -25,6 +25,46 @@ export const RemotionRoot: React.FC = () => {
         id="TrailerShort"
         component={TrailerShort}
         durationInFrames={720}
+        fps={30}
+        width={1080}
+        height={1920}
+      />
+      <Composition
+        id="ShortBoss"
+        component={ShortBoss}
+        durationInFrames={450}
+        fps={30}
+        width={1080}
+        height={1920}
+      />
+      <Composition
+        id="ShortCombo"
+        component={ShortCombo}
+        durationInFrames={450}
+        fps={30}
+        width={1080}
+        height={1920}
+      />
+      <Composition
+        id="ShortArms"
+        component={ShortArms}
+        durationInFrames={450}
+        fps={30}
+        width={1080}
+        height={1920}
+      />
+      <Composition
+        id="ShortHow"
+        component={ShortHow}
+        durationInFrames={450}
+        fps={30}
+        width={1080}
+        height={1920}
+      />
+      <Composition
+        id="ShortNight"
+        component={ShortNight}
+        durationInFrames={450}
         fps={30}
         width={1080}
         height={1920}

@@ -1159,3 +1159,222 @@ export const TrailerShort: React.FC = () => {
     </AbsoluteFill>
   );
 };
+
+// ───────────────────────── tanda de videos cortos (15 s) ─────────────────────────
+
+
+const ShortFrame: React.FC<{ audio: string; cuts: number[]; children: React.ReactNode }> = ({ audio, cuts, children }) => {
+  const { fps } = useVideoConfig();
+  return (
+    <AbsoluteFill style={{ backgroundColor: "#000" }}>
+      <Audio src={staticFile(audio)} premountFor={fps} />
+      {children}
+      {cuts.map((f, i) => (
+        <Sequence key={f} name={`Transición ${i + 1}`} from={f - 6} durationInFrames={14}>
+          <Wipe colors={i % 2 ? [BLOOD, GOLD, NIGHT, GOLD, BLOOD] : [GOLD, NIGHT, BLOOD, NIGHT, GOLD]} />
+        </Sequence>
+      ))}
+      <Grain />
+      <Sequence name="Entrada negra" from={0} durationInFrames={8}>
+        <FadeIn />
+      </Sequence>
+    </AbsoluteFill>
+  );
+};
+
+const Lower: React.FC<{ words: string[]; y?: number; size?: number; color?: string; glow?: string }> = ({
+  words,
+  y = 1180,
+  size = 160,
+  color = CREAM,
+  glow = BLOOD,
+}) => (
+  <>
+    <AbsoluteFill style={{ background: "linear-gradient(180deg, rgba(0,0,0,0.0) 45%, rgba(0,0,0,0.72))" }} />
+    <KText words={words} size={size} y={y} color={color} stroke="#1a0500" glow={glow} stagger={6} />
+  </>
+);
+
+// 1 · El Segador
+export const ShortBoss: React.FC = () => (
+  <ShortFrame audio="audio_boss.wav" cuts={[64, 200, 360]}>
+    <Sequence name="Alerta de jefe" from={0} durationInFrames={64} premountFor={30}>
+      <Boss />
+    </Sequence>
+    <Sequence name="Jefe 1" from={64} durationInFrames={136} premountFor={30}>
+      <Full src={staticFile("clips/n8.mp4")} trimBefore={70} punch={0.2} />
+      <Corners color={BLOOD} />
+      <Lower words={["Jefes", "gigantes"]} y={1250} size={170} />
+    </Sequence>
+    <Sequence name="Jefe 2" from={200} durationInFrames={160} premountFor={30}>
+      <Full src={staticFile("clips/n10.mp4")} trimBefore={20} punch={0.2} />
+      <Lower words={["¿Lo", "derrotas?"]} y={1000} size={190} color={GOLD} glow={ORANGE} />
+      <Sequence from={30}>
+        <Tag text="Solo o con amigos" x={540} y={1560} color={GOLD} />
+      </Sequence>
+    </Sequence>
+    <Sequence name="Cierre" from={360} durationInFrames={90} premountFor={30}>
+      <End />
+    </Sequence>
+    <Sequence name="Flash 1" from={64} durationInFrames={8}><Flash peak={0.5} /></Sequence>
+    <Sequence name="Flash 2" from={200} durationInFrames={8}><Flash peak={0.5} /></Sequence>
+  </ShortFrame>
+);
+
+// 2 · Combo x22
+export const ShortCombo: React.FC = () => (
+  <ShortFrame audio="audio_combo.wav" cuts={[64, 200, 360]}>
+    <Sequence name="Combo" from={0} durationInFrames={64} premountFor={30}>
+      <Combo />
+    </Sequence>
+    <Sequence name="Encadena" from={64} durationInFrames={136} premountFor={30}>
+      <Full src={staticFile("clips/n6.mp4")} trimBefore={100} punch={0.2} />
+      <Corners color={GOLD} />
+      <Lower words={["Encadena", "bajas"]} y={1230} size={170} color={GOLD} glow={ORANGE} />
+    </Sequence>
+    <Sequence name="Reto" from={200} durationInFrames={160} premountFor={30}>
+      <Full src={staticFile("clips/v5.mp4")} trimBefore={40} punch={0.2} />
+      <Lower words={["¿Superas", "mi", "x22?"]} y={1060} size={170} color={CREAM} glow={BLOOD} />
+    </Sequence>
+    <Sequence name="Cierre" from={360} durationInFrames={90} premountFor={30}>
+      <End />
+    </Sequence>
+    <Sequence name="Flash 1" from={64} durationInFrames={8}><Flash peak={0.5} /></Sequence>
+    <Sequence name="Flash 2" from={200} durationInFrames={8}><Flash peak={0.5} /></Sequence>
+  </ShortFrame>
+);
+
+// 3 · Armas
+export const ShortArms: React.FC = () => (
+  <ShortFrame audio="audio_arms.wav" cuts={[150, 214, 278, 360]}>
+    <Sequence name="Gancho" from={0} durationInFrames={150} premountFor={30}>
+      <Full src={staticFile("clips/n4.mp4")} trimBefore={0} punch={0.25} />
+      <Lower words={["¿Cuál", "arma", "eliges?"]} y={1000} size={190} />
+    </Sequence>
+    <Sequence name="Arsenal" from={150} durationInFrames={64} premountFor={30}>
+      <Strips />
+    </Sequence>
+    <Sequence name="Lanzallamas" from={214} durationInFrames={64} premountFor={30}>
+      <Flame />
+    </Sequence>
+    <Sequence name="Más armas" from={278} durationInFrames={82} premountFor={30}>
+      <Full src={staticFile("clips/n5.mp4")} trimBefore={60} punch={0.2} />
+      <Lower words={["8", "armas", "distintas"]} y={1150} size={170} color={GOLD} glow={ORANGE} />
+    </Sequence>
+    <Sequence name="Cierre" from={360} durationInFrames={90} premountFor={30}>
+      <End />
+    </Sequence>
+    <Sequence name="Flash 1" from={150} durationInFrames={8}><Flash peak={0.5} /></Sequence>
+  </ShortFrame>
+);
+
+// 4 · Cómo jugar
+const StepCard: React.FC<{ n: number; title: string; color: string; children: React.ReactNode }> = ({ n, title, color, children }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const s = spring({ frame, fps, config: { damping: 11, stiffness: 150 } });
+  return (
+    <AbsoluteFill>
+      <Backdrop from="#14243a" to={NIGHT} accent={color} />
+      <div
+        style={{
+          position: "absolute",
+          left: 90,
+          top: 150,
+          width: 200,
+          height: 200,
+          borderRadius: 100,
+          background: color,
+          border: "10px solid #1a0500",
+          boxShadow: "0 16px 0 rgba(0,0,0,0.6)",
+          fontFamily: IMPACT,
+          fontSize: 150,
+          lineHeight: "180px",
+          textAlign: "center",
+          color: "#1a0500",
+          scale: String(interpolate(s, [0, 1], [0, 1])),
+          rotate: `${interpolate(s, [0, 1], [-60, 0])}deg`,
+        }}
+      >
+        {n}
+      </div>
+      <KText words={title.split(" ")} size={110} y={400} stroke="#1a0500" glow={color} stagger={5} fadeOut={0} />
+      <div style={{ position: "absolute", left: 90, right: 90, top: 760, height: 900 }}>{children}</div>
+    </AbsoluteFill>
+  );
+};
+
+export const ShortHow: React.FC = () => {
+  const frame = 0;
+  void frame;
+  return (
+    <ShortFrame audio="audio_how.wav" cuts={[90, 180, 270, 360]}>
+      <Sequence name="Gancho" from={0} durationInFrames={90} premountFor={30}>
+        <AbsoluteFill>
+          <Backdrop from="#2b0a14" to={NIGHT} accent={BLOOD} />
+          <KText words={["Cómo", "jugar"]} size={180} y={560} stagger={7} stroke="#1a0500" glow={BLOOD} fadeOut={0} />
+          <KText words={["en", "15", "segundos"]} size={110} y={860} color={GOLD} stagger={7} glow={ORANGE} fadeOut={0} />
+          <div style={{ position: "absolute", left: 0, right: 0, top: 1250, display: "flex", justifyContent: "center", gap: 30 }}>
+            <ZombieHead size={170} delay={10} />
+            <ZombieHead size={210} delay={18} />
+            <ZombieHead size={170} delay={26} />
+          </div>
+        </AbsoluteFill>
+      </Sequence>
+      <Sequence name="Paso 1" from={90} durationInFrames={90} premountFor={30}>
+        <StepCard n={1} title="Elige una sala" color={GOLD}>
+          <Img
+            src={staticFile("lobby.jpg")}
+            style={{ width: "100%", height: 560, objectFit: "cover", borderRadius: 46, border: `10px solid ${GOLD}`, boxShadow: `0 24px 0 rgba(0,0,0,0.5), 0 0 70px ${GOLD}66` }}
+          />
+          <div style={{ marginTop: 40, fontFamily: IMPACT, fontSize: 62, color: CREAM, textAlign: "center", letterSpacing: 3 }}>
+            SOLO O HASTA 5 AMIGOS
+          </div>
+        </StepCard>
+      </Sequence>
+      <Sequence name="Paso 2" from={180} durationInFrames={90} premountFor={30}>
+        <StepCard n={2} title="Defiende la campana" color="#ff7a4d">
+          <div style={{ position: "relative", height: 720 }}>
+            <CirclePanel src={staticFile("clips/n9.mp4")} trimBefore={30} cx={450} cy={360} r={340} delay={2} border="#ff7a4d" />
+          </div>
+        </StepCard>
+      </Sequence>
+      <Sequence name="Paso 3" from={270} durationInFrames={90} premountFor={30}>
+        <StepCard n={3} title="Mejora tus armas" color="#7fd4ff">
+          <div style={{ position: "relative", height: 720 }}>
+            <CirclePanel src={staticFile("clips/n2.mp4")} trimBefore={40} cx={450} cy={360} r={340} delay={2} border="#7fd4ff" />
+          </div>
+        </StepCard>
+      </Sequence>
+      <Sequence name="Cierre" from={360} durationInFrames={90} premountFor={30}>
+        <End />
+      </Sequence>
+    </ShortFrame>
+  );
+};
+
+// 5 · La noche
+export const ShortNight: React.FC = () => (
+  <ShortFrame audio="audio_night.wav" cuts={[130, 250, 360]}>
+    <Sequence name="Noche 1" from={0} durationInFrames={130} premountFor={30}>
+      <Full src={staticFile("clips/n9.mp4")} trimBefore={20} punch={0.06} pulse={false} grade="saturate(0.7) brightness(0.72) contrast(1.2) sepia(0.2)" />
+      <AbsoluteFill style={{ background: "radial-gradient(ellipse at center, rgba(0,0,0,0) 35%, rgba(5,0,10,0.85))" }} />
+      <Embers count={22} />
+      <KText words={["Oleada", "tras", "oleada…"]} size={110} y={1050} font={SERIF} stagger={7} />
+    </Sequence>
+    <Sequence name="Noche 2" from={130} durationInFrames={120} premountFor={30}>
+      <Full src={staticFile("clips/n10.mp4")} trimBefore={40} punch={0.1} grade="saturate(0.8) brightness(0.75) contrast(1.2)" />
+      <AbsoluteFill style={{ background: "radial-gradient(ellipse at center, rgba(0,0,0,0) 35%, rgba(5,0,10,0.8))" }} />
+      <KText words={["la", "noche", "trae", "más", "zombis."]} size={104} y={1020} font={SERIF} color={GOLD} glow={ORANGE} stagger={6} />
+    </Sequence>
+    <Sequence name="Noche 3" from={250} durationInFrames={110} premountFor={30}>
+      <Full src={staticFile("clips/n1.mp4")} trimBefore={60} punch={0.2} />
+      <Lower words={["¿Cuántas", "resistes?"]} y={1050} size={190} color={CREAM} />
+      <Corners color={BLOOD} />
+    </Sequence>
+    <Sequence name="Cierre" from={360} durationInFrames={90} premountFor={30}>
+      <End />
+    </Sequence>
+    <Sequence name="Flash 1" from={250} durationInFrames={10}><Flash color={BLOOD} peak={0.6} /></Sequence>
+  </ShortFrame>
+);
