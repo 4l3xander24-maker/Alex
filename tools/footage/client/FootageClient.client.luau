@@ -25,10 +25,15 @@ local takeStart = os.clock()
 local lastCycle = 0
 local fixedWeapon: string? = nil
 
+local function origin0Y(): number
+	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	return if root then root.Position.Y else 0
+end
+
 local function nearestEnemy(): BasePart?
 	local best, bestDistance = nil, 140
 	for _, part in enemies:GetDescendants() do
-		if part:IsA("BasePart") and part.Transparency < 1 then
+		if part:IsA("BasePart") and part.Transparency < 1 and part.Size.Y > 0.6 and part.Position.Y > origin0Y() - 3 then
 			local distance = (part.Position - camera.CFrame.Position).Magnitude
 			if distance < bestDistance and distance > 6 then
 				best, bestDistance = part, distance
@@ -61,7 +66,14 @@ RunService:BindToRenderStep("FootageDirector", Enum.RenderPriority.Camera.Value 
 		local origin = if head then head.Position + Vector3.new(0, 0.3, 0) else camera.CFrame.Position
 		local target = nearestEnemy()
 		if target then
-			local aim = CFrame.lookAt(origin, target.Position + Vector3.new(0, 1.4, 0))
+			-- Apunta al torso y nunca mira hacia el suelo (inclinación limitada)
+			local dir = (target.Position + Vector3.new(0, 1.8, 0) - origin).Unit
+			if dir.Y < 0.02 then
+				dir = Vector3.new(dir.X, 0.02, dir.Z).Unit
+			elseif dir.Y > 0.25 then
+				dir = Vector3.new(dir.X, 0.25, dir.Z).Unit
+			end
+			local aim = CFrame.lookAt(origin, origin + dir)
 			camera.CFrame = (CFrame.new(origin) * (camera.CFrame - camera.CFrame.Position)):Lerp(aim, 0.3)
 			WeaponController.setTrigger(true)
 		else

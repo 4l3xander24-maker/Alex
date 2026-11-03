@@ -31,3 +31,5 @@ for _, weapon in { "Rifle", "Minigun", "Crossbow", "Flamethrower" } do
 	workspace:SetAttribute("Weapon", weapon)
 	take("fps", 9)
 end
+workspace:SetAttribute("Weapon", "Rifle")
+take("fps", 12)
