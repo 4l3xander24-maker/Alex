@@ -3,9 +3,25 @@
 -- "plaza" gira alrededor de la campana gigante, "enter" mete al jugador en la sala "Room".
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local StarterGui = game:GetService("StarterGui")
 
 local player = Players.LocalPlayer
 local camera = workspace.CurrentCamera
+-- Sin interfaz: ni barra de consejos ni botones
+pcall(function()
+	StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, false)
+end)
+task.spawn(function()
+	local gui = player:WaitForChild("PlayerGui")
+	while true do
+		for _, g in gui:GetChildren() do
+			if g:IsA("ScreenGui") and g.Enabled then
+				g.Enabled = false
+			end
+		end
+		task.wait(0.5)
+	end
+end)
 local take = "off"
 local takeStart = os.clock()
 
@@ -28,7 +44,7 @@ local function roomSigns()
 end
 
 local function viewOf(sign: BasePart)
-	local position = (sign.CFrame * CFrame.new(0, -2.5, -17)).Position
+	local position = (sign.CFrame * CFrame.new(0, -3.5, -27)).Position
 	return CFrame.lookAt(position, sign.Position + Vector3.new(0, -1, 0))
 end
 
@@ -82,4 +98,14 @@ workspace:GetAttributeChangedSignal("Take"):Connect(function()
 			end
 		end
 	end
+end)
+
+-- Secuencia automática (no hace falta escribir comandos): 6 s quieto, 15 s de carteles, 12 s de plaza
+task.spawn(function()
+	task.wait(8)
+	workspace:SetAttribute("Take", "signs")
+	task.wait(15)
+	workspace:SetAttribute("Take", "plaza")
+	task.wait(12)
+	workspace:SetAttribute("Take", "off")
 end)

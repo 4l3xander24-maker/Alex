@@ -74,3 +74,8 @@ workspace:GetAttributeChangedSignal("Spot"):Connect(function()
 		character:PivotTo(CFrame.lookAt(bell + Vector3.new(0, 5, -28), bell + Vector3.new(0, 5, -80)))
 	end
 end)
+
+-- Para la secuencia automática: al empezar se coloca en el camino de la horda
+task.delay(1, function()
+	workspace:SetAttribute("Spot", "gate")
+end)
