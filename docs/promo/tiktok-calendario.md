@@ -8,14 +8,14 @@ https://www.roblox.com/games/107080967531379/Campana-Maldita
 |---|---|---|---|
 | Lun 3 nov 08:33 | Tráiler corto v2 | corto-tiktok.mp4 | Publicado |
 | Lun 3 nov 19:00 | Tráiler corto v3 (sonido real) | corto-v3-tiktok.mp4 | Programado |
-| Mar 4 nov 19:00 | Tráiler largo | largo-tiktok.mp4 | Programado |
-| Mié 5 nov | El Segador | 02-segador.mp4 | Pendiente |
-| Jue 6 nov | Combo x22 | 03-combo.mp4 | Pendiente |
-| Vie 7 nov | Armas | 04-armas.mp4 | Pendiente |
-| Sáb 8 nov | Cómo jugar | 05-como-jugar.mp4 | Pendiente |
-| Dom 9 nov | La noche | 06-noche.mp4 | Pendiente |
-| Lun 10 nov | Así es el lobby | 07-lobby.mp4 | Pendiente |
-| Mar 11 nov | Elige tu arma | 08-elige-arma.mp4 | Pendiente |
+| Mar 4 nov 19:00 | Tráiler largo | largo-tiktok.mp4 | Programado (sale hoy) |
+| Mié 5 nov 19:00 | El Segador | 02-segador.mp4 | Programado |
+| Jue 6 nov 19:00 | Combo x22 | 03-combo.mp4 | Programado |
+| Vie 7 nov 19:00 | Armas | 04-armas.mp4 | Programado |
+| Sáb 8 nov 19:00 | Cómo jugar | 05-como-jugar.mp4 | Programado |
+| Dom 9 nov 19:00 | La noche | 06-noche.mp4 | Programado |
+| Lun 10 nov 19:00 | Así es el lobby | 07-lobby.mp4 | Programado |
+| Mar 11 nov 19:00 | Elige tu arma | 08-elige-arma.mp4 | Programado |
 
 ## Descripciones
 
