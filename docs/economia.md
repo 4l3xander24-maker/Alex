@@ -2,6 +2,13 @@
 
 Todo son **estimaciones en papel** (modelo en `tools/balance.py` y las cuentas de abajo). Hay que confirmarlas con jugadores reales.
 
+> **Valores actuales (noviembre):** las ganancias se bajaron a propósito para que queden niveladas con el costo de
+> las mejoras. En `Config.Economy` hoy rige: monedas por zombi **x0,25** (`KillCoinScale`), premio por completar
+> **80 / 170 / 320 / 560 / 980** (`ClearBonus`) y consuelo de **5 monedas por oleada** (`ParticipationPerWave`).
+> Las tablas y cuentas de abajo son de la ronda anterior (x0,45, premio 120 y consuelo 10): con los valores de hoy
+> una partida Normal completa paga aproximadamente la mitad de lo que dice la tabla (estimado, sin medir en juego).
+> Los jugadores nuevos empiezan con 150 monedas y la racha diaria suma hasta 625 por semana.
+
 ## Qué queremos que se sienta
 1. **Primera sesión (30 min):** comprar la primera arma nueva y 2–3 mejoras. Sensación de "avanzo rápido".
 2. **Primeros días:** cada partida acerca algo concreto; perder también da algo.
