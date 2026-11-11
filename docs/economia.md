@@ -25,6 +25,7 @@ Todo son **estimaciones en papel** (modelo en `tools/balance.py` y las cuentas d
 | Infierno | ~6.370 | ~1.360 | ~250 |
 
 Multiplicadores: Botín (hasta +50%) y Codicia (+25%) ≈ x1,5; el pase de monedas x2 multiplica por encima.
+Amigos de Roblox en la partida: +10% de monedas de bajas y de XP por amigo, tope +30% (`Config.Friends`); se multiplica con lo anterior y solo pasa jugando en grupo.
 
 ## Cuánto cuesta todo
 - Armas: 6.700 · Mejoras de armas: 31.400 · Mochila: 1.910 · Campana: 5.900 · Poderes: 1.700 → **núcleo ≈ 51.000**
@@ -48,6 +49,10 @@ Si todas las partidas se completaran, el núcleo saldría en ~29 partidas (~19 c
 - **Día de juego:** cambia a las 9:00 UTC (`DailyRules.ResetHourUtc`), de madrugada en Latinoamérica, no a medianoche UTC.
 - **Misiones:** cada día salen 3 de un grupo de 10 (`Config.DailyMissions`), las mismas para todos; pagan 150–500 monedas cada una. Cumplir las 3 da +150 (`DailyRules.AllBonus`) una vez al día.
 - **Racha de entrada:** 40 / 50 / 60 / 75 / 90 / 110 / 200 monedas (días 1 a 7, luego se repite). Una semana completa son **625 monedas**: menos que ganar Normal una vez (~830) y ~1% del núcleo (~51.000), así que es un motivo para volver, no un atajo. El día 7 casi triplica el 1 para que valga la pena no faltar. Faltar un día reinicia la racha.
+
+## Premios extra pequeños
+- **Códigos de regalo** (`src/server/GiftCodes.luau`): una vez por cuenta y código; los de inicio dan 200 y 100 monedas (menos que una partida de Normal).
+- **Participación semanal:** 100 monedas (`Config.Weekly.Participation`) a quien sumó puntos en la semana y no entró al podio (1500 / 1000 / 600), una vez por semana.
 
 ## Cosas que NO toqué (y por qué)
 - **Puntos de estadística:** salen del nivel de cuenta, que crece exponencialmente (~9 partidas al nivel 20, cientos al 50). Ya frena solo.

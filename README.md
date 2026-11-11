@@ -25,6 +25,18 @@ el círculo de runas y el cuchillo), [`docs/capturas/pixel/`](docs/capturas/pixe
 ## Qué tiene ya
 - **Misiones diarias y racha**: cada día de juego (cambia a las 9:00 UTC) salen 3 misiones de un grupo de 10, iguales para
   todos, y cumplir las 3 da un extra. Entrar cada día suma una **racha** de 7 días con premio creciente. Se ven en 🏆 Logros.
+- **Bonus por amigos**: cada amigo de Roblox presente en la partida suma +10% de monedas de bajas y de XP de cuenta,
+  hasta +30% (`Config.Friends`). El servidor lo calcula al empezar y cuando entra alguien; se avisa al empezar, sale
+  en el resumen y el botón de invitar del Lobby lo menciona.
+- **Códigos de regalo**: en ⚙ Ajustes hay una casilla "Códigos". Cada jugador canjea cada código una vez (se guarda en
+  `Codes` del perfil); no distingue mayúsculas y hay un límite de intentos por jugador. Para agregar uno, añade una fila a
+  `List` en `src/server/GiftCodes.luau` (`Code`, `Coins`, y opcionales `Until` = vencimiento en segundos UTC de `os.time`
+  y `ObjectSkin` = id de `Config.ObjectSkins`). Vive en el servidor para que los clientes no puedan leer la lista.
+  Códigos de inicio: `BIENVENIDO` (200 monedas) y `CAMPANA` (100).
+- **Reto semanal para todos**: los 3 primeros de la semana siguen cobrando su premio; quien sumó puntos esa semana y no
+  quedó en el podio cobra `Config.Weekly.Participation` (100 monedas) al entrar la semana siguiente. Si alguien se
+  desconecta en plena partida, su puntaje se sube al salir.
+- **Títulos**: el título del Salón de la fama sale junto al nombre en la tabla del equipo del resumen.
 - **Mapa en islas**: al sur todo es **mar** abajo de los acantilados. En la **isla principal** están la campana, el
   castillo y el campamento; al norte, cruzando un canal, el **bosque** de donde salen los zombis, con una
   **cordillera** que tapa el horizonte. Si te caes al agua, te lleva el mar.
