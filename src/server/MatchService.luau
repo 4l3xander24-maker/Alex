@@ -11,6 +11,7 @@ local Remotes = require(Shared.Remotes)
 local AchievementService = require(script.Parent.AchievementService)
 local DailyService = require(script.Parent.DailyService)
 local DataService = require(script.Parent.DataService)
+local FriendService = require(script.Parent.FriendService)
 local Leaderboard = require(script.Parent.Leaderboard)
 local StoreService = require(script.Parent.StoreService)
 local GameState = require(script.Parent.GameState)
@@ -26,7 +27,7 @@ type MatchStats = {
 }
 
 -- Una fila de la tabla del equipo al final
-export type TeamRow = { Name: string, UserId: number, Kills: number, BossKills: number, Coins: number, Xp: number, Waves: number }
+export type TeamRow = { Name: string, UserId: number, Kills: number, BossKills: number, Coins: number, Xp: number, Waves: number, Title: string }
 
 local MatchService = {}
 
@@ -57,6 +58,7 @@ local function grantXp(player: Player, entry: MatchStats, amount: number)
 	if StoreService.hasPass(player, "Vip") then
 		amount *= 1 + Config.Monetization.VipXpBonus
 	end
+	amount *= FriendService.multiplier(player)
 	entry.XpExact += amount
 	local whole = math.floor(entry.XpExact) - entry.Xp
 	if whole > 0 then
@@ -64,6 +66,11 @@ local function grantXp(player: Player, entry: MatchStats, amount: number)
 		DataService.addXp(player, whole)
 	end
 	publish(player, entry)
+end
+
+-- ¿Tiene partida en curso? (jugó algo y todavía no se cerró)
+function MatchService.isPlaying(player: Player): boolean
+	return stats[player] ~= nil
 end
 
 function MatchService.onKill(player: Player, isBoss: boolean, coins: number)
@@ -88,7 +95,8 @@ end
 local function teamRows(): { TeamRow }
 	local rows: { TeamRow } = {}
 	for player, entry in stats do
-		table.insert(rows, { Name = player.DisplayName, UserId = player.UserId, Kills = entry.Kills, BossKills = entry.BossKills, Coins = entry.Coins, Xp = entry.Xp, Waves = entry.Waves })
+		local data = DataService.get(player)
+		table.insert(rows, { Name = player.DisplayName, UserId = player.UserId, Kills = entry.Kills, BossKills = entry.BossKills, Coins = entry.Coins, Xp = entry.Xp, Waves = entry.Waves, Title = if data then data.Title else "" })
 	end
 	table.sort(rows, function(a, b)
 		return if a.Kills ~= b.Kills then a.Kills > b.Kills else a.Xp > b.Xp
@@ -136,6 +144,7 @@ function MatchService.award(player: Player, wave: number, team: { TeamRow }?, vi
 			BossKills = entry.BossKills,
 			Coins = entry.Coins,
 			Xp = entry.Xp,
+			FriendBonus = math.floor(FriendService.bonus(player) * 100 + 0.5),
 			Levels = math.max(0, data.Level - entry.StartLevel),
 			Level = data.Level,
 			StatPoints = data.StatPoints,

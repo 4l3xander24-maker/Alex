@@ -109,12 +109,13 @@ local function buildInviteButton()
 	button.Name = "Invite"
 	button.AnchorPoint = Vector2.new(1, 0)
 	button.Position = UDim2.new(1, -16, 0, 60)
-	button.Size = UDim2.fromOffset(190, 46)
+	button.Size = UDim2.fromOffset(190, 52)
 	button.BackgroundColor3 = Color3.fromRGB(46, 140, 80)
 	button.Font = Enum.Font.GothamBlack
-	button.TextSize = 18
+	button.TextSize = 16
 	button.TextColor3 = Color3.new(1, 1, 1)
-	button.Text = "➕ Invitar amigos"
+	button.TextWrapped = true
+	button.Text = `➕ Invitar amigos\n🤝 +{math.floor(Config.Friends.BonusPerFriend * 100 + 0.5)}% monedas y XP por amigo`
 	button.AutoButtonColor = true
 	button.Parent = gui
 	corner(button, 10)

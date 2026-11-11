@@ -4,7 +4,11 @@
 -- leen) y se acuerdan con el perfil del jugador local en esta sesión.
 local Players = game:GetService("Players")
 local SoundService = game:GetService("SoundService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
+
+local Remotes = require(ReplicatedStorage:WaitForChild("Shared").Remotes)
+local Notify = require(script.Parent.Notify)
 
 local OptionsUi = {}
 
@@ -111,7 +115,7 @@ function OptionsUi.init()
 	local panel = Instance.new("Frame")
 	panel.AnchorPoint = Vector2.new(0.5, 0.5)
 	panel.Position = UDim2.fromScale(0.5, 0.5)
-	panel.Size = UDim2.fromOffset(340, 348)
+	panel.Size = UDim2.fromOffset(340, 400)
 	panel.BackgroundColor3 = PANEL
 	panel.Visible = false
 	panel.Parent = gui
@@ -229,6 +233,73 @@ function OptionsUi.init()
 		show()
 	end
 
+	-- Códigos de regalo: el servidor revisa el código y contesta con un mensaje
+	local codeLabel = Instance.new("TextLabel")
+	codeLabel.Size = UDim2.new(1, 0, 0, 20)
+	codeLabel.BackgroundTransparency = 1
+	codeLabel.Font = Enum.Font.GothamBold
+	codeLabel.TextSize = 15
+	codeLabel.TextColor3 = Color3.new(1, 1, 1)
+	codeLabel.TextXAlignment = Enum.TextXAlignment.Left
+	codeLabel.Text = "Códigos"
+	codeLabel.LayoutOrder = 6
+	codeLabel.Parent = panel
+	local codeRow = Instance.new("Frame")
+	codeRow.Size = UDim2.new(1, 0, 0, 36)
+	codeRow.BackgroundTransparency = 1
+	codeRow.LayoutOrder = 7
+	codeRow.Parent = panel
+	local codeLayout = Instance.new("UIListLayout")
+	codeLayout.FillDirection = Enum.FillDirection.Horizontal
+	codeLayout.Padding = UDim.new(0, 8)
+	codeLayout.Parent = codeRow
+	local codeBox = Instance.new("TextBox")
+	codeBox.Size = UDim2.new(1, -108, 1, 0)
+	codeBox.BackgroundColor3 = Color3.fromRGB(50, 56, 60)
+	codeBox.Font = Enum.Font.GothamBold
+	codeBox.TextSize = 15
+	codeBox.TextColor3 = Color3.new(1, 1, 1)
+	codeBox.PlaceholderText = "Escribe tu código"
+	codeBox.PlaceholderColor3 = Color3.fromRGB(150, 156, 160)
+	codeBox.Text = ""
+	codeBox.ClearTextOnFocus = false
+	codeBox.Parent = codeRow
+	round(codeBox, 8)
+	local redeem = Instance.new("TextButton")
+	redeem.Size = UDim2.fromOffset(100, 36)
+	redeem.BackgroundColor3 = GOLD
+	redeem.Font = Enum.Font.GothamBlack
+	redeem.TextSize = 15
+	redeem.TextColor3 = Color3.fromRGB(30, 24, 10)
+	redeem.Text = "Canjear"
+	redeem.Modal = true
+	redeem.Parent = codeRow
+	round(redeem, 8)
+	local redeeming = false
+	local function sendCode()
+		local text = codeBox.Text
+		if redeeming or text == "" then
+			return
+		end
+		redeeming = true
+		local ok, success, message = pcall(function()
+			return Remotes.ShopAction:InvokeServer("RedeemCode", string.sub(text, 1, 32))
+		end)
+		redeeming = false
+		if ok then
+			Notify.show(message or "Código inválido", if success then GOLD else Color3.fromRGB(255, 140, 120))
+			if success then
+				codeBox.Text = ""
+			end
+		end
+	end
+	redeem.Activated:Connect(sendCode)
+	codeBox.FocusLost:Connect(function(enterPressed)
+		if enterPressed then
+			sendCode()
+		end
+	end)
+
 	local close = Instance.new("TextButton")
 	close.Size = UDim2.new(1, 0, 0, 40)
 	close.BackgroundColor3 = Color3.fromRGB(90, 40, 40)
@@ -237,12 +308,22 @@ function OptionsUi.init()
 	close.TextColor3 = Color3.new(1, 1, 1)
 	close.Text = "Cerrar"
 	close.Modal = true -- libera el mouse en primera persona
-	close.LayoutOrder = 6
+	close.LayoutOrder = 8
 	close.Parent = panel
 	round(close, 8)
 	close.Activated:Connect(function()
 		panel.Visible = false
 	end)
+
+	-- En pantallas bajas (celular acostado) el panel se achica para que entre
+	local fit = Instance.new("UIScale")
+	fit.Parent = panel
+	local function refit()
+		local height = workspace.CurrentCamera.ViewportSize.Y
+		fit.Scale = math.clamp((height - 24) / 400, 0.55, 1)
+	end
+	refit()
+	workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(refit)
 
 	button.Activated:Connect(function()
 		panel.Visible = not panel.Visible

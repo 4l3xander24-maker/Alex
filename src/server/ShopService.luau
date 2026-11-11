@@ -12,13 +12,14 @@ local Remotes = require(Shared.Remotes)
 local DataService = require(script.Parent.DataService)
 local GameState = require(script.Parent.GameState)
 local CampBuilder = require(script.Parent.CampBuilder)
+local CodeService = require(script.Parent.CodeService)
 
 local NOT_ENOUGH = "No tienes suficientes monedas"
 local CLOSED = "🔒 Las tiendas solo abren antes de la partida"
 -- Acciones que se pueden hacer en cualquier momento
 -- Mejoras y talentos se reparten en cualquier momento (también al terminar la
 -- partida, después de subir de nivel)
-local ALWAYS_ALLOWED = { EquipWeapon = true, RepairVillageBridge = true, EquipPet = true, EquipWeaponSkin = true, EquipObjectSkin = true, FinishTutorial = true, AddStat = true, LearnTalent = true }
+local ALWAYS_ALLOWED = { EquipWeapon = true, RepairVillageBridge = true, EquipPet = true, EquipWeaponSkin = true, EquipObjectSkin = true, FinishTutorial = true, AddStat = true, LearnTalent = true, RedeemCode = true }
 
 local ShopService = {}
 
@@ -29,6 +30,11 @@ local actions: { [string]: (Player, Profile, string) -> (boolean, string) } = {}
 function actions.FinishTutorial(_player, data, _id)
 	data.Tutorial = true
 	return true, "¡Listo! Defiende la campana"
+end
+
+-- Códigos de regalo (GiftCodes): `id` es el texto que escribió el jugador
+function actions.RedeemCode(player, data, id)
+	return CodeService.redeem(player, data, id)
 end
 
 function actions.BuyWeapon(player, data, id)

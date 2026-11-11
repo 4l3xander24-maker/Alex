@@ -41,6 +41,7 @@ export type Profile = {
 	Missions: { Day: number, Progress: { [string]: number }, Claimed: { [string]: boolean }, BonusClaimed: boolean, StartLevel: number }, -- misiones de hoy (Day = día de juego, avance por id de misión)
 	Streak: { Count: number, LastDay: number }, -- racha de días: cuántos seguidos y el último día de juego contado
 	MatchesPlayed: number, -- partidas terminadas (ganadas o perdidas)
+	Codes: { [string]: boolean }, -- códigos de regalo ya canjeados (clave = código en mayúsculas)
 }
 
 local Progression = {}
@@ -99,6 +100,7 @@ function Progression.defaultProfile(): Profile
 		Missions = { Day = 0, Progress = {}, Claimed = {}, BonusClaimed = false, StartLevel = 1 },
 		Streak = { Count = 0, LastDay = 0 },
 		MatchesPlayed = 0,
+		Codes = {},
 	}
 end
 

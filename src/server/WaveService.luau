@@ -13,6 +13,7 @@ local EnemyService = require(script.Parent.EnemyService)
 local GameState = require(script.Parent.GameState)
 local Weekly = require(ReplicatedStorage.Shared.Weekly)
 local ConquestService = require(script.Parent.ConquestService)
+local FriendService = require(script.Parent.FriendService)
 local WeeklyService = require(script.Parent.WeeklyService)
 local CampBuilder = require(script.Parent.CampBuilder)
 local LobbyReturn = require(script.Parent.LobbyReturn)
@@ -808,6 +809,7 @@ function WaveService.start()
 			table.clear(lineups)
 			GameState.set("EndReason", "")
 			PlayerService.setInMatch(true)
+			FriendService.announce()
 			local wave = 0
 			local won = false
 			while true do

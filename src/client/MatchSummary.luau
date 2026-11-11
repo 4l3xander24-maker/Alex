@@ -136,13 +136,26 @@ local function showVictoryVote(state: Instance)
 	end)
 end
 
+-- Texto de la primera columna: el nombre y, si tiene, su título (Salón de la fama) en dorado
+local function escapeRich(text: string): string
+	return (string.gsub(string.gsub(string.gsub(text, "&", "&amp;"), "<", "&lt;"), ">", "&gt;"))
+end
+
+local function nameWithTitle(row, medal: string): string
+	local text = escapeRich(medal .. row.Name)
+	if row.Title and row.Title ~= "" then
+		text ..= ` <font color="#ffd764">«{escapeRich(row.Title)}»</font>`
+	end
+	return text
+end
+
 -- Tabla del equipo: una fila por jugador, la tuya resaltada
 local function teamTable(team)
 	if #team == 0 then
 		return
 	end
 	local me = Players.LocalPlayer.UserId
-	local columns = { { "Jugador", 0.4 }, { "🧟", 0.14 }, { "💀", 0.12 }, { "💰", 0.17 }, { "⭐ XP", 0.17 } }
+	local columns = { { "Jugador", 0.46 }, { "🧟", 0.12 }, { "💀", 0.1 }, { "💰", 0.16 }, { "⭐ XP", 0.16 } }
 	local frame = Instance.new("Frame")
 	frame.Size = UDim2.new(1, -40, 0, 26 * (#team + 1) + 8)
 	frame.BackgroundColor3 = Color3.fromRGB(14, 16, 18)
@@ -173,6 +186,7 @@ local function teamTable(team)
 			cell.TextColor3 = color
 			cell.TextXAlignment = if column == 1 then Enum.TextXAlignment.Left else Enum.TextXAlignment.Center
 			cell.TextTruncate = Enum.TextTruncate.AtEnd
+			cell.RichText = column == 1
 			cell.Text = values[column]
 			cell.ZIndex = 2
 			cell.Parent = frame
@@ -186,7 +200,7 @@ local function teamTable(team)
 	line(0, header, Color3.fromRGB(180, 180, 190), false)
 	for index, row in team do
 		local medal = if index == 1 then "🥇 " elseif index == 2 then "🥈 " elseif index == 3 then "🥉 " else ""
-		line(index, { medal .. row.Name, tostring(row.Kills), tostring(row.BossKills), tostring(row.Coins), tostring(row.Xp) }, Color3.new(1, 1, 1), row.UserId == me)
+		line(index, { nameWithTitle(row, medal), tostring(row.Kills), tostring(row.BossKills), tostring(row.Coins), tostring(row.Xp) }, Color3.new(1, 1, 1), row.UserId == me)
 	end
 end
 
@@ -232,6 +246,9 @@ local function show(summary)
 		makeLabel(panel, `🏆 Tu récord: {summary.BestWave} oleadas`, 17)
 	end
 	makeLabel(panel, `💰 +{summary.Coins} monedas     ⭐ +{summary.Xp} XP de cuenta`, 20, GOLD)
+	if (summary.FriendBonus or 0) > 0 then
+		makeLabel(panel, `🤝 Bonus por jugar con amigos: +{summary.FriendBonus}% de monedas y XP`, 16, Color3.fromRGB(150, 235, 160), 22)
+	end
 	teamTable(summary.Team or {})
 	-- Mejor jugador del equipo (más bajas), si hay más de uno
 	local team = summary.Team or {}

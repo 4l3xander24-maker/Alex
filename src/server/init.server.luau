@@ -8,10 +8,12 @@ local DayCycle = require(Shared.DayCycle)
 local Progression = require(Shared.Progression)
 local Remotes = require(Shared.Remotes)
 local AssetService = require(script.AssetService)
+local CodeService = require(script.CodeService)
 local CombatService = require(script.CombatService)
 local DailyService = require(script.DailyService)
 local DataService = require(script.DataService)
 local EnemyService = require(script.EnemyService)
+local FriendService = require(script.FriendService)
 local GameState = require(script.GameState)
 local WeeklyService = require(script.WeeklyService)
 local WhatsNewService = require(script.WhatsNewService)
@@ -42,10 +44,12 @@ PlayerService.init()
 CombatService.init()
 PowerService.init()
 ShopService.init()
+CodeService.init()
 StoreService.init()
 PurchaseService.init()
 VillageService.init(map)
 PetService.init()
+FriendService.init()
 DataService.init(function(player)
 	PlayerService.onPlayerReady(player)
 	PetService.onPlayerReady(player)
@@ -73,7 +77,7 @@ EnemyService.setKillHandler(function(player, enemy)
 		return
 	end
 	-- Las monedas con decimales se redondean al azar para que el bonus cuente
-	local exact = enemy.Coins * Config.Economy.KillCoinScale * Progression.getPlayerStats(data).CoinMultiplier * PurchaseService.coinMultiplier(player) * WaveService.getDifficulty().Coins * WaveService.getEventCoins()
+	local exact = enemy.Coins * Config.Economy.KillCoinScale * Progression.getPlayerStats(data).CoinMultiplier * PurchaseService.coinMultiplier(player) * FriendService.multiplier(player) * WaveService.getDifficulty().Coins * WaveService.getEventCoins()
 	local coins = math.floor(exact) + (if random:NextNumber() < exact % 1 then 1 else 0)
 	DataService.addCoins(player, coins)
 	MatchService.onKill(player, enemy.IsBoss, coins)
@@ -87,6 +91,12 @@ Remotes.GetSnapshot.OnServerInvoke = EnemyService.getSnapshot
 
 -- Al salir: primero la XP de la partida, después se guarda el perfil
 Players.PlayerRemoving:Connect(function(player)
+	-- Si se va en plena partida, su puntaje del reto semanal se sube ahora
+	-- (WeeklyService.submit solo sube a quienes siguen al terminar)
+	local currentWave = WaveService.getCurrentWave()
+	if currentWave > 0 and MatchService.isPlaying(player) then
+		WeeklyService.submitPlayer(player, currentWave, GameState.get("Difficulty") or 1)
+	end
 	MatchService.award(player, WaveService.getCurrentWave())
 	DataService.release(player)
 	-- Si se desconectó (no se fue al Lobby a propósito) puede volver desde el Lobby
