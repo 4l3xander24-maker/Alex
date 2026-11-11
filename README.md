@@ -79,11 +79,13 @@ el círculo de runas y el cuchillo), [`docs/capturas/pixel/`](docs/capturas/pixe
   entramado de madera, pozo, carreta, estandartes, **velas** y **antorchas** que parpadean, árboles secos y una luna enorme.
 - Si un zombi te persigue y lo pierdes, vuelve a su camino.
 - **Preparación antes de cada partida**: el único momento para comprar. La campana está rota y la partida
-  **solo empieza cuando alguien la reconstruye** (mantener E), sin tiempo límite. No hay conteos en pantalla.
-  Durante las oleadas las tiendas están cerradas.
+  **solo empieza cuando alguien la reconstruye** (mantener E), sin tiempo límite. Si vienen en grupo desde el
+  Lobby, antes se espera a que lleguen todos (como mucho `Config.Rooms.PartyWait` segundos). Entre oleadas se ve
+  la cuenta hasta la siguiente. Durante las oleadas las tiendas están cerradas.
 - **Vida de la campana**: 100, con la barra flotando sobre la campana. Se mejora con el **refuerzo** del
   Intendente (+40 por nivel, hasta 8 niveles, queda guardado; cuenta el más alto del servidor).
-- **Entre oleadas te reabastecen**: cada arma vuelve como mínimo a sus balas iniciales (además de la bala por baja).
+- **Entre oleadas te reabastecen**: cada arma vuelve como mínimo a sus balas iniciales (además de la bala por baja);
+  en Normal además se llena el cargador.
 - **Empiezas con cuchillo y pistola**. El cuchillo no gasta balas (gasta energía); las armas de fuego tienen cargador y
   **reserva limitada**, y **cada zombi que eliminas te da balas** para el arma que tienes en la mano.
 - **4 NPC** en el campamento (habla con **E**):

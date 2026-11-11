@@ -808,30 +808,42 @@ local function launch(room: Room)
 	room.Launching = true
 	refresh(room)
 	local members = table.clone(room.Members)
+	local userIds = {}
+	for _, member in members do
+		table.insert(userIds, member.UserId)
+	end
+	local registeredId: string? = nil -- servidor anotado en MatchRegistry (para deshacerlo si falla)
 	local ok, err = pcall(function()
 		if RunService:IsStudio() then
 			error("En Studio no se puede teletransportar: publica y prueba desde Roblox")
 		end
 		-- Servidor reservado con código: así se puede volver si alguien se desconecta
 		local code, privateId = TeleportService:ReserveServer(Config.Places.Match)
-		local userIds = {}
-		for _, member in members do
-			table.insert(userIds, member.UserId)
-		end
 		MatchRegistry.register(userIds, code, privateId)
+		registeredId = privateId
 		for _, member in members do
 			teleportingUntil[member] = os.clock() + 40
 		end
 		local options = Instance.new("TeleportOptions")
 		options.ReservedServerAccessCode = code
-		options:SetTeleportData({ Room = room.Index, Players = #members })
+		-- La partida espera a que lleguen todos estos jugadores antes de empezar
+		options:SetTeleportData({ Room = room.Index, Players = #members, UserIds = userIds })
 		TeleportService:TeleportAsync(Config.Places.Match, members, options)
 	end)
 	if not ok then
 		warn(`Sala {room.Index}: {err}`)
+		-- Nadie llegó a esa partida: sin esto el Lobby ofrecería "VOLVER A MI
+		-- PARTIDA" hacia un servidor vacío
+		local privateId = registeredId
+		if privateId then
+			for _, userId in userIds do
+				MatchRegistry.clear(userId)
+			end
+			MatchRegistry.finish(privateId)
+		end
 		for _, player in members do
 			teleportingUntil[player] = nil
-			status:FireClient(player, room.Index, #members, nil, tostring(err))
+			status:FireClient(player, room.Index, #members, nil, "No se pudo empezar la partida. Vuelve a entrar al círculo para intentarlo otra vez")
 		end
 	end
 	task.wait(if ok then 8 else 3)

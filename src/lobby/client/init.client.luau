@@ -101,17 +101,30 @@ reconnect.Activated:Connect(function()
 	reconnectGo:FireServer()
 end)
 
+local PROBLEM_TIME = 6 -- segundos que se ve un aviso antes de volver al texto normal
 local currentRoom = nil
+local statusToken = 0
 status.OnClientEvent:Connect(function(room, count, seconds, problem)
+	statusToken += 1
 	cancel.Visible = room ~= nil and not problem
-	if room and room ~= currentRoom then
+	if room and room ~= currentRoom and not problem then
 		LobbyUi.playJoin()
 	end
-	currentRoom = room
+	if not problem then
+		currentRoom = room
+	end
 	if not room then
 		panel.Text = IDLE
 	elseif problem then
 		panel.Text = `Aviso: {problem}`
+		-- El aviso se borra solo si no llegó nada nuevo mientras tanto
+		local token = statusToken
+		task.delay(PROBLEM_TIME, function()
+			if token == statusToken then
+				currentRoom = nil
+				panel.Text = IDLE
+			end
+		end)
 	elseif seconds then
 		panel.Text = `Sala {room}  ·  {count}/{Config.Rooms.Capacities[room]} jugadores\nLa partida empieza en {seconds} s. Pulsa Cancelar para salir.`
 	else
