@@ -1519,4 +1519,13 @@ Config.Anticheat = {
 	MaxRewind = 0.25, -- segundos de compensación de lag
 }
 
+-- Ayudas para disparar (opciones "Disparo automático" y "Ayuda de puntería",
+-- encendidas de entrada solo en celular). Solo cambian hacia dónde apunta el
+-- cliente: el servidor sigue decidiendo el daño.
+Config.ShootAssist = {
+	AimAngle = 3, -- grados alrededor de la mira en los que se busca un zombi
+	DryClickGap = 0.3, -- segundos entre dos clics de arma vacía
+	DrySwitchTime = 1, -- segundos intentando disparar sin balas antes de sacar el cuchillo
+}
+
 return Config
