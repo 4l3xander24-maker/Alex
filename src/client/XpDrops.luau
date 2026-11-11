@@ -1,6 +1,7 @@
 -- Rombos de experiencia: cuando muere un zombi salta un rombo brillante que
 -- gira, y después vuela hacia quien lo mató. Al llegarte a ti muestra "+N XP".
 -- Es solo visual: la XP ya se cuenta en el servidor al matar (MatchService).
+-- Los rombos se reciclan y hay un tope a la vez (más bajo en calidad baja).
 local Debris = game:GetService("Debris")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -11,7 +12,6 @@ local Sfx = require(script.Parent.Sfx)
 
 local COLOR = Color3.fromRGB(90, 255, 170)
 local BOSS_COLOR = Color3.fromRGB(255, 210, 80)
-local MAX_DROPS = 60 -- en una horda grande no se llena la pantalla
 local POP_TIME = 0.45 -- salta y gira antes de volar
 local FLY_TIME = 0.4
 local MAX_DISTANCE = 120 -- si el que lo mató está más lejos, el rombo solo se desvanece
@@ -24,6 +24,7 @@ local XpDrops = {}
 local player = Players.LocalPlayer
 local folder: Folder
 local drops: { Drop } = {}
+local pool: { BasePart } = {}
 local random = Random.new()
 
 local function targetPosition(target: Player): Vector3?
@@ -59,7 +60,10 @@ end
 local function finish(index: number, collected: boolean)
 	local drop = drops[index]
 	table.remove(drops, index)
-	drop.Part:Destroy()
+	-- Vuelve a la reserva escondido
+	drop.Part.Transparency = 1
+	drop.Part.CFrame = CFrame.new(0, -500, 0)
+	table.insert(pool, drop.Part)
 	if collected and drop.Target == player then
 		popText(drop.Amount, drop.Boss)
 		Sfx.play("XpPickup")
@@ -104,33 +108,47 @@ end
 
 -- Lo llama EnemyRenderer cuando muere un zombi
 function XpDrops.spawn(position: Vector3, killerId: number, typeName: string)
-	if #drops >= MAX_DROPS then
+	-- En una horda grande no se llena la pantalla: se va el más viejo
+	local lowQuality = player:GetAttribute("LowQuality") == true
+	local limit = if lowQuality then Config.Graphics.LowMaxXpDrops else Config.Graphics.MaxXpDrops
+	while #drops >= limit do
 		finish(1, false)
 	end
 	local info = Config.Enemies[typeName]
 	local boss = info ~= nil and info.IsBoss == true
-	local part = Instance.new("Part")
-	part.Name = "XpDiamond"
-	part.Anchored = true
-	part.CanCollide = false
-	part.CanQuery = false
-	part.CanTouch = false
-	part.CastShadow = false
-	part.Material = Enum.Material.Neon
-	part.Color = if boss then BOSS_COLOR else COLOR
-	part.Size = Vector3.one * (if boss then 1.4 else 0.8)
-	part.CFrame = CFrame.new(position)
+	local part = table.remove(pool)
+	if not part then
+		local new = Instance.new("Part")
+		new.Name = "XpDiamond"
+		new.Anchored = true
+		new.CanCollide = false
+		new.CanQuery = false
+		new.CanTouch = false
+		new.CastShadow = false
+		new.Material = Enum.Material.Neon
+		new.Parent = folder
+		part = new
+	end
+	local diamond = part :: BasePart
+	diamond.Transparency = 0
+	diamond.Color = if boss then BOSS_COLOR else COLOR
+	diamond.Size = Vector3.one * (if boss then 1.4 else 0.8)
+	diamond.CFrame = CFrame.new(position)
 	-- En calidad baja sin luz (WorldFx marca LowQuality): cada luz cuesta en celular
-	if player:GetAttribute("LowQuality") ~= true then
-		local light = Instance.new("PointLight")
-		light.Color = part.Color
+	local light = diamond:FindFirstChildOfClass("PointLight")
+	if not lowQuality and not light then
+		local new = Instance.new("PointLight")
+		new.Parent = diamond
+		light = new
+	end
+	if light then
+		light.Enabled = not lowQuality
+		light.Color = diamond.Color
 		light.Range = if boss then 10 else 5
 		light.Brightness = 1.2
-		light.Parent = part
 	end
-	part.Parent = folder
 	table.insert(drops, {
-		Part = part,
+		Part = diamond,
 		Start = Vector3.new(position.X, position.Y, position.Z),
 		Born = os.clock(),
 		Target = Players:GetPlayerByUserId(killerId),
