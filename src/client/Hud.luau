@@ -780,7 +780,7 @@ function Hud.init(actions: Actions)
 	local lastClock = 0
 	local lastHumanoid: Humanoid? = nil
 	local lastHealth = 0
-	local flash = 0 -- fuerza del destello rojo (1 recién golpeado, 0 apagado)
+	local flash = 0 -- fuerza del destello rojo: sube al recibir daño y se apaga sola
 	RunService.RenderStepped:Connect(function(dt)
 		local data = Profile.get()
 
