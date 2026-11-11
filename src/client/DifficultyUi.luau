@@ -135,7 +135,9 @@ local function card(index: number, info, locked: boolean, previous)
 	end
 end
 
-local function open(unlocked: number)
+-- showModifiers: el servidor dice si puedes marcar modificadores (no hasta
+-- superar la dificultad más baja, ni en la primera partida del equipo)
+local function open(unlocked: number, showModifiers: boolean?)
 	for _, child in list:GetChildren() do
 		if child:IsA("Frame") or child:IsA("TextButton") then
 			child:Destroy()
@@ -148,8 +150,10 @@ local function open(unlocked: number)
 	end
 	-- Modificadores opcionales (valen los de quien vota primero)
 	chosen = {}
-	for index, modifier in Config.Modifiers do
-		modifierCard(index, modifier)
+	if showModifiers == true then
+		for index, modifier in Config.Modifiers do
+			modifierCard(index, modifier)
+		end
 	end
 	gui.Enabled = true
 end

@@ -7,7 +7,10 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
-local Remotes = require(ReplicatedStorage:WaitForChild("Shared").Remotes)
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Config = require(Shared.Config)
+local Progression = require(Shared.Progression)
+local Remotes = require(Shared.Remotes)
 local HudIcons = require(script.Parent.HudIcons)
 local Profile = require(script.Parent.Profile)
 
@@ -21,12 +24,17 @@ local POWERS_STEP_TIME = 10
 
 local touch = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
 
+-- Lo que alcanza con las monedas iniciales: mejorar la pistola y unas minas
+local PISTOL_UPGRADE = Progression.weaponUpgradeCost("Pistol", 0)
+local MINE_PRICE = Config.Traps.Mine.Price
+local SHOPPING = `Con tus monedas mejora la pistola en el Armero ({PISTOL_UPGRADE}) o compra minas al Intendente ({MINE_PRICE} c/u)`
+
 local STEPS = {
 	{
 		Title = "Prepárate y empieza",
 		Text = if touch
-			then "Sigue las flechas doradas: compra armas con tus monedas y, cuando estés listo, mantén el aviso de la campana para reconstruirla."
-			else "Sigue las flechas doradas: compra armas con tus monedas y, cuando estés listo, mantén E en la campana para reconstruirla.",
+			then `{SHOPPING}. Luego mantén el aviso de la campana para reconstruirla.`
+			else `{SHOPPING}. Luego mantén E en la campana para reconstruirla.`,
 	},
 	{
 		Title = "¡Defiende la campana!",
