@@ -4,13 +4,14 @@
 -- Todo es local en cada cliente y tiene un tope de cubitos para no dar lag.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Config = require(Shared:WaitForChild("Config"))
+local Paths = require(Shared:WaitForChild("Paths"))
 
 local DeathFx = {}
 
 local MAX_CUBES = 260
 local FLASH_TIME = 0.07
-local GROUND = 0
 local WHITE = Color3.new(1, 1, 1)
 
 type Debris = {
@@ -23,6 +24,7 @@ type Debris = {
 	Age: number,
 	Life: number,
 	HalfHeight: number,
+	Ground: number, -- altura del suelo donde nació (la isla está más alta, el bosque más bajo)
 	IsCube: boolean,
 	BaseSize: Vector3,
 	Color: Color3,
@@ -91,6 +93,7 @@ function DeathFx.addPiece(part: BasePart, cframe: CFrame, options: { [string]: a
 		Age = 0,
 		Life = options.Life,
 		HalfHeight = part.Size.Magnitude / 3,
+		Ground = Paths.walkHeight(cframe.Position),
 		IsCube = false,
 		BaseSize = part.Size,
 		Color = part.Color,
@@ -125,6 +128,7 @@ function DeathFx.addCube(position: Vector3, color: Color3, size: number, velocit
 		Age = 0,
 		Life = life,
 		HalfHeight = size / 2,
+		Ground = Paths.walkHeight(position),
 		IsCube = true,
 		BaseSize = part.Size,
 		Color = color,
@@ -164,7 +168,7 @@ function DeathFx.splat(position: Vector3, radius: number, color: Color3, life: n
 	-- En pixel art 3D la mancha es cuadrada
 	part.Shape = if Config.Style.Blocky then Enum.PartType.Block else Enum.PartType.Cylinder
 	part.Size = Vector3.new(0.1, radius * 2, radius * 2)
-	part.CFrame = CFrame.new(position.X, GROUND + 0.08, position.Z) * CFrame.Angles(0, 0, math.pi / 2)
+	part.CFrame = CFrame.new(position.X, Paths.walkHeight(position) + 0.08, position.Z) * CFrame.Angles(0, 0, math.pi / 2)
 	part.Color = color
 	part.Material = Enum.Material.SmoothPlastic
 	part.Anchored = true
@@ -199,8 +203,8 @@ function DeathFx.step(dt: number, parts: { BasePart }, cframes: { CFrame })
 
 		item.Velocity -= Vector3.new(0, item.Gravity * dt, 0)
 		local position = item.Position + item.Velocity * dt
-		if position.Y < GROUND + item.HalfHeight then
-			position = Vector3.new(position.X, GROUND + item.HalfHeight, position.Z)
+		if position.Y < item.Ground + item.HalfHeight then
+			position = Vector3.new(position.X, item.Ground + item.HalfHeight, position.Z)
 			landed = item.Velocity.Y < 0
 			-- Rebote corto y se frena al arrastrarse
 			item.Velocity = Vector3.new(item.Velocity.X * 0.6, math.abs(item.Velocity.Y) * 0.3, item.Velocity.Z * 0.6)

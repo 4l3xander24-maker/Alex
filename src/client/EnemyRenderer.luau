@@ -310,7 +310,7 @@ local function addEnemy(id: number, typeName: string, points: { Vector3 }, speed
 			-- Tierra que salta al salir
 			for _ = 1, math.min(6, DeathFx.budget()) do
 				local direction = Vector3.new(random:NextNumber(-1, 1), random:NextNumber(0.6, 1.4), random:NextNumber(-1, 1)).Unit
-				DeathFx.addCube(Vector3.new(position.X, 0.3, position.Z), DIRT[random:NextInteger(1, #DIRT)], 0.4 * scale ^ 0.8, direction * 8 * scale ^ 0.5, 50, random:NextNumber(0.5, 0.8))
+				DeathFx.addCube(Vector3.new(position.X, Paths.walkHeight(position) + 0.3, position.Z), DIRT[random:NextInteger(1, #DIRT)], 0.4 * scale ^ 0.8, direction * 8 * scale ^ 0.5, 50, random:NextNumber(0.5, 0.8))
 			end
 		end
 	end
@@ -737,9 +737,23 @@ function EnemyRenderer.init()
 	end)
 	-- Golpes y muertes llegan como { id, daño }: el número salta sobre la cabeza
 	Remotes.EnemyHit.OnClientEvent:Connect(function(hits)
+		-- Varios golpes al mismo zombi en el mismo mensaje (los perdigones de la
+		-- escopeta) se juntan en un solo número
+		local totals: { [number]: number } = {}
+		local order: { number } = {}
 		for _, hit in hits do
-			showDamage(hit[1], hit[2], false)
-			flashEnemy(hit[1])
+			local id, amount = hit[1], hit[2]
+			if not totals[id] then
+				totals[id] = 0
+				table.insert(order, id)
+			end
+			if type(amount) == "number" then
+				totals[id] += amount
+			end
+		end
+		for _, id in order do
+			showDamage(id, totals[id], false)
+			flashEnemy(id)
 		end
 	end)
 	Remotes.EnemyDied.OnClientEvent:Connect(function(deaths)
@@ -756,8 +770,8 @@ function EnemyRenderer.init()
 			if visual and typeof(skinId) == "string" and skinId ~= "" then
 				for _, skin in Config.ObjectSkins do
 					if skin.Id == skinId then
-						local at = EnemyMath.getPosition(visual.Path, workspace:GetServerTimeNow())
-						DeathFx.skinBurst(at + Vector3.new(0, Paths.walkHeight(at), 0), skin)
+						-- getPosition ya incluye la altura del suelo
+						DeathFx.skinBurst(EnemyMath.getPosition(visual.Path, workspace:GetServerTimeNow()), skin)
 						break
 					end
 				end
