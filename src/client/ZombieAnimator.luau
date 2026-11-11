@@ -167,6 +167,26 @@ function ZombieAnimator.walker(pose: Pose, gait: Gait, clock: number, speed: num
 	end
 end
 
+-- Zombi rígido (nivel de detalle bajo, ver EnemyRenderer): no mueve brazos ni
+-- piernas, solo sube y baja el cuerpo entero. Devuelve cuánto sube y cuánto se
+-- echa atrás (studs). Con `walking` false queda quieto: solo sale de la tierra.
+function ZombieAnimator.rigid(gait: Gait, clock: number, speed: number, scale: number, phase: number, walking: boolean, hitAge: number, spawnAge: number): (number, number)
+	local lift, back = 0, 0
+	if walking then
+		-- El mismo saltito que walker (sin la cojera) y el empujón del golpe
+		local t = clock * speed * 0.9 / math.sqrt(scale) * gait.Cadence + phase
+		lift = math.abs(math.sin(t)) * BOB_HEIGHT * scale
+		if hitAge < FLINCH_TIME then
+			local flinch = 1 - hitAge / FLINCH_TIME
+			back = 0.5 * flinch * flinch * scale
+		end
+	end
+	if spawnAge < ZombieAnimator.EMERGE_TIME then
+		lift -= (1 - easeOut(spawnAge / ZombieAnimator.EMERGE_TIME)) * 5 * scale * 0.95
+	end
+	return lift, back
+end
+
 -- Pose del dragón: aletea, mece la cola y abre la mandíbula para escupir fuego
 function ZombieAnimator.flyer(pose: Pose, clock: number, phase: number, attacking: boolean, scale: number, hitAge: number)
 	local sway = math.sin(clock * 1.6 + phase)

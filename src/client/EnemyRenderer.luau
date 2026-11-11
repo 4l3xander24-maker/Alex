@@ -6,8 +6,17 @@
 -- Estilo "Pixel": sprite que siempre mira a la cámara (si tiene Sprite).
 -- Al morir revientan en cubitos (DeathFx).
 --
--- Optimización: los zombis detrás de la cámara no se mueven en pantalla, los
--- lejanos no se animan y los muy lejanos se actualizan cada 3 cuadros.
+-- Optimización: los zombis detrás de la cámara no se mueven en pantalla y los
+-- muy lejanos se actualizan cada 3 cuadros. Cada zombi tiene un nivel de
+-- detalle (LOD) según la distancia y la calidad gráfica (Config.Graphics):
+--   * completo: la animación entera. Las piezas que giran juntas (toda la cara
+--     con la cabeza, la manga con el brazo) comparten una articulación, así el
+--     giro se calcula una vez por articulación y no una vez por pieza.
+--   * rígido (solo calidad baja): pasado el tope de animados, los demás cercanos
+--     se mueven enteros con la pose quieta y un saltito al caminar. Una
+--     multiplicación por pieza; si no se movió (ya llegó a la campana), nada.
+--   * lejano: pose quieta, como siempre. En calidad baja además se esconden las
+--     piezas chicas (cara, dientes, manchas): se mueven 11 de 36 piezas.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -31,8 +40,14 @@ local FLASH_TINT = Color3.new(1, 0.35, 0.35)
 local FLASH_TIME = 0.08
 local SWAY_SPEED = 4
 local TURN_RATE = 5 -- qué tan rápido giran hacia donde caminan
--- Pose quieta para los zombis lejanos (no se anima)
+-- Pose quieta para los zombis lejanos y rígidos (no se anima)
 local REST_POSE = ZombieAnimator.newPose()
+-- Niveles de detalle (ver arriba)
+local LOD_FULL = 1
+local LOD_RIGID = 2
+local LOD_FAR = 3
+local BUDGET_FRAMES = 10 -- cada cuántos cuadros se eligen los que se animan enteros
+local BUDGET_STICKY = 0.85 -- el que ya se anima entero cuenta como más cerca: no salta de nivel por un paso
 local DIRT = { Color3.fromRGB(92, 70, 48), Color3.fromRGB(70, 54, 38), Color3.fromRGB(60, 90, 50) }
 local SPRITE_SWAY = 0.06
 local BOB_HEIGHT = 0.12
@@ -46,22 +61,31 @@ local FIRE_COLORS = { Color3.fromRGB(150, 255, 120), Color3.fromRGB(200, 255, 11
 
 type PartSpec = ZombieModels.PartSpec
 
+-- Articulación: las piezas con el mismo papel, inclinación y pivote giran juntas
+type Joint = {
+	Role: string,
+	Tilt: number,
+	Pivot: CFrame,
+	OnTorso: boolean,
+}
+
 type Piece = {
 	Part: BasePart,
 	Spec: PartSpec?,
 	Color: Color3,
 	Glows: boolean,
-	-- Pose fija ya escalada (para piezas sin animación)
-	Static: CFrame?,
-	Pivot: Vector3,
-	Hang: Vector3,
-	Role: string?,
+	Joint: number?, -- índice en Visual.Joints; nil = fija al torso o a la raíz
+	Offset: CFrame, -- desde su articulación (o desde el torso o la raíz si es fija)
+	Rest: CFrame, -- desde la raíz con la pose quieta (zombis rígidos y lejanos)
+	Small: boolean, -- pieza chica: en calidad baja no se dibuja de lejos ni sale volando al morir
 	OnTorso: boolean, -- se mueve con el torso (cabeza, brazos, ropa) o con la raíz (piernas)
 }
 
 type Visual = {
 	Type: string,
 	Pieces: { Piece },
+	Joints: { Joint },
+	JointFrames: { CFrame }, -- dónde quedó cada articulación en este cuadro
 	Decal: Decal?,
 	Breath: ParticleEmitter?,
 	BreathLight: PointLight?,
@@ -83,6 +107,16 @@ type Visual = {
 	FlashUntil: number,
 	Phase: number,
 	Slot: number, -- para repartir las actualizaciones de los lejanos entre cuadros
+	Boss: boolean,
+	Lod: number,
+	Hidden: boolean, -- piezas chicas escondidas (lejano en calidad baja)
+	InBudget: boolean, -- entre los más cercanos que se animan enteros (calidad baja)
+	Visible: boolean, -- false si quedó detrás de la cámara
+	Distance: number,
+	Score: number, -- para ordenar el tope de animados
+	PlacedAt: Vector3?, -- dónde se dejaron las piezas rígidas (si no cambia, no se mueven)
+	PlacedFacing: Vector3?,
+	Mouth: CFrame?, -- boca del dragón (de donde sale el fuego)
 }
 
 local EnemyRenderer = {}
@@ -103,6 +137,11 @@ local parts: { BasePart } = {}
 local cframes: { CFrame } = {}
 local frame = 0
 local random = Random.new()
+-- Calidad baja (la marca WorldFx): menos detalle en los zombis
+local player = Players.LocalPlayer
+local lowQuality = player:GetAttribute("LowQuality") == true
+local budgetDirty = true
+local candidates: { Visual } = {}
 
 local function newPart(name: string, size: Vector3, material: Enum.Material): Part
 	local part = Instance.new("Part")
@@ -126,7 +165,7 @@ local function createSprite(typeName: string, info, frames: { string }): ({ Piec
 	decal.Face = Enum.NormalId.Front
 	decal.Parent = part
 	part.Parent = folder
-	return { { Part = part, Spec = nil, Color = info.Skin, Glows = false, Pivot = Vector3.zero, Hang = Vector3.zero, OnTorso = false } }, decal
+	return { { Part = part, Spec = nil, Color = info.Skin, Glows = false, Offset = CFrame.identity, Rest = CFrame.identity, Small = false, OnTorso = false } }, decal
 end
 
 -- Fuego del dragón: llamas verdes y naranjas que salen de la boca
@@ -156,14 +195,16 @@ local function addBreath(part: BasePart, scale: number): (ParticleEmitter?, Poin
 	return fire, light
 end
 
-local function createBody(typeName: string, info, scale: number, id: number): ({ Piece }, ParticleEmitter?, PointLight?, BasePart?)
+local function createBody(typeName: string, info, scale: number, id: number): ({ Piece }, { Joint }, ParticleEmitter?, PointLight?, BasePart?)
 	local pieces = {}
+	local joints: { Joint } = {}
+	local jointIndex: { [string]: number } = {}
 	local breath, breathLight, breathPart = nil, nil, nil
 	-- Un tono distinto por zombi (no a los jefes, que tienen su look). Todas las
 	-- piezas del mismo color de un zombi salen con la misma semilla, así coinciden.
 	local varied = not info.IsBoss
 	-- En celulares flojos se omiten los adornos pequeños (vendas, heridas, costillas)
-	local lowDetail = Players.LocalPlayer:GetAttribute("LowQuality") == true
+	local lowDetail = lowQuality
 	for _, spec in ZombieModels.get(typeName, info) do
 		if lowDetail and spec.Detail then
 			continue
@@ -210,22 +251,39 @@ local function createBody(typeName: string, info, scale: number, id: number): ({
 		local dragon = info.Model == "Dragon"
 		-- La cabeza (con su cara y sombrero) se mueve entera: mira a los lados
 		local role = spec.Role or (if not dragon and spec.Group == "Head" then "Head" else nil)
+		local onTorso = not dragon and spec.Group ~= "Leg"
+		local size = part.Size
 		local piece: Piece = {
 			Part = part,
 			Spec = spec,
 			Color = color,
 			Glows = material == Enum.Material.Neon,
-			Pivot = pivot,
-			Hang = hang,
-			Role = role,
-			OnTorso = not dragon and spec.Group ~= "Leg",
+			Joint = nil,
+			Offset = CFrame.identity,
+			Rest = CFrame.identity,
+			Small = not spec.Transparent and math.max(size.X, size.Y, size.Z) < graphics.SmallPartSize,
+			OnTorso = onTorso,
 		}
-		if not role then
-			piece.Static = CFrame.new(pivot) * CFrame.Angles(-spec.Tilt, 0, 0) * CFrame.new(hang) * (spec.Turn or CFrame.identity)
+		if role then
+			-- Las piezas que giran igual alrededor del mismo pivote comparten articulación
+			local key = `{role}|{spec.Tilt}|{pivot}|{onTorso}`
+			local index = jointIndex[key]
+			if not index then
+				table.insert(joints, { Role = role, Tilt = spec.Tilt, Pivot = CFrame.new(pivot), OnTorso = onTorso })
+				index = #joints
+				jointIndex[key] = index
+			end
+			piece.Joint = index
+			piece.Offset = CFrame.new(hang) * (spec.Turn or CFrame.identity)
+			piece.Rest = CFrame.new(pivot) * ZombieAnimator.rotation(role, spec.Tilt, REST_POSE) * piece.Offset
+		else
+			-- Pose fija ya escalada (con la pose quieta el torso coincide con la raíz)
+			piece.Offset = CFrame.new(pivot) * CFrame.Angles(-spec.Tilt, 0, 0) * CFrame.new(hang) * (spec.Turn or CFrame.identity)
+			piece.Rest = piece.Offset
 		end
 		table.insert(pieces, piece)
 	end
-	return pieces, breath, breathLight, breathPart
+	return pieces, joints, breath, breathLight, breathPart
 end
 
 local function setFlash(visual: Visual, flashing: boolean)
@@ -251,6 +309,7 @@ local function addEnemy(id: number, typeName: string, points: { Vector3 }, speed
 
 	local scale = info.Size.Y / 5
 	local pieces, decal, breath, breathLight, breathPart
+	local joints: { Joint } = {}
 	-- Sprite pixelado si se subió (tools/upload_assets.py) o si se pegó uno en Config
 	local frames = if Config.ZombieStyle == "Pixel" then ResolvedAssets.getSprite(typeName) else nil
 	if not frames and Config.ZombieStyle == "Pixel" and info.Sprite ~= "" then
@@ -268,11 +327,13 @@ local function addEnemy(id: number, typeName: string, points: { Vector3 }, speed
 			breathLight.Parent = pieces[1].Part
 		end
 	else
-		pieces, breath, breathLight, breathPart = createBody(typeName, info, scale, id)
+		pieces, joints, breath, breathLight, breathPart = createBody(typeName, info, scale, id)
 	end
 	visuals[id] = {
 		Type = typeName,
 		Pieces = pieces,
+		Joints = joints,
+		JointFrames = table.create(#joints, CFrame.identity),
 		Decal = decal,
 		Breath = breath,
 		BreathLight = breathLight,
@@ -294,7 +355,18 @@ local function addEnemy(id: number, typeName: string, points: { Vector3 }, speed
 		FlashUntil = 0,
 		Phase = id * 0.37,
 		Slot = id % 3,
+		Boss = info.IsBoss == true,
+		Lod = if decal then LOD_FULL else 0, -- 0: todavía no se ubicó
+		Hidden = false,
+		InBudget = false,
+		Visible = false,
+		Distance = math.huge,
+		Score = 0,
+		PlacedAt = nil,
+		PlacedFacing = nil,
+		Mouth = nil,
 	}
+	budgetDirty = true
 
 	-- Recién nacido (no el que ya estaba al entrar al juego): sale de la tierra
 	local visual = visuals[id]
@@ -323,10 +395,10 @@ local function destroyPieces(visual: Visual)
 end
 
 -- Reparte los cubitos entre las piezas según su tamaño (cabeza, torso, piernas)
-local function cubeShares(visual: Visual, total: number): { [Piece]: number }
+local function cubeShares(flying: { Piece }, total: number): { [Piece]: number }
 	local volumes = {}
 	local sum = 0
-	for _, piece in visual.Pieces do
+	for _, piece in flying do
 		local size = piece.Part.Size
 		local volume = size.X * size.Y * size.Z
 		volumes[piece] = volume
@@ -350,15 +422,23 @@ local function explode(visual: Visual, position: Vector3, cameraPosition: Vector
 	away = if away.Magnitude > 0.01 then away.Unit else -visual.Facing
 	local cubeSize = 0.42 * scale ^ 0.8
 	local wanted = if info.IsBoss then 70 else 14
-	local shares = cubeShares(visual, math.min(wanted, DeathFx.budget()))
 	local goo = info.Skin:Lerp(Color3.new(0, 0, 0), 0.35)
 
+	-- En calidad baja las piezas chicas (cara, dientes, manchas) no salen
+	-- volando: desaparecen con el destello y quedan los pedazos grandes
+	local flying = {}
 	for _, piece in visual.Pieces do
 		local spec = piece.Spec
-		if spec and spec.Transparent then
+		if (spec and spec.Transparent) or (piece.Small and (lowQuality or visual.Hidden)) then
 			piece.Part:Destroy()
-			continue
+		else
+			table.insert(flying, piece)
 		end
+	end
+	local shares = cubeShares(flying, math.min(wanted, DeathFx.budget()))
+
+	for _, piece in flying do
+		local spec = piece.Spec
 		local group = if spec then spec.Group else "Torso"
 		local velocity, spin, life
 		if visual.Decal then
@@ -562,6 +642,64 @@ end
 
 local nextGrowl = 0
 
+local function byScore(a: Visual, b: Visual): boolean
+	return a.Score < b.Score
+end
+
+-- Calidad baja: elige los zombis cercanos que se animan enteros (los N más
+-- cercanos a la cámara). El que ya estaba animado cuenta como un poco más
+-- cerca, así en el borde no cambian de nivel a cada rato.
+local function assignBudget()
+	table.clear(candidates)
+	local limit = graphics.LowAnimateDistance
+	for _, visual in visuals do
+		local wasIn = visual.InBudget
+		visual.InBudget = false
+		if not visual.Decal and not visual.Boss and visual.Visible and visual.Distance < limit + visual.Extent then
+			visual.Score = visual.Distance * (if wasIn then BUDGET_STICKY else 1)
+			table.insert(candidates, visual)
+		end
+	end
+	if #candidates > graphics.LowFullBudget then
+		table.sort(candidates, byScore)
+	end
+	for index = 1, math.min(graphics.LowFullBudget, #candidates) do
+		candidates[index].InBudget = true
+	end
+	table.clear(candidates)
+end
+
+-- Nivel de detalle de un zombi de piezas según la distancia y la calidad
+local function chooseLod(visual: Visual, distance: number, spawnAge: number): number
+	if not lowQuality or visual.Boss then
+		-- Calidad alta (y los jefes siempre): como antes, se anima de cerca y al salir de la tierra
+		if spawnAge < ZombieAnimator.EMERGE_TIME or distance < graphics.AnimateDistance + visual.Extent then
+			return LOD_FULL
+		end
+		return LOD_FAR
+	end
+	-- Con histéresis: el lejano vuelve a acercarse unos studs más adentro del borde
+	local limit = graphics.LowAnimateDistance + visual.Extent
+	if visual.Lod == LOD_FAR then
+		limit -= graphics.LodMargin
+	end
+	if distance > limit then
+		return LOD_FAR
+	end
+	return if visual.InBudget then LOD_FULL else LOD_RIGID
+end
+
+-- Esconde o muestra las piezas chicas (lejanos en calidad baja). Se llama en
+-- el mismo cuadro en que se ubican las piezas, así nunca se ven fuera de lugar.
+local function setHidden(visual: Visual, hidden: boolean)
+	visual.Hidden = hidden
+	for _, piece in visual.Pieces do
+		if piece.Small then
+			piece.Part.LocalTransparencyModifier = if hidden then 1 else 0
+		end
+	end
+end
+
 local function render(dt: number)
 	frame += 1
 	local now = workspace:GetServerTimeNow()
@@ -569,10 +707,21 @@ local function render(dt: number)
 	local camera = workspace.CurrentCamera.CFrame
 	local cameraPosition = camera.Position
 	local look = camera.LookVector
+	local farDistance = if lowQuality then graphics.LowFarDistance else graphics.FarDistance
 	table.clear(parts)
 	table.clear(cframes)
+	if lowQuality and (budgetDirty or frame % BUDGET_FRAMES == 0) then
+		budgetDirty = false
+		assignBudget()
+	end
 
 	for _, visual in visuals do
+		-- El destello del golpe se apaga aunque no se mueva en este cuadro
+		if visual.FlashUntil > 0 and clock >= visual.FlashUntil then
+			visual.FlashUntil = 0
+			setFlash(visual, false)
+		end
+
 		local traveled = EnemyMath.getTraveled(visual.Path, now)
 		local position, direction = EnemyMath.locate(visual.Path, traveled)
 		-- La ruta va a la altura del cuerpo: se le suma el suelo (bosque más
@@ -588,16 +737,31 @@ local function render(dt: number)
 
 		-- Detrás de la cámara no hace falta moverlo: se ubica en cuanto vuelva a verse
 		local behind = distance > graphics.CullBehindDistance + visual.Extent and toEnemy:Dot(look) < -visual.Extent
-		local skipFar = distance > graphics.FarDistance + visual.Extent and frame % 3 ~= visual.Slot
-		if behind or skipFar then
+		visual.Visible = not behind
+		visual.Distance = distance
+		if behind then
+			continue
+		end
+		local hitAge = clock - visual.HitAt
+		local spawnAge = clock - visual.SpawnAt
+		local lod = if visual.Decal then LOD_FULL else chooseLod(visual, distance, spawnAge)
+		-- En calidad baja los lejanos esconden las piezas chicas
+		local hide = lowQuality and lod == LOD_FAR
+		local changed = lod ~= visual.Lod or hide ~= visual.Hidden
+		-- Los muy lejanos se mueven cada 3 cuadros (salvo si cambian de nivel)
+		if not changed and distance > farDistance + visual.Extent and frame % 3 ~= visual.Slot then
 			continue
 		end
 
 		-- Gira suave hacia donde camina (no de golpe en cada curva del camino)
 		local flatDirection = Vector3.new(direction.X, 0, direction.Z)
 		if flatDirection.Magnitude > 0.01 then
-			local turned = visual.Facing:Lerp(flatDirection.Unit, math.min(1, dt * TURN_RATE))
-			if turned.Magnitude > 0.01 then
+			local target = flatDirection.Unit
+			local turned = visual.Facing:Lerp(target, math.min(1, dt * TURN_RATE))
+			if (turned - target).Magnitude < 1e-3 then
+				-- Ya mira hacia allá: queda fijo (el rígido quieto no se vuelve a mover)
+				visual.Facing = target
+			elseif turned.Magnitude > 0.01 then
 				visual.Facing = turned.Unit
 			end
 		end
@@ -608,8 +772,6 @@ local function render(dt: number)
 			-- Sprite: mira siempre a la cámara (solo en horizontal), alterna sus dos
 			-- cuadros al caminar, sale de la tierra y se echa atrás al recibir un golpe
 			local pose = visual.Pose
-			local hitAge = clock - visual.HitAt
-			local spawnAge = clock - visual.SpawnAt
 			if visual.Flying then
 				ZombieAnimator.flyer(pose, clock, visual.Phase, arrived, visual.Scale, hitAge)
 			else
@@ -653,40 +815,68 @@ local function render(dt: number)
 				end
 			end
 		else
-			local animate = distance < graphics.AnimateDistance + visual.Extent
 			local scale = visual.Scale
 			local pose = visual.Pose
-			local hitAge = clock - visual.HitAt
-			local spawnAge = clock - visual.SpawnAt
-			if not animate and spawnAge >= ZombieAnimator.EMERGE_TIME then
-				-- Lejos: pose quieta (no vale la pena calcular la animación)
-				pose = REST_POSE
-			elseif visual.Flying then
-				ZombieAnimator.flyer(pose, clock, visual.Phase, arrived, scale, hitAge)
+			local lift, back
+			if lod == LOD_FULL then
+				if visual.Flying then
+					ZombieAnimator.flyer(pose, clock, visual.Phase, arrived, scale, hitAge)
+				else
+					ZombieAnimator.walker(pose, visual.Gait, clock, visual.Speed, scale, visual.Phase, arrived, hitAge, spawnAge)
+				end
+				lift, back = pose.Lift, pose.Back
 			else
-				ZombieAnimator.walker(pose, visual.Gait, clock, visual.Speed, scale, visual.Phase, arrived, hitAge, spawnAge)
+				-- Rígido: pose quieta y el cuerpo entero sube y baja al caminar. El
+				-- lejano queda quieto como antes (solo sale de la tierra en calidad baja).
+				local walking = lod == LOD_RIGID and not arrived and not visual.Flying
+				lift, back = ZombieAnimator.rigid(visual.Gait, clock, visual.Speed, scale, visual.Phase, walking, hitAge, spawnAge)
+			end
+			if changed then
+				visual.Lod = lod
+				if hide ~= visual.Hidden then
+					setHidden(visual, hide)
+				end
 			end
 
-			local lifted = position + Vector3.new(0, pose.Lift, 0) - visual.Facing * pose.Back
-			local root = CFrame.lookAt(lifted, lifted + visual.Facing)
-			-- El torso gira sobre la cadera y lleva consigo la cabeza y los brazos
-			local hip = visual.Hip
-			local torso = root * CFrame.new(hip) * CFrame.Angles(-pose.TorsoPitch, pose.TorsoYaw, pose.TorsoRoll) * CFrame.new(-hip)
-			local mouth: CFrame? = nil
-			for _, piece in visual.Pieces do
-				table.insert(parts, piece.Part)
-				local frameOf = if piece.OnTorso then torso else root
-				local static = piece.Static
-				local cframe
-				if static then
-					cframe = frameOf * static
+			local lifted = position + Vector3.new(0, lift, 0) - visual.Facing * back
+			-- Un rígido que no se movió (ya llegó y mira fijo) deja sus piezas donde están
+			local still = lod ~= LOD_FULL and not changed and lifted == visual.PlacedAt and visual.Facing == visual.PlacedFacing
+			if not still then
+				local root = CFrame.lookAt(lifted, lifted + visual.Facing)
+				visual.PlacedAt = if lod == LOD_FULL then nil else lifted
+				visual.PlacedFacing = visual.Facing
+				local breathPart = visual.BreathPart
+				if lod == LOD_FULL then
+					-- El torso gira sobre la cadera y lleva consigo la cabeza y los brazos
+					local hip = visual.Hip
+					local torso = root * CFrame.new(hip) * CFrame.Angles(-pose.TorsoPitch, pose.TorsoYaw, pose.TorsoRoll) * CFrame.new(-hip)
+					-- Cada articulación gira una vez y sus piezas cuelgan de ella
+					local jointFrames = visual.JointFrames
+					for index, joint in visual.Joints do
+						jointFrames[index] = (if joint.OnTorso then torso else root) * joint.Pivot * ZombieAnimator.rotation(joint.Role, joint.Tilt, pose)
+					end
+					for _, piece in visual.Pieces do
+						local joint = piece.Joint
+						local cframe = if joint then jointFrames[joint] * piece.Offset elseif piece.OnTorso then torso * piece.Offset else root * piece.Offset
+						table.insert(parts, piece.Part)
+						table.insert(cframes, cframe)
+						if piece.Part == breathPart then
+							visual.Mouth = cframe
+						end
+					end
 				else
-					local spec = piece.Spec :: PartSpec
-					cframe = frameOf * CFrame.new(piece.Pivot) * ZombieAnimator.rotation(piece.Role, spec.Tilt, pose) * CFrame.new(piece.Hang) * (spec.Turn or CFrame.identity)
-				end
-				table.insert(cframes, cframe)
-				if piece.Part == visual.BreathPart then
-					mouth = cframe
+					-- Una multiplicación por pieza; las chicas escondidas no se mueven
+					for _, piece in visual.Pieces do
+						if hide and piece.Small then
+							continue
+						end
+						local cframe = root * piece.Rest
+						table.insert(parts, piece.Part)
+						table.insert(cframes, cframe)
+						if piece.Part == breathPart then
+							visual.Mouth = cframe
+						end
+					end
 				end
 			end
 
@@ -699,6 +889,7 @@ local function render(dt: number)
 						visual.Breath.Enabled = breathing
 					end
 				end
+				local mouth = visual.Mouth
 				if breathing and voxel and mouth then
 					-- Fuego de cubitos que salen de la boca hacia la campana
 					visual.FireBudget += dt * FIRE_CUBES_PER_SECOND
@@ -710,11 +901,6 @@ local function render(dt: number)
 					end
 				end
 			end
-		end
-
-		if visual.FlashUntil > 0 and clock >= visual.FlashUntil then
-			visual.FlashUntil = 0
-			setFlash(visual, false)
 		end
 	end
 
@@ -728,6 +914,10 @@ end
 function EnemyRenderer.init()
 	DeathFx.init(folder)
 	DamageNumbers.init()
+	player:GetAttributeChangedSignal("LowQuality"):Connect(function()
+		lowQuality = player:GetAttribute("LowQuality") == true
+		budgetDirty = true
+	end)
 
 	-- El servidor junta los eventos de cada cuadro en un solo mensaje
 	Remotes.EnemySpawned.OnClientEvent:Connect(function(spawns)
