@@ -37,7 +37,9 @@ export type Profile = {
 	Titles: { [string]: boolean }, -- títulos ganados (Salón de la fama)
 	Title: string, -- título que muestra
 	WeeklyClaimed: number, -- última semana cuyo premio ya cobró
-	Daily: { Day: string, Kills: number, BossKills: number, Waves: number, Claimed: { [string]: boolean } }, -- misiones del día
+	Daily: { Day: string, Kills: number, BossKills: number, Waves: number, Claimed: { [string]: boolean } }, -- formato viejo de las misiones del día (solo se lee para migrar)
+	Missions: { Day: number, Progress: { [string]: number }, Claimed: { [string]: boolean }, BonusClaimed: boolean, StartLevel: number }, -- misiones de hoy (Day = día de juego, avance por id de misión)
+	Streak: { Count: number, LastDay: number }, -- racha de días: cuántos seguidos y el último día de juego contado
 }
 
 local Progression = {}
@@ -93,6 +95,8 @@ function Progression.defaultProfile(): Profile
 		Title = "",
 		WeeklyClaimed = 0,
 		Daily = { Day = "", Kills = 0, BossKills = 0, Waves = 0, Claimed = {} },
+		Missions = { Day = 0, Progress = {}, Claimed = {}, BonusClaimed = false, StartLevel = 1 },
+		Streak = { Count = 0, LastDay = 0 },
 	}
 end
 

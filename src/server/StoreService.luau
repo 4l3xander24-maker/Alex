@@ -34,6 +34,7 @@ local passListeners: { (Player, number) -> () } = {}
 -- La partida lo cambia para cobrar en monedas; en el Lobby no hay monedas
 local spendCoins: ((Player, number) -> boolean)? = nil
 local refundCoins: ((Player, number) -> ())? = nil
+local saveWallet: ((Player) -> boolean)? = nil
 
 local skinStore: DataStore? = nil
 do
@@ -245,20 +246,34 @@ local function buyWithCoins(player: Player, skinId: string): (boolean, string)
 	if skin.Until and os.time() > skin.Until then
 		return false, "Esa skin de temporada ya no se vende"
 	end
-	local spend, refund = spendCoins, refundCoins
-	if not spend or not refund then
+	local spend, refund, flush = spendCoins, refundCoins, saveWallet
+	if not spend or not refund or not flush then
 		return false, "Con monedas se compra dentro de la partida (tienda 🛒 o tecla B)"
 	end
 	if not spend(player, skin.CoinPrice) then
 		return false, `Te faltan monedas: cuesta {skin.CoinPrice}`
 	end
+	-- Primero se guarda el cobro en el perfil; la skin se escribe después. Así,
+	-- si el servidor cae entre los dos pasos, no queda una skin gratis.
+	if not flush(player) then
+		refund(player, skin.CoinPrice)
+		return false, "No se pudo guardar la compra, intenta de nuevo"
+	end
 	local save = saveOf(player)
 	save.Owned[skinId] = true
 	save.Equipped = skinId
-	if not persist(player) and skinStore then
-		-- No se pudo guardar: se devuelve todo para no perder las monedas
+	local persisted = false
+	for _ = 1, 2 do
+		persisted = persist(player)
+		if persisted then
+			break
+		end
+	end
+	if not persisted and skinStore then
+		-- No se pudo guardar la skin: se devuelve el cobro (y se guarda de nuevo)
 		save.Owned[skinId] = nil
 		refund(player, skin.CoinPrice)
+		task.spawn(flush, player)
 		return false, "No se pudo guardar la compra, intenta de nuevo"
 	end
 	applySkin(player)
@@ -283,9 +298,10 @@ function StoreService.onPassBought(listener: (Player, number) -> ())
 end
 
 -- La partida conecta su billetera para vender skins con monedas
-function StoreService.setCoinWallet(spend: (Player, number) -> boolean, refund: (Player, number) -> ())
+function StoreService.setCoinWallet(spend: (Player, number) -> boolean, refund: (Player, number) -> (), flush: (Player) -> boolean)
 	spendCoins = spend
 	refundCoins = refund
+	saveWallet = flush
 end
 
 function StoreService.init()

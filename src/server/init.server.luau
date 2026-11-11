@@ -51,6 +51,7 @@ DataService.init(function(player)
 	PetService.onPlayerReady(player)
 	PurchaseService.onPlayerReady(player)
 	WeeklyService.onPlayerReady(player)
+	DailyService.onPlayerReady(player)
 	WhatsNewService.onPlayerReady(player)
 end)
 

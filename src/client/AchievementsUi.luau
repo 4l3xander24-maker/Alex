@@ -1,11 +1,13 @@
 -- Pantalla de logros (Config.Achievements): botón "Logros" junto a la Tienda y
 -- una lista con el progreso de cada uno, su premio y cuáles ya conseguiste.
+-- Arriba van la racha de días y las 3 misiones de hoy.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
+local DailyDay = require(Shared.DailyDay)
 local Profile = require(script.Parent.Profile)
 
 local GOLD = Color3.fromRGB(255, 215, 100)
@@ -60,14 +62,51 @@ local function render()
 	end
 	local data = Profile.get()
 	local done = 0
-	-- Misiones del día arriba (si el día guardado no es hoy, el progreso vale 0)
-	local daily = data.Daily
-	local isToday = daily ~= nil and daily.Day == os.date("!%Y-%m-%d")
+	-- Racha y misiones del día arriba. El día se calcula con la misma regla que el servidor;
+	-- si el avance guardado es de otro día, vale 0.
+	local rules = Config.DailyRules
+	local missions = data.Missions
+	local day = math.max(DailyDay.gameDay(os.time(), rules.ResetHourUtc), missions.Day)
+	local isToday = missions.Day == day
+	local streak = data.Streak
+	local counted = streak.LastDay == day -- la racha de hoy ya se cobró
+	local count = if counted then streak.Count elseif streak.LastDay == day - 1 then streak.Count + 1 else 1
+	local position = DailyDay.cycleDay(count, #rules.StreakRewards)
+	local claimedDays = if counted then position elseif streak.LastDay == day - 1 then position - 1 else 0
+	local streakHead = label(list, { Size = UDim2.new(1, -10, 0, 24), Text = if counted then `🔥 RACHA: DÍA {streak.Count}` else "🔥 RACHA DIARIA", TextSize = 16, Font = Enum.Font.GothamBlack, TextColor3 = GOLD, LayoutOrder = -110 })
+	streakHead.Name = "StreakHeader"
+	local strip = Instance.new("Frame")
+	strip.Size = UDim2.new(1, -10, 0, 74)
+	strip.BackgroundColor3 = ROW
+	strip.LayoutOrder = -109
+	strip.Parent = list
+	round(strip, 10)
+	for index, reward in rules.StreakRewards do
+		local isClaimed = index <= claimedDays
+		local isCurrent = index == position
+		local cell = Instance.new("Frame")
+		cell.Position = UDim2.new((index - 1) / #rules.StreakRewards, 3, 0, 5)
+		cell.Size = UDim2.new(1 / #rules.StreakRewards, -6, 1, -26)
+		cell.BackgroundColor3 = if isClaimed then Color3.fromRGB(34, 70, 40) else PANEL
+		cell.Parent = strip
+		round(cell, 8)
+		if isCurrent then
+			local stroke = Instance.new("UIStroke")
+			stroke.Color = GOLD
+			stroke.Thickness = 2
+			stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+			stroke.Parent = cell
+		end
+		label(cell, { Size = UDim2.new(1, 0, 0, 16), Position = UDim2.fromOffset(0, 3), Text = `Día {index}`, TextSize = 11, TextXAlignment = Enum.TextXAlignment.Center, TextColor3 = Color3.fromRGB(190, 200, 195) })
+		label(cell, { Size = UDim2.new(1, 0, 0, 18), Position = UDim2.fromOffset(0, 20), Text = if isClaimed then "✅" else `💰{reward}`, TextSize = 13, TextXAlignment = Enum.TextXAlignment.Center, TextColor3 = if isClaimed then GREEN else GOLD })
+	end
+	local todayReward = rules.StreakRewards[position]
+	label(strip, { Position = UDim2.new(0, 10, 1, -20), Size = UDim2.new(1, -20, 0, 16), Text = if counted then `Hoy ya cobraste +{todayReward}. Mañana: +{rules.StreakRewards[DailyDay.cycleDay(streak.Count + 1, #rules.StreakRewards)]}` else `Hoy: +{todayReward} monedas al entrar a una partida`, TextSize = 12, TextColor3 = Color3.fromRGB(190, 200, 195) })
 	local head = label(list, { Size = UDim2.new(1, -10, 0, 24), Text = "📅 MISIONES DE HOY", TextSize = 16, Font = Enum.Font.GothamBlack, TextColor3 = GOLD, LayoutOrder = -100 })
 	head.Name = "DailyHeader"
-	for index, mission in Config.DailyMissions do
-		local claimed = isToday and daily.Claimed[mission.Id] == true
-		local progress = if isToday then math.min(daily[mission.Stat] or 0, mission.Goal) else 0
+	for index, mission in DailyDay.pick(Config.DailyMissions, day, rules.MissionsPerDay) do
+		local claimed = isToday and missions.Claimed[mission.Id] == true
+		local progress = if isToday then math.min(missions.Progress[mission.Id] or 0, mission.Goal) else 0
 		local row = Instance.new("Frame")
 		row.Size = UDim2.new(1, -10, 0, 44)
 		row.BackgroundColor3 = ROW
@@ -80,6 +119,9 @@ local function render()
 		label(row, { AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -10, 0, 4), Size = UDim2.fromOffset(110, 18), Text = if claimed then "¡Cumplida!" else `{progress} / {mission.Goal}`, TextSize = 13, TextXAlignment = Enum.TextXAlignment.Right, TextColor3 = if claimed then GREEN else Color3.new(1, 1, 1) })
 		label(row, { AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -10, 0, 22), Size = UDim2.fromOffset(110, 18), Text = `💰 {mission.Reward}`, TextSize = 13, TextXAlignment = Enum.TextXAlignment.Right, TextColor3 = GOLD })
 	end
+	local bonusDone = isToday and missions.BonusClaimed
+	local bonus = label(list, { Size = UDim2.new(1, -10, 0, 24), Text = if bonusDone then `🎉 Las 3 cumplidas: +{rules.AllBonus} monedas cobradas` else `🎉 Cumple las {rules.MissionsPerDay} y gana +{rules.AllBonus} monedas extra`, TextSize = 13, TextColor3 = if bonusDone then GREEN else GOLD, LayoutOrder = -95 })
+	bonus.Name = "DailyBonus"
 	label(list, { Size = UDim2.new(1, -10, 0, 24), Text = "🏆 LOGROS", TextSize = 16, Font = Enum.Font.GothamBlack, TextColor3 = GOLD, LayoutOrder = -90 })
 	for index, achievement in Config.Achievements do
 		local unlocked = data.Achievements[achievement.Id] == true
