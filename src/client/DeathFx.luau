@@ -1,7 +1,10 @@
 -- Física sencilla para la muerte de los zombis, al estilo de los juegos
 -- pixelados: las piezas del cuerpo salen disparadas (la cabeza vuela),
 -- caen al suelo y revientan en cubitos de colores que rebotan y se achican.
--- Todo es local en cada cliente y tiene un tope de cubitos para no dar lag.
+-- Todo es local en cada cliente y tiene topes de cubitos y de piezas para no
+-- dar lag (más bajos en calidad baja, ver Config.Graphics): si se pasan, la
+-- pieza más vieja desaparece sin reventar.
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
@@ -10,8 +13,9 @@ local Paths = require(Shared:WaitForChild("Paths"))
 
 local DeathFx = {}
 
-local MAX_CUBES = 260
 local FLASH_TIME = 0.07
+local LOW_MAX_SPLATS = 30 -- manchas en el suelo a la vez en calidad baja
+local graphics = Config.Graphics
 local WHITE = Color3.new(1, 1, 1)
 
 type Debris = {
@@ -34,6 +38,7 @@ type Debris = {
 	BurstSpeed: number,
 	BurstOnGround: boolean,
 	Flash: boolean,
+	Gone: boolean, -- ya terminó o se quitó por el tope (sus restos se limpian en step)
 }
 
 type Splat = { Part: BasePart, Age: number, Life: number }
@@ -42,8 +47,44 @@ local folder: Folder
 local debris: { Debris } = {}
 local splats: { Splat } = {}
 local pool: { BasePart } = {}
+local splatPool: { BasePart } = {}
 local cubeCount = 0
 local random = Random.new()
+-- Piezas de cuerpos en el aire, en orden de llegada (para quitar la más vieja)
+local pieceQueue: { [number]: Debris } = {}
+local queueHead, queueTail = 1, 0
+local pieceCount = 0
+local player = Players.LocalPlayer
+local lowQuality = player:GetAttribute("LowQuality") == true
+
+local function maxCubes(): number
+	return if lowQuality then graphics.LowMaxDeathCubes else graphics.MaxDeathCubes
+end
+
+-- Saca de la cola las piezas que ya no están (así no crece sin fin)
+local function trimQueue()
+	while queueHead <= queueTail and pieceQueue[queueHead].Gone do
+		pieceQueue[queueHead] = nil
+		queueHead += 1
+	end
+	if queueHead > queueTail then
+		queueHead, queueTail = 1, 0
+	end
+end
+
+-- Tope de piezas: la más vieja desaparece sin reventar. false si no quedaba ninguna.
+local function removeOldest(): boolean
+	trimQueue()
+	if queueHead > queueTail then
+		return false
+	end
+	local item = pieceQueue[queueHead]
+	item.Gone = true
+	item.Part:Destroy()
+	pieceCount -= 1
+	trimQueue()
+	return true
+end
 
 local function takeCube(): BasePart
 	local part = table.remove(pool)
@@ -73,17 +114,26 @@ function DeathFx.init(parent: Instance)
 	folder = Instance.new("Folder")
 	folder.Name = "DeathFx"
 	folder.Parent = parent
+	player:GetAttributeChangedSignal("LowQuality"):Connect(function()
+		lowQuality = player:GetAttribute("LowQuality") == true
+	end)
 end
 
 -- Cubos que quedan libres antes de llegar al tope
 function DeathFx.budget(): number
-	return math.max(0, MAX_CUBES - cubeCount)
+	return math.max(0, maxCubes() - cubeCount)
 end
 
 -- Una pieza del cuerpo que sale volando. Al acabar su vida (o al tocar el
 -- suelo, si BurstOnGround) revienta en `burstCount` cubitos.
 function DeathFx.addPiece(part: BasePart, cframe: CFrame, options: { [string]: any })
-	table.insert(debris, {
+	local limit = if lowQuality then graphics.LowMaxDebrisPieces else graphics.MaxDebrisPieces
+	while pieceCount >= limit do
+		if not removeOldest() then
+			break
+		end
+	end
+	local item: Debris = {
 		Part = part,
 		Position = cframe.Position,
 		Rotation = cframe.Rotation,
@@ -103,14 +153,19 @@ function DeathFx.addPiece(part: BasePart, cframe: CFrame, options: { [string]: a
 		BurstSpeed = options.BurstSpeed or 10,
 		BurstOnGround = options.BurstOnGround == true,
 		Flash = options.Flash ~= false,
-	})
+		Gone = false,
+	}
+	table.insert(debris, item)
+	queueTail += 1
+	pieceQueue[queueTail] = item
+	pieceCount += 1
 	if options.Flash ~= false then
 		part.Color = WHITE
 	end
 end
 
 function DeathFx.addCube(position: Vector3, color: Color3, size: number, velocity: Vector3, gravity: number, life: number, glowing: boolean?)
-	if cubeCount >= MAX_CUBES then
+	if cubeCount >= maxCubes() then
 		return
 	end
 	cubeCount += 1
@@ -138,6 +193,7 @@ function DeathFx.addCube(position: Vector3, color: Color3, size: number, velocit
 		BurstSpeed = 0,
 		BurstOnGround = false,
 		Flash = false,
+		Gone = false,
 	})
 end
 
@@ -161,23 +217,38 @@ function DeathFx.skinBurst(position: Vector3, skin: any)
 	end
 end
 
--- Mancha en el suelo que se desvanece
+-- Mancha en el suelo que se desvanece (las manchas se reciclan)
 function DeathFx.splat(position: Vector3, radius: number, color: Color3, life: number)
-	local part = Instance.new("Part")
-	part.Name = "Splat"
-	-- En pixel art 3D la mancha es cuadrada
-	part.Shape = if Config.Style.Blocky then Enum.PartType.Block else Enum.PartType.Cylinder
-	part.Size = Vector3.new(0.1, radius * 2, radius * 2)
-	part.CFrame = CFrame.new(position.X, Paths.walkHeight(position) + 0.08, position.Z) * CFrame.Angles(0, 0, math.pi / 2)
-	part.Color = color
-	part.Material = Enum.Material.SmoothPlastic
-	part.Anchored = true
-	part.CanCollide = false
-	part.CanQuery = false
-	part.CanTouch = false
-	part.CastShadow = false
-	part.Parent = folder
-	table.insert(splats, { Part = part, Age = 0, Life = life })
+	if lowQuality and #splats >= LOW_MAX_SPLATS then
+		return
+	end
+	local part = table.remove(splatPool)
+	if not part then
+		local new = Instance.new("Part")
+		new.Name = "Splat"
+		-- En pixel art 3D la mancha es cuadrada
+		new.Shape = if Config.Style.Blocky then Enum.PartType.Block else Enum.PartType.Cylinder
+		new.Material = Enum.Material.SmoothPlastic
+		new.Anchored = true
+		new.CanCollide = false
+		new.CanQuery = false
+		new.CanTouch = false
+		new.CastShadow = false
+		new.Parent = folder
+		part = new
+	end
+	local splat = part :: BasePart
+	splat.Transparency = 0
+	splat.Size = Vector3.new(0.1, radius * 2, radius * 2)
+	splat.CFrame = CFrame.new(position.X, Paths.walkHeight(position) + 0.08, position.Z) * CFrame.Angles(0, 0, math.pi / 2)
+	splat.Color = color
+	table.insert(splats, { Part = splat, Age = 0, Life = life })
+end
+
+local function releaseSplat(part: BasePart)
+	part.Transparency = 1
+	part.CFrame = CFrame.new(0, -500, 0)
+	table.insert(splatPool, part)
 end
 
 local function burst(item: Debris)
@@ -198,6 +269,12 @@ function DeathFx.step(dt: number, parts: { BasePart }, cframes: { CFrame })
 	local index = 1
 	while index <= #debris do
 		local item = debris[index]
+		if item.Gone then
+			-- Se quitó por el tope de piezas (ya está destruida)
+			debris[index] = debris[#debris]
+			debris[#debris] = nil
+			continue
+		end
 		item.Age += dt
 		local landed = false
 
@@ -224,6 +301,8 @@ function DeathFx.step(dt: number, parts: { BasePart }, cframes: { CFrame })
 				cubeCount -= 1
 				releaseCube(item.Part)
 			else
+				item.Gone = true
+				pieceCount -= 1
 				burst(item)
 				item.Part:Destroy()
 			end
@@ -243,13 +322,14 @@ function DeathFx.step(dt: number, parts: { BasePart }, cframes: { CFrame })
 		table.insert(cframes, CFrame.new(position) * item.Rotation)
 		index += 1
 	end
+	trimQueue()
 
 	local splatIndex = 1
 	while splatIndex <= #splats do
 		local splat = splats[splatIndex]
 		splat.Age += dt
 		if splat.Age >= splat.Life then
-			splat.Part:Destroy()
+			releaseSplat(splat.Part)
 			splats[splatIndex] = splats[#splats]
 			splats[#splats] = nil
 			continue
@@ -266,14 +346,17 @@ function DeathFx.clear()
 	for _, item in debris do
 		if item.IsCube then
 			releaseCube(item.Part)
-		else
+		elseif not item.Gone then
 			item.Part:Destroy()
 		end
 	end
 	table.clear(debris)
 	cubeCount = 0
+	table.clear(pieceQueue)
+	queueHead, queueTail = 1, 0
+	pieceCount = 0
 	for _, splat in splats do
-		splat.Part:Destroy()
+		releaseSplat(splat.Part)
 	end
 	table.clear(splats)
 end

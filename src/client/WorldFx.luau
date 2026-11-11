@@ -7,6 +7,8 @@
 --     matas y estandartes que se mecen (solo los cercanos y en calidad alta).
 --   * Adapta los efectos a la calidad gráfica del jugador: en calidad baja o
 --     en celulares apaga el desenfoque, los rayos de sol y baja las partículas.
+--     En "Automática" baja sola si el juego va lento y vuelve a subir si va
+--     sobrado un buen rato (Config.Graphics.Auto*).
 local CollectionService = game:GetService("CollectionService")
 local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
@@ -38,6 +40,9 @@ local flames: { BasePart } = {}
 local flameBase: { [BasePart]: CFrame } = {}
 local lastDayDim = 0
 local ambientEmitter: ParticleEmitter? = nil
+-- Nivel que eligió la calidad automática según los cuadros por segundo (nil:
+-- el del equipo). No toca el menú: el jugador sigue viendo "Automática".
+local autoLevel: number? = nil
 
 type Swayer = { Part: BasePart, Base: CFrame, Pivot: Vector3, Amount: number, Seed: number, Hidden: boolean? }
 local swayers: { Swayer } = {}
@@ -64,6 +69,9 @@ local function getQualityLevel(): number
 		return 1
 	elseif override == "High" then
 		return 10
+	end
+	if autoLevel then
+		return autoLevel
 	end
 	local ok, level = pcall(function()
 		return UserSettings():GetService("UserGameSettings").SavedQualityLevel.Value
@@ -306,18 +314,53 @@ function WorldFx.init()
 	pcall(function()
 		UserSettings():GetService("UserGameSettings"):GetPropertyChangedSignal("SavedQualityLevel"):Connect(applyQuality)
 	end)
-	Players.LocalPlayer:GetAttributeChangedSignal("QualityMode"):Connect(applyQuality)
+	Players.LocalPlayer:GetAttributeChangedSignal("QualityMode"):Connect(function()
+		-- Al elegir otra vez Automática empieza de cero
+		autoLevel = nil
+		applyQuality()
+	end)
 
-	-- Si la calidad está en Automática y el juego va muy lento, pasa solo a Baja
+	-- Calidad Automática: si el juego va muy lento un rato pasa a Baja; si en
+	-- Baja va sobrado durante más tiempo, vuelve a Alta. Si al subir vuelve a
+	-- ir lento enseguida, la próxima vez espera el doble (así no salta de una a
+	-- otra todo el tiempo).
+	local graphics = Config.Graphics
 	local slowTime = 0
+	local fastFrames, fastTime = 0, 0
+	local retryWait = graphics.AutoFastTime
+	local nextRetry = 0
+	local raisedAt = -math.huge
 	local frame = 0
 	RunService.RenderStepped:Connect(function(dt)
 		frame += 1
-		if (Players.LocalPlayer:GetAttribute("QualityMode") or "Auto") == "Auto" and not lowQuality then
-			slowTime = if dt > 1 / 28 then slowTime + dt else math.max(0, slowTime - dt * 2)
-			if slowTime > 6 then
-				slowTime = 0
-				Players.LocalPlayer:SetAttribute("QualityMode", "Low")
+		if (Players.LocalPlayer:GetAttribute("QualityMode") or "Auto") == "Auto" then
+			local now = os.clock()
+			if not lowQuality then
+				slowTime = if dt > 1 / graphics.AutoSlowFps then slowTime + dt else math.max(0, slowTime - dt * 2)
+				if slowTime > graphics.AutoSlowTime then
+					slowTime = 0
+					if now - raisedAt < graphics.AutoRetryMax then
+						-- Había subido hace poco y no aguantó
+						retryWait = math.min(retryWait * 2, graphics.AutoRetryMax)
+					end
+					nextRetry = now + retryWait
+					fastFrames, fastTime = 0, 0
+					autoLevel = 1
+					applyQuality()
+				end
+			else
+				-- Promedio de cuadros por segundo en tandas de AutoFastTime segundos
+				fastFrames += 1
+				fastTime += dt
+				if fastTime >= graphics.AutoFastTime then
+					if fastFrames / fastTime >= graphics.AutoFastFps and now >= nextRetry then
+						raisedAt = now
+						slowTime = 0
+						autoLevel = 10
+						applyQuality()
+					end
+					fastFrames, fastTime = 0, 0
+				end
 			end
 		end
 		SkyFx.step(dt)

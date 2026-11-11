@@ -1,7 +1,6 @@
 -- Disparo, munición (cargador y reserva), recarga, cambio de arma, apuntar y
 -- tajos de machete. El cliente predice todo con las mismas reglas que el
 -- servidor para que se sienta instantáneo; el servidor valida y decide el daño.
-local Debris = game:GetService("Debris")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -111,68 +110,118 @@ local function tracerSkin(): any
 	return nil
 end
 
--- Lanzallamas: una llamarada corta que sale del cañón hacia donde apuntas
+-- Lanzallamas: una llamarada corta que sale del cañón hacia donde apuntas. Un
+-- solo emisor para todas: se ubica en el cañón y suelta su tanda (las llamas
+-- ya lanzadas siguen solas aunque el emisor se mueva).
+local flameHolder: BasePart? = nil
+local flameEmitter: ParticleEmitter? = nil
+
 local function flameBurst(from: Vector3, to: Vector3)
 	local direction = to - from
 	if direction.Magnitude < 0.1 then
 		return
 	end
-	local holder = Instance.new("Part")
-	holder.Anchored = true
-	holder.CanCollide = false
-	holder.CanQuery = false
-	holder.CanTouch = false
-	holder.Transparency = 1
-	holder.Size = Vector3.one * 0.2
-	holder.CFrame = CFrame.lookAt(from, to)
-	holder.Parent = workspace.CurrentCamera
-	local emitter = Instance.new("ParticleEmitter")
-	emitter.Rate = 0
-	emitter.Lifetime = NumberRange.new(0.25, 0.45)
-	emitter.Speed = NumberRange.new(38, 52)
-	emitter.SpreadAngle = Vector2.new(9, 9)
-	emitter.EmissionDirection = Enum.NormalId.Front
-	emitter.LightEmission = 1
-	emitter.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.5), NumberSequenceKeypoint.new(1, 2.4) })
-	emitter.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.1), NumberSequenceKeypoint.new(1, 1) })
-	emitter.Color = ColorSequence.new({ ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 240, 150)), ColorSequenceKeypoint.new(0.4, Color3.fromRGB(255, 140, 40)), ColorSequenceKeypoint.new(1, Color3.fromRGB(90, 40, 30)) })
-	emitter.Parent = holder
-	emitter:Emit(4)
-	Debris:AddItem(holder, 0.6)
+	local holder, emitter = flameHolder, flameEmitter
+	if not holder or not emitter or not holder.Parent then
+		-- Primera vez (o la cámara se cambió y se llevó al emisor)
+		local part = Instance.new("Part")
+		part.Anchored = true
+		part.CanCollide = false
+		part.CanQuery = false
+		part.CanTouch = false
+		part.Transparency = 1
+		part.Size = Vector3.one * 0.2
+		local flames = Instance.new("ParticleEmitter")
+		flames.Rate = 0
+		flames.Lifetime = NumberRange.new(0.25, 0.45)
+		flames.Speed = NumberRange.new(38, 52)
+		flames.SpreadAngle = Vector2.new(9, 9)
+		flames.EmissionDirection = Enum.NormalId.Front
+		flames.LightEmission = 1
+		flames.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.5), NumberSequenceKeypoint.new(1, 2.4) })
+		flames.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.1), NumberSequenceKeypoint.new(1, 1) })
+		flames.Color = ColorSequence.new({ ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 240, 150)), ColorSequenceKeypoint.new(0.4, Color3.fromRGB(255, 140, 40)), ColorSequenceKeypoint.new(1, Color3.fromRGB(90, 40, 30)) })
+		flames.Parent = part
+		part.Parent = workspace.CurrentCamera
+		holder, emitter = part, flames
+		flameHolder, flameEmitter = part, flames
+	end
+	(holder :: BasePart).CFrame = CFrame.lookAt(from, to);
+	(emitter :: ParticleEmitter):Emit(4)
+end
+
+-- Balas trazadoras recicladas: una pieza por bala que se esconde al terminar y
+-- vuelve a la reserva (no se crea y se borra una pieza en cada disparo)
+local MAX_TRACERS = 24 -- en reserva; si se pasan (escopeta a toda cadencia) se borran
+local tracerPool: { BasePart } = {}
+local tracerSparks: { [BasePart]: ParticleEmitter } = {}
+
+local function takeTracer(): BasePart
+	local tracer = table.remove(tracerPool)
+	if not tracer then
+		local part = Instance.new("Part")
+		part.Anchored = true
+		part.CanCollide = false
+		part.CanQuery = false
+		part.CanTouch = false
+		part.CastShadow = false
+		part.Material = Enum.Material.Neon
+		tracer = part
+	end
+	local taken = tracer :: BasePart
+	taken.Transparency = 0
+	taken.Parent = workspace.CurrentCamera
+	return taken
+end
+
+local function releaseTracer(tracer: BasePart)
+	local sparks = tracerSparks[tracer]
+	if sparks then
+		-- Las chispas se van con la bala, como cuando se borraba
+		sparks.Enabled = false
+		sparks:Clear()
+	end
+	if #tracerPool >= MAX_TRACERS or not tracer.Parent then
+		tracerSparks[tracer] = nil
+		tracer:Destroy()
+		return
+	end
+	tracer.Transparency = 1
+	table.insert(tracerPool, tracer)
 end
 
 local function drawTracer(from: Vector3, to: Vector3)
 	local length = (to - from).Magnitude
 	local skin = tracerSkin()
-	local tracer = Instance.new("Part")
-	tracer.Anchored = true
-	tracer.CanCollide = false
-	tracer.CanQuery = false
-	tracer.CanTouch = false
-	tracer.CastShadow = false
-	tracer.Material = Enum.Material.Neon
+	local tracer = takeTracer()
 	tracer.Color = if skin then skin.Main else TRACER_COLOR
 	local width = if skin and skin.Premium then 0.16 else 0.06
 	tracer.Size = Vector3.new(width, width, length)
 	tracer.CFrame = CFrame.lookAt(from, to) * CFrame.new(0, 0, -length / 2)
-	tracer.Parent = workspace.CurrentCamera
 	-- Las Premium dejan un núcleo claro y chispas a lo largo de la bala
 	if skin and skin.Premium then
-		local core = tracer:Clone()
+		local core = takeTracer()
 		core.Color = skin.Accent
 		core.Size = Vector3.new(0.05, 0.05, length)
-		core.Parent = workspace.CurrentCamera
-		Debris:AddItem(core, TRACER_TIME)
-		local emitter = Instance.new("ParticleEmitter")
-		emitter.Rate = 60
-		emitter.Lifetime = NumberRange.new(0.3, 0.5)
-		emitter.Speed = NumberRange.new(0.5, 1.5)
-		emitter.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.25), NumberSequenceKeypoint.new(1, 0) })
-		emitter.LightEmission = 1
-		emitter.Color = ColorSequence.new(skin.Accent)
-		emitter.Parent = tracer
+		core.CFrame = tracer.CFrame
+		task.delay(TRACER_TIME, releaseTracer, core)
+		local emitter = tracerSparks[tracer]
+		if not emitter then
+			local sparks = Instance.new("ParticleEmitter")
+			sparks.Rate = 60
+			sparks.Lifetime = NumberRange.new(0.3, 0.5)
+			sparks.Speed = NumberRange.new(0.5, 1.5)
+			sparks.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.25), NumberSequenceKeypoint.new(1, 0) })
+			sparks.LightEmission = 1
+			sparks.Parent = tracer
+			tracerSparks[tracer] = sparks
+			emitter = sparks
+		end
+		local sparks = emitter :: ParticleEmitter
+		sparks.Color = ColorSequence.new(skin.Accent)
+		sparks.Enabled = true
 	end
-	Debris:AddItem(tracer, TRACER_TIME)
+	task.delay(TRACER_TIME, releaseTracer, tracer)
 end
 
 local function applySpread(direction: Vector3, spread: number): Vector3
