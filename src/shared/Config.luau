@@ -235,6 +235,34 @@ Config.Graphics = {
 	AnimateDistance = 120, -- más lejos que esto no se anima caminar
 	FarDistance = 170, -- más lejos que esto se actualizan cada 3 cuadros
 	DeathFxDistance = 150, -- más lejos que esto mueren sin reventar en cubitos
+
+	-- Calidad baja (celulares; WorldFx marca LowQuality). Los zombis tienen tres
+	-- niveles de detalle: animación completa, rígido con un saltito al caminar y
+	-- lejano (rígido y sin las piezas chicas)
+	LowAnimateDistance = 70, -- más lejos que esto el zombi va rígido y sin piezas chicas
+	LowFarDistance = 110, -- más lejos que esto se actualizan cada 3 cuadros
+	LowFullBudget = 24, -- solo los N más cercanos se animan enteros (los jefes siempre)
+	SmallPartSize = 0.9, -- piezas con su lado mayor (en studs) por debajo de esto son "chicas": cara, dientes, manchas
+	LodMargin = 6, -- studs de histéresis para no cambiar de nivel en cada cuadro en el borde
+
+	-- Topes de efectos (calidad alta / baja)
+	MaxDebrisPieces = 600, -- piezas de cuerpos que salen volando al morir, a la vez (se quitan las más viejas)
+	LowMaxDebrisPieces = 150,
+	MaxDeathCubes = 260, -- cubitos de sangre, tierra y fuego a la vez
+	LowMaxDeathCubes = 120,
+	MaxDamageNumbers = 40, -- números de daño a la vez
+	LowMaxDamageNumbers = 16,
+	MaxXpDrops = 60, -- rombos de experiencia a la vez
+	LowMaxXpDrops = 25,
+	SoundVoices = 8, -- sonidos iguales que pueden sonar a la vez (se reciclan)
+	LowSoundVoices = 4,
+
+	-- Calidad automática: baja si va lento un rato y vuelve a subir si va sobrado
+	AutoSlowFps = 28, -- por debajo de esto...
+	AutoSlowTime = 6, -- ...durante estos segundos, pasa a calidad baja
+	AutoFastFps = 50, -- en calidad baja, por encima de esto en promedio...
+	AutoFastTime = 20, -- ...durante estos segundos, vuelve a calidad alta
+	AutoRetryMax = 240, -- si al subir vuelve a ir lento, espera el doble antes de reintentar, hasta esto (segundos)
 }
 
 -- La campana está en el origen, sobre un montículo con un castillo en ruinas
