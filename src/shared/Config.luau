@@ -761,12 +761,33 @@ Config.Difficulties = {
 	{ Id = 5, Name = "Infierno", Icon = "👹", Color = Color3.fromRGB(180, 70, 220), Count = 1.7, Growth = 1.1, Health = 1.7, Spawn = 1.5, Coins = 2.4, Xp = 2.4, Goal = 16, Description = "Solo para los mejores. Premios enormes." },
 }
 
--- Misiones diarias: se reinician cada día (UTC). Stat: Kills (bajas), BossKills
--- (jefes) o Waves (oleadas superadas en una partida, la mejor del día).
+-- Reglas del día de juego. El "día" no cambia a medianoche UTC sino a las
+-- ResetHourUtc (9 UTC = madrugada en Latinoamérica), para que no se parta a media tarde.
+-- Racha: StreakRewards[n] son las monedas del día n de la racha (7 días y se repite).
+-- Total de una semana completa: 625 monedas, menos que ganar Normal una vez (~830).
+Config.DailyRules = {
+	ResetHourUtc = 9,
+	MissionsPerDay = 3, -- cuántas del grupo salen cada día (las mismas para todos)
+	AllBonus = 150, -- extra por cumplir las del día, una vez al día
+	StreakRewards = { 40, 50, 60, 75, 90, 110, 200 },
+}
+
+-- Misiones diarias: cada día salen MissionsPerDay de este grupo, elegidas según
+-- el día (iguales para todos). Cada id guarda su avance en el perfil. Stat que
+-- cuenta el servidor: Kills (bajas), BossKills (jefes), Matches (partidas con al
+-- menos una oleada), Levels (niveles de cuenta subidos hoy), Waves (oleadas
+-- superadas en una partida, la mejor del día) y MatchKills (bajas en una partida).
 Config.DailyMissions = {
 	{ Id = "DKills", Icon = "🧟", Name = "Cazador del día", Description = "Elimina 150 zombis hoy", Stat = "Kills", Goal = 150, Reward = 250 },
+	{ Id = "DKillsBig", Icon = "💀", Name = "Plaga del día", Description = "Elimina 300 zombis hoy", Stat = "Kills", Goal = 300, Reward = 450 },
 	{ Id = "DBoss", Icon = "👹", Name = "Rompe-jefes", Description = "Derrota 2 jefes hoy", Stat = "BossKills", Goal = 2, Reward = 300 },
+	{ Id = "DBoss1", Icon = "⚔️", Name = "Cazajefes", Description = "Derrota un jefe hoy", Stat = "BossKills", Goal = 1, Reward = 180 },
 	{ Id = "DWaves", Icon = "🌊", Name = "Resistencia", Description = "Supera 6 oleadas en una partida", Stat = "Waves", Goal = 6, Reward = 400 },
+	{ Id = "DWaves3", Icon = "🔔", Name = "Calentamiento", Description = "Supera 3 oleadas en una partida", Stat = "Waves", Goal = 3, Reward = 150 },
+	{ Id = "DWaves8", Icon = "🏰", Name = "Maratón", Description = "Supera 8 oleadas en una partida", Stat = "Waves", Goal = 8, Reward = 500 },
+	{ Id = "DMatches", Icon = "🎮", Name = "Doble turno", Description = "Juega 2 partidas hoy", Stat = "Matches", Goal = 2, Reward = 300 },
+	{ Id = "DLevel", Icon = "⭐", Name = "A subir", Description = "Sube un nivel de cuenta hoy", Stat = "Levels", Goal = 1, Reward = 250 },
+	{ Id = "DMatchKills", Icon = "🔥", Name = "Furia", Description = "80 bajas en una sola partida", Stat = "MatchKills", Goal = 80, Reward = 350 },
 }
 
 -- Logros: se revisan al terminar cada partida. Reward = monedas. Stat: qué se mide

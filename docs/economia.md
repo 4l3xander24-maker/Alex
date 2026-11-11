@@ -37,6 +37,11 @@ Si todas las partidas se completaran, el núcleo saldría en ~29 partidas (~19 c
 5. **Premio por completar** la dificultad cada vez (120 / 250 / 450 / 800 / 1.400), además del premio de la primera vez.
 6. **Consuelo al perder:** 10 monedas por oleada superada (por el multiplicador de la dificultad). Perder nunca deja en cero.
 
+## Misiones diarias y racha
+- **Día de juego:** cambia a las 9:00 UTC (`DailyRules.ResetHourUtc`), de madrugada en Latinoamérica, no a medianoche UTC.
+- **Misiones:** cada día salen 3 de un grupo de 10 (`Config.DailyMissions`), las mismas para todos; pagan 150–500 monedas cada una. Cumplir las 3 da +150 (`DailyRules.AllBonus`) una vez al día.
+- **Racha de entrada:** 40 / 50 / 60 / 75 / 90 / 110 / 200 monedas (días 1 a 7, luego se repite). Una semana completa son **625 monedas**: menos que ganar Normal una vez (~830) y ~1% del núcleo (~51.000), así que es un motivo para volver, no un atajo. El día 7 casi triplica el 1 para que valga la pena no faltar. Faltar un día reinicia la racha.
+
 ## Cosas que NO toqué (y por qué)
 - **Puntos de estadística:** salen del nivel de cuenta, que crece exponencialmente (~9 partidas al nivel 20, cientos al 50). Ya frena solo.
 - **Precios de Robux y skins:** los fija Creator Hub.

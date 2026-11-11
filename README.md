@@ -23,6 +23,8 @@ el círculo de runas y el cuchillo), [`docs/capturas/pixel/`](docs/capturas/pixe
 [`docs/capturas/otono/`](docs/capturas/otono/) (otoño) y [`docs/capturas/`](docs/capturas/) (versiones anteriores). El diseño completo está en [`docs/DISENO.md`](docs/DISENO.md).
 
 ## Qué tiene ya
+- **Misiones diarias y racha**: cada día de juego (cambia a las 9:00 UTC) salen 3 misiones de un grupo de 10, iguales para
+  todos, y cumplir las 3 da un extra. Entrar cada día suma una **racha** de 7 días con premio creciente. Se ven en 🏆 Logros.
 - **Mapa en islas**: al sur todo es **mar** abajo de los acantilados. En la **isla principal** están la campana, el
   castillo y el campamento; al norte, cruzando un canal, el **bosque** de donde salen los zombis, con una
   **cordillera** que tapa el horizonte. Si te caes al agua, te lleva el mar.

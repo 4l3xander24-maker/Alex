@@ -1,6 +1,7 @@
 -- Compras con Robux dentro de la partida:
 --   * Entrega los productos (bolsas de monedas y Revivir) con ProcessReceipt.
---     Cada compra se anota en el perfil para no entregarla dos veces.
+--     Cada compra se anota en el perfil para no entregarla dos veces, y solo se
+--     confirma a Roblox cuando el perfil quedó guardado.
 --   * Bonos de los pases: Monedas x2, VIP (+XP) y lo del Pack Inicial
 --     (se entrega una sola vez, aunque lo hayan comprado en el Lobby).
 --   * Conecta las monedas del perfil a la tienda de skins.
@@ -94,12 +95,18 @@ local function processReceipt(info): Enum.ProductPurchaseDecision
 	local player = Players:GetPlayerByUserId(info.PlayerId)
 	local data = player and DataService.get(player)
 	local key = productKeyById[info.ProductId]
-	if not player or not data or not key then
+	-- Sin perfil cargado o sin poder guardarlo no se entrega: se perdería lo pagado
+	if not player or not data or not key or not DataService.canSave(player) then
 		-- Roblox lo vuelve a intentar cuando el jugador entre de nuevo
 		return Enum.ProductPurchaseDecision.NotProcessedYet
 	end
 	if table.find(data.Receipts, info.PurchaseId) then
-		return Enum.ProductPurchaseDecision.PurchaseGranted
+		-- Ya se entregó en esta sesión (reintento de Roblox): no se da otra vez,
+		-- pero solo se confirma si quedó guardado
+		if DataService.saveNow(player) then
+			return Enum.ProductPurchaseDecision.PurchaseGranted
+		end
+		return Enum.ProductPurchaseDecision.NotProcessedYet
 	end
 	local ok, err = pcall(grant, player, key)
 	if not ok then
@@ -112,7 +119,10 @@ local function processReceipt(info): Enum.ProductPurchaseDecision
 		table.remove(data.Receipts, 1)
 	end
 	DataService.changed(player, "Shop")
-	DataService.saveNow(player)
+	if not DataService.saveNow(player) then
+		-- Roblox reintenta; el recibo ya está anotado, así que no se duplica
+		return Enum.ProductPurchaseDecision.NotProcessedYet
+	end
 	return Enum.ProductPurchaseDecision.PurchaseGranted
 end
 
@@ -148,6 +158,8 @@ function PurchaseService.init()
 	end, function(player, amount)
 		DataService.addCoins(player, amount)
 		DataService.changed(player, "Shop")
+	end, function(player)
+		return DataService.saveNow(player)
 	end)
 	-- Al comprar un pase se avisa (el bono corre desde ya)
 	StoreService.onPassBought(function(player, passId)

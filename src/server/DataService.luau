@@ -65,10 +65,11 @@ pcall(function()
 end)
 local lastBackup: { [Player]: number } = {}
 
-local function save(player: Player)
+-- Devuelve true si el perfil quedó guardado
+local function save(player: Player): boolean
 	local entry = entries[player]
 	if not entry or not entry.CanSave or not store then
-		return
+		return false
 	end
 	-- Hasta 3 intentos: un fallo suelto de Roblox no debe costar el progreso
 	local ok, err = false, nil
@@ -86,7 +87,7 @@ local function save(player: Player)
 		if player.Parent then
 			Remotes.Notify:FireClient(player, "⚠️ No pudimos guardar tu progreso. Seguimos intentando; no salgas aún.")
 		end
-		return
+		return false
 	end
 	-- Copia de seguridad: como mucho una cada 10 minutos por jugador
 	local backup = backupStore
@@ -96,6 +97,7 @@ local function save(player: Player)
 			backup:SetAsync(keyFor(player), entry.Data, { player.UserId })
 		end)
 	end
+	return true
 end
 
 local function load(player: Player)
@@ -187,9 +189,15 @@ function DataService.addXp(player: Player, amount: number): number
 	return levels
 end
 
--- Guarda ya (por ejemplo después de una compra con Robux)
-function DataService.saveNow(player: Player)
-	save(player)
+-- Guarda ya (por ejemplo después de una compra con Robux). Devuelve si se guardó.
+function DataService.saveNow(player: Player): boolean
+	return save(player)
+end
+
+-- false si el perfil no se pudo cargar: esa sesión no se guarda
+function DataService.canSave(player: Player): boolean
+	local entry = entries[player]
+	return entry ~= nil and entry.CanSave and store ~= nil
 end
 
 -- Se llama desde init al salir el jugador, después de darle la XP de la partida
@@ -220,6 +228,16 @@ function DataService.init(onLoaded: (Player) -> ())
 		load(player)
 		if player.Parent then
 			DataService.changed(player, "Load")
+			if not DataService.canSave(player) then
+				-- Se avisa dos veces: la primera puede llegar antes de que el cliente esté listo
+				local text = "⚠️ No pudimos cargar tu progreso. Esta sesión NO se guardará: sal del juego y vuelve a entrar."
+				Remotes.Notify:FireClient(player, text)
+				task.delay(8, function()
+					if player.Parent then
+						Remotes.Notify:FireClient(player, text)
+					end
+				end)
+			end
 			onLoaded(player)
 		else
 			entries[player] = nil
