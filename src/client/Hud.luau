@@ -24,7 +24,7 @@ local PANEL_COLOR = Color3.fromRGB(20, 24, 26)
 
 export type Actions = {
 	setTrigger: (boolean) -> (),
-	setAiming: (boolean) -> (),
+	toggleAiming: () -> (),
 	reload: () -> (),
 	cycleWeapon: () -> (),
 	equipWeapon: (string) -> (),
@@ -283,6 +283,46 @@ local function bindHoldButton(button: GuiButton, setHeld: (boolean) -> ())
 	end)
 end
 
+-- Zona de disparar en celular: no es un botón, así que no se queda con el
+-- toque y la cámara de Roblox sigue girando con ese mismo dedo. Se miran los
+-- toques con UserInputService: uno que empieza dentro del círculo aprieta el
+-- gatillo hasta que ese mismo dedo se levanta (o hasta reaparecer).
+local function bindFireArea(gui: ScreenGui, area: GuiObject, setHeld: (boolean) -> ())
+	local playerGui = player:WaitForChild("PlayerGui") :: PlayerGui
+	local scale = Instance.new("UIScale")
+	scale.Parent = area
+	local activeTouch: InputObject? = nil
+	local function release()
+		activeTouch = nil
+		setHeld(false)
+		TweenService:Create(scale, TweenInfo.new(0.08), { Scale = 1 }):Play()
+	end
+	UserInputService.InputBegan:Connect(function(input, processed)
+		-- Un toque que ya usó otro botón (o un menú encima) no dispara
+		if processed or activeTouch or input.UserInputType ~= Enum.UserInputType.Touch or not gui.Enabled or not area.Visible then
+			return
+		end
+		for _, object in playerGui:GetGuiObjectsAtPosition(input.Position.X, input.Position.Y) do
+			if object == area or object:IsDescendantOf(area) then
+				activeTouch = input
+				setHeld(true)
+				TweenService:Create(scale, TweenInfo.new(0.08), { Scale = 0.9 }):Play()
+				return
+			end
+		end
+	end)
+	UserInputService.InputEnded:Connect(function(input)
+		if input == activeTouch then
+			release()
+		end
+	end)
+	player.CharacterAdded:Connect(function()
+		if activeTouch then
+			release()
+		end
+	end)
+end
+
 local function makeRoundButton(parent: Instance, text: string, position: UDim2, size: number, color: Color3): TextButton
 	local button = Instance.new("TextButton")
 	button.AnchorPoint = Vector2.new(1, 1)
@@ -367,6 +407,33 @@ function Hud.init(actions: Actions)
 	lowHealth.BackgroundColor3 = HEALTH_EMPTY
 	lowHealth.BackgroundTransparency = 1
 	lowHealth.Parent = gui
+	-- Destello rojo en los bordes de la pantalla al recibir daño
+	local damageFlash = Instance.new("Frame")
+	damageFlash.Size = UDim2.fromScale(1, 1)
+	damageFlash.BackgroundTransparency = 1
+	damageFlash.Visible = false
+	damageFlash.Parent = gui
+	local damageEdges: { Frame } = {}
+	-- Izquierda, derecha, arriba y abajo: rojo en el borde que se apaga hacia adentro
+	local edges = {
+		{ Rotation = 0, Position = UDim2.fromScale(0, 0), Size = UDim2.fromScale(0.14, 1) },
+		{ Rotation = 180, Position = UDim2.fromScale(0.86, 0), Size = UDim2.fromScale(0.14, 1) },
+		{ Rotation = 90, Position = UDim2.fromScale(0, 0), Size = UDim2.fromScale(1, 0.2) },
+		{ Rotation = 270, Position = UDim2.fromScale(0, 0.8), Size = UDim2.fromScale(1, 0.2) },
+	}
+	for _, edge in edges do
+		local frame = Instance.new("Frame")
+		frame.Position = edge.Position
+		frame.Size = edge.Size
+		frame.BackgroundColor3 = HEALTH_EMPTY
+		frame.BorderSizePixel = 0
+		frame.Parent = damageFlash
+		local fade = Instance.new("UIGradient")
+		fade.Rotation = edge.Rotation
+		fade.Transparency = NumberSequence.new(0, 1)
+		fade.Parent = frame
+		table.insert(damageEdges, frame)
+	end
 
 	-- Arriba: oleada, estado y vida de la campana
 	local top = Instance.new("Frame")
@@ -549,13 +616,20 @@ function Hud.init(actions: Actions)
 		-- de abajo hacia arriba: disparar (al lado del salto), recargar y cambiar
 		-- de arma, y más arriba las armas con su munición.
 		-- Iconos de línea blancos sobre círculos oscuros, como Call of Duty Mobile
-		local fire = makeRoundButton(gui, "", UDim2.new(1, -50, 1, -112), 100, PANEL_COLOR)
+		-- Disparar no es un botón (Active = false): no se queda con el toque, así
+		-- el mismo dedo sigue girando la cámara de Roblox mientras dispara
+		local fire = Instance.new("Frame")
+		fire.Active = false
+		fire.AnchorPoint = Vector2.new(1, 1)
+		fire.Position = UDim2.new(1, -50, 1, -112)
+		fire.Size = UDim2.fromOffset(100, 100)
+		fire.Parent = gui
+		round(fire, UDim.new(1, 0))
 		HudIcons.styleButton(fire, 2)
 		fire.BackgroundColor3 = Color3.fromRGB(40, 42, 46)
 		fire.BackgroundTransparency = 0.5
 		HudIcons.fire(fire, 76)
-		HudIcons.bindPress(fire)
-		bindHoldButton(fire, actions.setTrigger)
+		bindFireArea(gui, fire, actions.setTrigger)
 		local reload = makeRoundButton(gui, "", UDim2.new(1, -160, 1, -120), 56, PANEL_COLOR)
 		HudIcons.styleButton(reload)
 		HudIcons.reload(reload, 36)
@@ -570,11 +644,8 @@ function Hud.init(actions: Actions)
 		HudIcons.styleButton(aimButton)
 		HudIcons.scope(aimButton, 36)
 		HudIcons.bindPress(aimButton)
-		local aiming = false
-		aimButton.Activated:Connect(function()
-			aiming = not aiming
-			actions.setAiming(aiming)
-		end)
+		-- Alterna: el estado lo guarda WeaponController (se reinicia al reaparecer)
+		aimButton.Activated:Connect(actions.toggleAiming)
 		-- Armas (solo para ver cuál llevas) y munición, encima de los botones
 		weaponRow.Position = UDim2.new(1, -16, 1, -226)
 		weaponRow.Size = UDim2.fromOffset(400, 34)
@@ -707,7 +778,10 @@ function Hud.init(actions: Actions)
 
 	-- Lo que cambia cada frame
 	local lastClock = 0
-	RunService.RenderStepped:Connect(function()
+	local lastHumanoid: Humanoid? = nil
+	local lastHealth = 0
+	local flash = 0 -- fuerza del destello rojo: sube al recibir daño y se apaga sola
+	RunService.RenderStepped:Connect(function(dt)
 		local data = Profile.get()
 
 		if clockLabel.Visible and os.clock() - lastClock > 0.5 then
@@ -731,7 +805,8 @@ function Hud.init(actions: Actions)
 		elseif reloadProgress then
 			ammoLabel.Text = "RECARGANDO"
 		elseif empty then
-			ammoLabel.Text = `SIN BALAS <font size="16">· usa el cuchillo (1)</font>`
+			-- En celular no hay tecla 1: se toca la casilla del cuchillo
+			ammoLabel.Text = if touch then `SIN BALAS <font size="16">· toca el cuchillo 🔪</font>` else `SIN BALAS <font size="16">· usa el cuchillo (1)</font>`
 		else
 			ammoLabel.Text = `{ammo} <font size="22" transparency="0.25">/ {reserve}</font>`
 		end
@@ -778,6 +853,19 @@ function Hud.init(actions: Actions)
 		healthFill.BackgroundColor3 = HEALTH_EMPTY:Lerp(HEALTH_FULL, ratio)
 		healthText.Text = "" -- solo la barra, sin números
 		lowHealth.BackgroundTransparency = if ratio < 0.3 and health > 0 then 0.8 + math.sin(os.clock() * 6) * 0.08 else 1
+		-- Destello en los bordes al perder vida (no al cambiar de personaje)
+		if humanoid == lastHumanoid and health < lastHealth and health > 0 then
+			flash = math.max(flash, 0.55)
+		end
+		lastHumanoid = humanoid
+		lastHealth = health
+		if flash > 0 then
+			flash = math.max(0, flash - dt * 2.5)
+			for _, edge in damageEdges do
+				edge.BackgroundTransparency = 1 - flash
+			end
+		end
+		damageFlash.Visible = flash > 0
 
 		local scoped = actions.isScoped()
 		scope.Visible = scoped

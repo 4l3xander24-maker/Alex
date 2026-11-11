@@ -21,8 +21,18 @@ local MIN_GAP = {
 	PlayerHurt = 0.25,
 	XpPickup = 0.06,
 	SmallExplosion = 0.1,
+	DryFire = 0.3,
 }
 local DEFAULT_GAP = 0.03
+-- Sonidos que solo existen aquí (reusan audios de Shared.Sounds con otro tono)
+local EXTRA_SOUNDS = {
+	DryFire = { Id = Sounds.UiClick.Id, Volume = 0.45, Pitch = 1.4 }, -- clic seco del arma vacía
+}
+-- Daño recibido: los zombis pegan de a poquito, así que se suma lo perdido
+-- en una ventana corta y suena al pasar el umbral (con una pausa entre quejidos)
+local HURT_WINDOW = 0.6
+local HURT_THRESHOLD = 2
+local HURT_COOLDOWN = 0.7
 local MIN_DISTANCE = 10
 local MAX_LIFETIME = 15
 
@@ -90,7 +100,7 @@ end
 
 -- Sonido "en la cabeza" del jugador (armas, interfaz)
 function Sfx.play(name: string)
-	local spec = Sounds[name]
+	local spec = Sounds[name] or EXTRA_SOUNDS[name]
 	if not spec or not canPlay(name) then
 		return
 	end
@@ -229,9 +239,22 @@ end
 local function watchHealth(character: Model)
 	local humanoid = character:WaitForChild("Humanoid") :: Humanoid
 	local last = humanoid.Health
+	local lost = 0
+	local lastLoss = 0
+	local lastHurt = 0
 	humanoid.HealthChanged:Connect(function(health)
-		if health < last - 0.5 and health > 0 then
-			Sfx.play("PlayerHurt")
+		local now = os.clock()
+		if health < last and health > 0 then
+			if now - lastLoss > HURT_WINDOW then
+				lost = 0
+			end
+			lost += last - health
+			lastLoss = now
+			if lost >= HURT_THRESHOLD and now - lastHurt >= HURT_COOLDOWN then
+				lost = 0
+				lastHurt = now
+				Sfx.play("PlayerHurt")
+			end
 		end
 		last = health
 	end)

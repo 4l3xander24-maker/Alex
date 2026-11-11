@@ -13,6 +13,7 @@ local MeleeEnergy = require(Shared.MeleeEnergy)
 local Progression = require(Shared.Progression)
 local Remotes = require(Shared.Remotes)
 local MovementController = require(script.Parent.MovementController)
+local Notify = require(script.Parent.Notify)
 local Profile = require(script.Parent.Profile)
 local Viewmodel = require(script.Parent.Viewmodel)
 local Sfx = require(script.Parent.Sfx)
@@ -21,6 +22,17 @@ local TRACER_COLOR = Color3.fromRGB(255, 220, 90)
 local TRACER_TIME = 0.05
 local SWITCH_DELAY = 0.3
 local NUMBER_KEYS = { Enum.KeyCode.One, Enum.KeyCode.Two, Enum.KeyCode.Three, Enum.KeyCode.Four, Enum.KeyCode.Five, Enum.KeyCode.Six, Enum.KeyCode.Seven, Enum.KeyCode.Eight }
+local AIM_ANGLE = math.rad(Config.ShootAssist.AimAngle)
+local DRY_RESET = 0.6 -- si pasa esto sin intentar disparar, la cuenta para sacar el cuchillo empieza de nuevo
+
+type RayHit = { Id: number, Distance: number, Position: Vector3 }
+-- Consultas a los zombis que dibuja EnemyRenderer (llegan en init para no
+-- tener un require circular)
+export type EnemyQueries = {
+	raycast: (Vector3, Vector3, number) -> RayHit?,
+	nearestToAim: (Vector3, Vector3, number, number) -> RayHit?,
+	anyInSwing: (Vector3, Vector3, number, number) -> boolean,
+}
 
 local player = Players.LocalPlayer
 local random = Random.new()
@@ -35,14 +47,18 @@ local equipped = "Pistol"
 local ammo: { [string]: number } = {}
 local reserve: { [string]: number } = {}
 local triggerHeld = false
+local triggerFromMouse = false -- con el mouse nunca se usa la ayuda de puntería
 local aimHeld = false
 local lastShot = 0
 local reloading = false
 local reloadWeapon = ""
 local reloadStart = 0
 local reloadEnd = 0
-local enemyFolder: Instance
+local enemies: EnemyQueries
 local onEnemyHit: () -> ()
+-- Intentos de disparar sin balas: desde cuándo y el último
+local dryStart = 0
+local lastDry = -math.huge
 -- Energía del cuchillo: cada tajo gasta, se recarga sola
 local energy = MeleeEnergy.new()
 
@@ -173,40 +189,65 @@ local function slash(weaponStats)
 	Viewmodel.swing()
 	Sfx.weapon(equipped)
 
-	-- Marca de golpe si hay algún zombi justo enfrente
-	local params = OverlapParams.new()
-	params.FilterType = Enum.RaycastFilterType.Include
-	params.FilterDescendantsInstances = { enemyFolder }
-	local center = cameraCFrame.Position + cameraCFrame.LookVector * (weaponStats.Range / 2)
-	if #workspace:GetPartBoundsInRadius(center, weaponStats.Range / 2 + 1, params) > 0 then
+	-- Marca de golpe si hay algún zombi dentro del tajo (misma regla que el servidor)
+	if enemies.anyInSwing(cameraCFrame.Position, cameraCFrame.LookVector, weaponStats.Range, Config.Weapons[equipped].Arc or 0) then
 		onEnemyHit()
 	end
 end
 
-local function fire(weaponStats)
-	local cameraCFrame = workspace.CurrentCamera.CFrame
-	local origin = cameraCFrame.Position
-	local direction = cameraCFrame.LookVector
+-- Raycast contra el mundo (paredes, suelo), sin el personaje propio
+local function worldRaycast(origin: Vector3, direction: Vector3, distance: number): RaycastResult?
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = { player.Character :: Instance }
+	return workspace:Raycast(origin, direction * distance, params)
+end
+
+-- Hacia dónde sale el tiro y si va a dar en un zombi (para el disparo
+-- automático). Con la ayuda de puntería, si la mira no toca a ningún zombi
+-- pero uno queda a pocos grados, el tiro va hacia su cuerpo. Nunca con el mouse.
+local function aimAt(origin: Vector3, direction: Vector3, range: number): (Vector3, boolean)
+	local direct = enemies.raycast(origin, direction, range)
+	if direct then
+		return direction, worldRaycast(origin, direction, direct.Distance) == nil
+	end
+	local assist = player:GetAttribute("AimAssist") == true and not (triggerHeld and triggerFromMouse)
+	if not assist then
+		return direction, false
+	end
+	local near = enemies.nearestToAim(origin, direction, range, AIM_ANGLE)
+	if not near then
+		return direction, false
+	end
+	local toward = near.Position - origin
+	if toward.Magnitude < 0.1 or worldRaycast(origin, toward.Unit, toward.Magnitude) then
+		return direction, false
+	end
+	return toward.Unit, true
+end
+
+local function fire(weaponStats, direction: Vector3)
+	local origin = workspace.CurrentCamera.CFrame.Position
 	Remotes.Shoot:FireServer(origin, direction, workspace:GetServerTimeNow(), isAiming())
 	Sfx.weapon(equipped)
 	Viewmodel.kick(if weaponStats.Pellets > 1 or weaponStats.Damage > 5 then 1.6 else 1)
 
-	-- Lo visual es local; el daño lo decide el servidor
-	local params = RaycastParams.new()
-	params.FilterType = Enum.RaycastFilterType.Exclude
-	params.FilterDescendantsInstances = { player.Character :: Instance }
+	-- Lo visual es local; el daño lo decide el servidor. Cada perdigón termina
+	-- en lo que esté más cerca: una pared o un zombi.
 	local hitEnemy = false
 	for _ = 1, weaponStats.Pellets do
 		local pelletDirection = applySpread(direction, weaponStats.Spread)
-		local result = workspace:Raycast(origin, pelletDirection * weaponStats.Range, params)
+		local result = worldRaycast(origin, pelletDirection, weaponStats.Range)
 		local hitPoint = if result then result.Position else origin + pelletDirection * weaponStats.Range
+		local enemyHit = enemies.raycast(origin, pelletDirection, if result then result.Distance else weaponStats.Range)
+		if enemyHit then
+			hitPoint = enemyHit.Position
+			hitEnemy = true
+		end
 		if Config.Weapons[equipped].Flame then
 			flameBurst(Viewmodel.getMuzzlePosition(), hitPoint)
 		else
 			drawTracer(Viewmodel.getMuzzlePosition(), hitPoint)
-		end
-		if result and result.Instance:IsDescendantOf(enemyFolder) then
-			hitEnemy = true
 		end
 	end
 	if hitEnemy then
@@ -254,12 +295,16 @@ function WeaponController.reload()
 	Sfx.play("Reload")
 end
 
+-- Gatillo táctil (botón de disparar del HUD)
 function WeaponController.setTrigger(held: boolean)
 	triggerHeld = held
+	triggerFromMouse = false
 end
 
-function WeaponController.setAiming(held: boolean)
-	aimHeld = held
+-- Botón de apuntar del celular: alterna. El estado vive solo aquí, así se
+-- reinicia junto con lo demás al reaparecer.
+function WeaponController.toggleAiming()
+	aimHeld = not aimHeld
 end
 
 function WeaponController.isAiming(): boolean
@@ -293,6 +338,27 @@ local function finishReload()
 	Viewmodel.setReloading(false)
 end
 
+-- Gatillo sin balas en el cargador ni en la reserva: clic seco y, si sigue
+-- intentando cerca de un segundo, saca el cuchillo con un aviso
+local function dryFire(now: number)
+	if now - lastDry > DRY_RESET then
+		dryStart = now
+	end
+	lastDry = now
+	Sfx.play("DryFire")
+	if now - dryStart < Config.ShootAssist.DrySwitchTime then
+		return
+	end
+	for _, id in Config.WeaponOrder do
+		if Config.Weapons[id].Melee and Profile.get().Weapons[id] then
+			lastDry = -math.huge
+			WeaponController.equip(id)
+			Notify.show("¡Sin balas! Sacaste el cuchillo")
+			return
+		end
+	end
+end
+
 local function update()
 	local now = os.clock()
 	if reloading and now >= reloadEnd then
@@ -300,14 +366,21 @@ local function update()
 	end
 	Viewmodel.setAiming(isAiming())
 
-	if not triggerHeld or reloading or not isAlive() or MovementController.isSprinting() then
+	-- Disparo automático (opción): dispara solo mientras la mira está sobre
+	-- un zombi, con la misma cadencia, munición y recarga que el gatillo
+	local autoFire = player:GetAttribute("AutoFire") == true and player:GetAttribute("InCinematic") ~= true
+	if not (triggerHeld or autoFire) or reloading or not isAlive() or MovementController.isSprinting() then
 		return
 	end
 	local weaponStats = stats()
 	if now - lastShot < 1 / weaponStats.FireRate then
 		return
 	end
+	local camera = workspace.CurrentCamera.CFrame
 	if weaponStats.Melee then
+		if not triggerHeld and not enemies.anyInSwing(camera.Position, camera.LookVector, weaponStats.Range, Config.Weapons[equipped].Arc or 0) then
+			return
+		end
 		-- Sin energía no ataca hasta que el círculo se recargue un poco
 		if MeleeEnergy.use(energy, now) then
 			lastShot = now
@@ -315,10 +388,16 @@ local function update()
 		end
 		return
 	end
+	local direction, onTarget = aimAt(camera.Position, camera.LookVector, weaponStats.Range)
+	if not triggerHeld and not onTarget then
+		return
+	end
 	if (ammo[equipped] or 0) > 0 then
 		lastShot = now
 		ammo[equipped] -= 1
-		fire(weaponStats)
+		fire(weaponStats, direction)
+	elseif (reserve[equipped] or 0) <= 0 then
+		dryFire(now)
 	end
 	if (ammo[equipped] or 0) <= 0 then
 		WeaponController.reload()
@@ -385,8 +464,8 @@ local function watchMenus()
 	end)
 end
 
-function WeaponController.init(folder: Instance, hitCallback: () -> ())
-	enemyFolder = folder
+function WeaponController.init(enemyQueries: EnemyQueries, hitCallback: () -> ())
+	enemies = enemyQueries
 	onEnemyHit = hitCallback
 
 	if UserInputService.MouseEnabled then
@@ -400,6 +479,7 @@ function WeaponController.init(folder: Instance, hitCallback: () -> ())
 		end
 		if isTriggerInput(input) then
 			triggerHeld = true
+			triggerFromMouse = input.UserInputType == Enum.UserInputType.MouseButton1
 		elseif isAimInput(input) then
 			aimHeld = true
 		elseif input.KeyCode == Enum.KeyCode.R or input.KeyCode == Enum.KeyCode.ButtonX then
@@ -421,9 +501,11 @@ function WeaponController.init(folder: Instance, hitCallback: () -> ())
 		end
 	end)
 
+	-- Al reaparecer nada queda apretado (ni un dedo que siguió en la pantalla)
 	player.CharacterAdded:Connect(function()
 		cancelReload()
 		aimHeld = false
+		triggerHeld = false
 	end)
 
 	-- El servidor manda la munición inicial (al empezar la partida o al comprar)

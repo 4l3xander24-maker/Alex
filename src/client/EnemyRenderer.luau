@@ -87,6 +87,9 @@ type Visual = {
 
 local EnemyRenderer = {}
 
+-- Zombi que cruza un rayo: id, distancia desde el origen y punto del impacto
+export type RayHit = { Id: number, Distance: number, Position: Vector3 }
+
 local folder = Instance.new("Folder")
 folder.Name = "ClientEnemies"
 folder.Parent = workspace
@@ -307,7 +310,7 @@ local function addEnemy(id: number, typeName: string, points: { Vector3 }, speed
 			-- Tierra que salta al salir
 			for _ = 1, math.min(6, DeathFx.budget()) do
 				local direction = Vector3.new(random:NextNumber(-1, 1), random:NextNumber(0.6, 1.4), random:NextNumber(-1, 1)).Unit
-				DeathFx.addCube(Vector3.new(position.X, 0.3, position.Z), DIRT[random:NextInteger(1, #DIRT)], 0.4 * scale ^ 0.8, direction * 8 * scale ^ 0.5, 50, random:NextNumber(0.5, 0.8))
+				DeathFx.addCube(Vector3.new(position.X, Paths.walkHeight(position) + 0.3, position.Z), DIRT[random:NextInteger(1, #DIRT)], 0.4 * scale ^ 0.8, direction * 8 * scale ^ 0.5, 50, random:NextNumber(0.5, 0.8))
 			end
 		end
 	end
@@ -467,6 +470,94 @@ local function flashEnemy(id: number)
 			splatter(visual)
 		end
 	end
+end
+
+-- Punto del eje de la cápsula de un zombi más cercano al rayo, igual que en
+-- EnemyService.raycast (dos pasadas bastan). Devuelve la distancia sobre el
+-- rayo, ese punto del eje y el radio de la cápsula.
+local function closestOnBody(origin: Vector3, direction: Vector3, center: Vector3, info): (number, Vector3, number)
+	local radius = info.HitRadius
+	local reach = math.max(0, info.Size.Y / 2 - radius)
+	local extra = info.HitExtra or 0
+	local along = (center - origin):Dot(direction)
+	local axisPoint = center
+	for _ = 1, 2 do
+		local rayPoint = origin + direction * along
+		axisPoint = Vector3.new(center.X, math.clamp(rayPoint.Y, center.Y - reach, center.Y + reach + extra), center.Z)
+		along = (axisPoint - origin):Dot(direction)
+	end
+	return along, axisPoint, radius
+end
+
+-- Rayo contra los zombis que se dibujan (sus piezas tienen CanQuery = false
+-- y el raycast del mundo no los ve). Cada uno es una cápsula vertical con la
+-- misma forma que usa el servidor. Devuelve el más cercano o nil.
+function EnemyRenderer.raycast(origin: Vector3, direction: Vector3, range: number): RayHit?
+	local now = workspace:GetServerTimeNow()
+	local best: RayHit? = nil
+	for id, visual in visuals do
+		local info = Config.Enemies[visual.Type]
+		local along, axisPoint, radius = closestOnBody(origin, direction, EnemyMath.getPosition(visual.Path, now), info)
+		if along > 0 and along < range then
+			local gap = axisPoint - (origin + direction * along)
+			local gapSquared = gap:Dot(gap)
+			if gapSquared <= radius * radius then
+				-- Donde el rayo entra en la cápsula (ahí termina la bala)
+				local distance = math.max(0, along - math.sqrt(radius * radius - gapSquared))
+				if not best or distance < best.Distance then
+					best = { Id = id, Distance = distance, Position = origin + direction * distance }
+				end
+			end
+		end
+	end
+	return best
+end
+
+-- Ayuda de puntería: el zombi cuyo cuerpo queda a menos de `maxAngle`
+-- radianes del rayo (el más cercano al centro de la mira). Position es el
+-- punto de su eje hacia donde conviene apuntar.
+function EnemyRenderer.nearestToAim(origin: Vector3, direction: Vector3, range: number, maxAngle: number): RayHit?
+	local now = workspace:GetServerTimeNow()
+	local best: RayHit? = nil
+	local bestAngle = maxAngle
+	for id, visual in visuals do
+		local info = Config.Enemies[visual.Type]
+		local along, axisPoint, radius = closestOnBody(origin, direction, EnemyMath.getPosition(visual.Path, now), info)
+		if along > 0 and along < range then
+			local gap = math.max(0, (axisPoint - (origin + direction * along)).Magnitude - radius)
+			local angle = math.atan2(gap, along)
+			if angle <= bestAngle then
+				bestAngle = angle
+				best = { Id = id, Distance = along, Position = axisPoint }
+			end
+		end
+	end
+	return best
+end
+
+-- true si algún zombi queda dentro del tajo del cuchillo, con la misma regla
+-- que EnemyService.getInCone en el servidor
+function EnemyRenderer.anyInSwing(origin: Vector3, direction: Vector3, range: number, arcDegrees: number): boolean
+	local flatDirection = Vector3.new(direction.X, 0, direction.Z)
+	if flatDirection.Magnitude < 0.01 then
+		return false
+	end
+	flatDirection = flatDirection.Unit
+	local minDot = math.cos(math.rad(arcDegrees / 2))
+	local now = workspace:GetServerTimeNow()
+	for _, visual in visuals do
+		local info = Config.Enemies[visual.Type]
+		local position = EnemyMath.getPosition(visual.Path, now)
+		local offset = Vector3.new(position.X - origin.X, 0, position.Z - origin.Z)
+		local distance = offset.Magnitude - info.HitRadius
+		local heightGap = math.abs(position.Y - origin.Y) - info.Size.Y / 2
+		if distance <= range and heightGap <= range then
+			if offset.Magnitude < info.HitRadius + 1 or offset.Unit:Dot(flatDirection) >= minDot then
+				return true
+			end
+		end
+	end
+	return false
 end
 
 local nextGrowl = 0
@@ -646,9 +737,23 @@ function EnemyRenderer.init()
 	end)
 	-- Golpes y muertes llegan como { id, daño }: el número salta sobre la cabeza
 	Remotes.EnemyHit.OnClientEvent:Connect(function(hits)
+		-- Varios golpes al mismo zombi en el mismo mensaje (los perdigones de la
+		-- escopeta) se juntan en un solo número
+		local totals: { [number]: number } = {}
+		local order: { number } = {}
 		for _, hit in hits do
-			showDamage(hit[1], hit[2], false)
-			flashEnemy(hit[1])
+			local id, amount = hit[1], hit[2]
+			if not totals[id] then
+				totals[id] = 0
+				table.insert(order, id)
+			end
+			if type(amount) == "number" then
+				totals[id] += amount
+			end
+		end
+		for _, id in order do
+			showDamage(id, totals[id], false)
+			flashEnemy(id)
 		end
 	end)
 	Remotes.EnemyDied.OnClientEvent:Connect(function(deaths)
@@ -665,8 +770,8 @@ function EnemyRenderer.init()
 			if visual and typeof(skinId) == "string" and skinId ~= "" then
 				for _, skin in Config.ObjectSkins do
 					if skin.Id == skinId then
-						local at = EnemyMath.getPosition(visual.Path, workspace:GetServerTimeNow())
-						DeathFx.skinBurst(at + Vector3.new(0, Paths.walkHeight(at), 0), skin)
+						-- getPosition ya incluye la altura del suelo
+						DeathFx.skinBurst(EnemyMath.getPosition(visual.Path, workspace:GetServerTimeNow()), skin)
 						break
 					end
 				end

@@ -131,7 +131,12 @@ function TouchControls.init(actions: { jump: () -> () })
 	HudIcons.styleButton(jump, 1.5)
 	HudIcons.jump(jump, 40)
 	HudIcons.bindPress(jump)
-	jump.Activated:Connect(actions.jump)
+	-- Salta al apoyar el dedo (Activated esperaba a soltarlo y se sentía tarde)
+	jump.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.Touch then
+			actions.jump()
+		end
+	end)
 
 	-- Cada cuadro le dice al personaje hacia dónde ir (según la cámara)
 	local wasMoving = false
