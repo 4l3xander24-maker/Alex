@@ -930,7 +930,15 @@ Config.Weekly = {
 		{ Id = "Reaper", Boss = "Reaper", Icon = "💀", Name = "Semana del Segador", Description = "Un jefe nuevo, el Segador, aparece cada 3 oleadas." },
 	},
 	Prizes = { 1500, 1000, 600 }, -- monedas para el puesto 1, 2 y 3
+	Participation = 100, -- monedas para todo el que sumó puntos esa semana y no quedó entre los 3 primeros
 	Top = 10, -- cuántos se ven en el tablero del lobby
+}
+
+-- Bonus por jugar con amigos de Roblox: cada amigo presente en la partida suma
+-- este porcentaje a las monedas de bajas y a la XP de cuenta, hasta MaxBonus.
+Config.Friends = {
+	BonusPerFriend = 0.10,
+	MaxBonus = 0.30,
 }
 
 Config.Waves = {
