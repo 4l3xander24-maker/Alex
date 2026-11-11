@@ -91,8 +91,9 @@ function CombatService.resetAmmo(player: Player)
 end
 
 -- Descanso entre oleadas: cada arma vuelve como mínimo a sus balas iniciales
--- (con 1 bala por baja, sin esto te quedabas sin munición en la oleada 1)
-function CombatService.restockAll()
+-- (con 1 bala por baja, sin esto te quedabas sin munición en la oleada 1).
+-- Con fillMagazines (la dificultad más baja) además se llena cada cargador.
+function CombatService.restockAll(fillMagazines: boolean?)
 	for _, player in Players:GetPlayers() do
 		local data = DataService.get(player)
 		if not data then
@@ -106,7 +107,7 @@ function CombatService.restockAll()
 			local stats = Progression.getWeaponStats(data, weaponId, false)
 			if not stats.Melee then
 				state.Reserve[weaponId] = math.max(state.Reserve[weaponId] or 0, stats.StartReserve)
-				state.Ammo[weaponId] = state.Ammo[weaponId] or stats.Magazine
+				state.Ammo[weaponId] = if fillMagazines then stats.Magazine else state.Ammo[weaponId] or stats.Magazine
 			end
 		end
 		Remotes.AmmoSync:FireClient(player, state.Ammo, state.Reserve)

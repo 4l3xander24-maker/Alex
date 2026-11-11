@@ -698,16 +698,29 @@ function Hud.init(actions: Actions)
 		topStroke.Color = if isBossWave then Color3.fromRGB(255, 80, 70) else GOLD
 		topStroke.Transparency = if isBossWave then 0.1 else 0.5
 
+		-- Segundos que faltan hasta una hora del servidor publicada en GameState
+		local function secondsTo(name: string): number
+			return math.max(0, math.ceil((gameState:GetAttribute(name) or 0) - workspace:GetServerTimeNow()))
+		end
 		if state == "Lobby" then
 			waveLabel.Text = "PREPARACIÓN"
-			statusLabel.Text = "Compra en el campamento y reconstruye la campana (E) para empezar"
+			local expected = gameState:GetAttribute("PartyExpected") or 0
+			statusLabel.Text = if expected > 0
+				then `Esperando a tu equipo ({gameState:GetAttribute("PartyArrived") or 0}/{expected})… {secondsTo("PartyWaitEnds")} s`
+				else "Compra en el campamento y reconstruye la campana (E) para empezar"
 		elseif state == "Intermission" then
 			local left = gameState:GetAttribute("EnemiesLeft") or 0
-			statusLabel.Text = if left > 0 then `⚠️ ¡Viene otra horda! · Quedan {left}` else "¡Prepárate, vienen más zombis!"
+			local countdown = if (gameState:GetAttribute("NextWaveAt") or 0) > 0 then ` · Oleada en {secondsTo("NextWaveAt")} s` else ""
+			statusLabel.Text = (if left > 0 then `⚠️ ¡Viene otra horda! · Quedan {left}` else "¡Prepárate, vienen más zombis!") .. countdown
 		elseif state == "Wave" then
 			statusLabel.Text = `Zombis restantes: {gameState:GetAttribute("EnemiesLeft")}`
 		elseif state == "GameOver" then
 			statusLabel.Text = if gameState:GetAttribute("EndReason") == "Dead" then "¡CAÍSTE! Fin de la partida..." else "¡DESTRUYERON LA CAMPANA! Reiniciando..."
+		elseif state == "Victory" then
+			waveLabel.Text = "¡VICTORIA!"
+			statusLabel.Text = if gameState:GetAttribute("VictoryVote") == true
+				then `🏆 ¡Superaron la meta! Voten: seguir o terminar · {secondsTo("VoteEnds")} s`
+				else "🏆 ¡Superaron la meta!"
 		else
 			statusLabel.Text = "Esperando jugadores..."
 		end
@@ -767,6 +780,16 @@ function Hud.init(actions: Actions)
 	end
 
 	gameState.AttributeChanged:Connect(refreshState)
+	-- Las cuentas regresivas del cartel de arriba bajan aunque no cambie nada más
+	task.spawn(function()
+		while true do
+			task.wait(0.5)
+			local state = gameState:GetAttribute("State")
+			if state == "Intermission" or state == "Victory" or (state == "Lobby" and (gameState:GetAttribute("PartyExpected") or 0) > 0) then
+				refreshState()
+			end
+		end
+	end)
 	player.AttributeChanged:Connect(refreshProfile)
 	-- La cinemática de derrota se ve limpia, sin botones ni barras
 	player:GetAttributeChangedSignal("InCinematic"):Connect(function()

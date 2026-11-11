@@ -40,6 +40,7 @@ export type Profile = {
 	Daily: { Day: string, Kills: number, BossKills: number, Waves: number, Claimed: { [string]: boolean } }, -- formato viejo de las misiones del día (solo se lee para migrar)
 	Missions: { Day: number, Progress: { [string]: number }, Claimed: { [string]: boolean }, BonusClaimed: boolean, StartLevel: number }, -- misiones de hoy (Day = día de juego, avance por id de misión)
 	Streak: { Count: number, LastDay: number }, -- racha de días: cuántos seguidos y el último día de juego contado
+	MatchesPlayed: number, -- partidas terminadas (ganadas o perdidas)
 }
 
 local Progression = {}
@@ -61,7 +62,7 @@ end
 
 function Progression.defaultProfile(): Profile
 	return {
-		Coins = 0,
+		Coins = 150, -- para comprar algo en la primera preparación
 		Level = 1,
 		Xp = 0,
 		StatPoints = 0,
@@ -97,6 +98,7 @@ function Progression.defaultProfile(): Profile
 		Daily = { Day = "", Kills = 0, BossKills = 0, Waves = 0, Claimed = {} },
 		Missions = { Day = 0, Progress = {}, Claimed = {}, BonusClaimed = false, StartLevel = 1 },
 		Streak = { Count = 0, LastDay = 0 },
+		MatchesPlayed = 0,
 	}
 end
 

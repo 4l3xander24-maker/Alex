@@ -1067,8 +1067,11 @@ Config.Rooms = {
 	Countdown = 15, -- segundos desde que entra el primero
 	FullCountdown = 5, -- si se llena, sale antes
 	ReturnDelay = 10, -- segundos del resumen antes de volver al lobby
-	VoteMaxWait = 300, -- sin cuenta regresiva: si alguien no vota en tanto tiempo, cuenta como Reintentar
+	VoteTime = 30, -- segundos para votar Reintentar o Volver al lobby (quien no vota no cuenta)
 	CinematicTime = 9, -- duración de la cinemática de derrota
+	PartyWait = 20, -- la partida espera a que lleguen todos los del grupo, como mucho estos segundos
+	VictoryBannerTime = 3.5, -- duración del cartel de ¡VICTORIA! antes de votar
+	VictoryVoteTime = 20, -- segundos para votar Seguir (modo sin fin) o Terminar
 }
 
 -- Armas que vende el Armero. Zoom solo se usa con el talento Puntería.

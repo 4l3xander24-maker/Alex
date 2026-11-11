@@ -1,6 +1,7 @@
 -- Pantalla de fin de partida: oleadas, bajas, monedas, la XP de cuenta ganada
 -- y la tabla de todo el equipo. Si subiste de nivel, un botón abre el panel de
 -- mejoras y talentos (y se abre solo al cerrar el resumen si quedan puntos).
+-- También muestra la votación de la victoria (seguir en modo sin fin o terminar).
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -43,6 +44,96 @@ end
 
 local function hide()
 	gui.Enabled = false
+end
+
+local function clearPanel()
+	for _, child in panel:GetChildren() do
+		if child:IsA("TextLabel") or child:IsA("TextButton") or child:IsA("Frame") then
+			child:Destroy()
+		end
+	end
+end
+
+-- Segundos que le quedan a la votación abierta (VoteEnds, hora del servidor)
+local function secondsLeft(state: Instance): number
+	return math.max(0, math.ceil((state:GetAttribute("VoteEnds") or 0) - workspace:GetServerTimeNow()))
+end
+
+-- Fila de botones de voto. choices: { { id, texto, color } }. onVote se llama al
+-- elegir. Devuelve una función que dice qué votaste (nil si todavía nada).
+local function voteRow(choices: { { any } }, onVote: ((string) -> ())?): () -> string?
+	local row = Instance.new("Frame")
+	row.Size = UDim2.fromOffset(440, 46)
+	row.BackgroundTransparency = 1
+	row.LayoutOrder = nextOrder()
+	row.Parent = panel
+	local rowLayout = Instance.new("UIListLayout")
+	rowLayout.FillDirection = Enum.FillDirection.Horizontal
+	rowLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	rowLayout.Padding = UDim.new(0, 12)
+	rowLayout.Parent = row
+	local myVote: string? = nil
+	local buttons: { [string]: TextButton } = {}
+	for _, choice in choices do
+		local id: string, text: string, color: Color3 = choice[1], choice[2], choice[3]
+		local button = Instance.new("TextButton")
+		button.Size = UDim2.fromOffset(200, 44)
+		button.BackgroundColor3 = color
+		button.Font = Enum.Font.GothamBlack
+		button.TextSize = 18
+		button.TextColor3 = Color3.fromRGB(30, 24, 10)
+		button.Text = text
+		-- Modal libera el mouse en primera persona
+		button.Modal = true
+		button.Parent = row
+		local corner = Instance.new("UICorner")
+		corner.CornerRadius = UDim.new(0, 10)
+		corner.Parent = button
+		button.Activated:Connect(function()
+			if myVote == id then
+				return
+			end
+			myVote = id
+			Remotes.Vote:FireServer(id)
+			for name, other in buttons do
+				other.BackgroundTransparency = if name == id then 0 else 0.55
+			end
+			if onVote then
+				onVote(id)
+			end
+		end)
+		buttons[id] = button
+	end
+	return function()
+		return myVote
+	end
+end
+
+-- Superaron la meta de la dificultad: el equipo vota seguir en modo sin fin o terminar
+local function showVictoryVote(state: Instance)
+	clearPanel()
+	local info = Config.Difficulties[state:GetAttribute("Difficulty") or 1] or Config.Difficulties[1]
+	makeLabel(panel, "🏆 ¡VICTORIA!", 32, GOLD)
+	makeLabel(panel, `Superaron {info.Icon} {info.Name}: la campana resistió {info.Goal} oleadas`, 18, nil, 26)
+	makeLabel(panel, "Los premios ya son suyos. ¿Siguen defendiendo o terminan aquí?", 16, Color3.fromRGB(220, 220, 220), 24)
+	local myVote = voteRow({
+		{ "Continue", "♾️ Seguir: modo sin fin", Color3.fromRGB(150, 200, 255) },
+		{ "Finish", "🏁 Terminar", GOLD },
+	})
+	local voteLabel = makeLabel(panel, "", 15, Color3.fromRGB(200, 200, 200), 22)
+	gui.Enabled = true
+	showCount += 1
+	local thisShow = showCount
+	task.spawn(function()
+		while showCount == thisShow and state:GetAttribute("VictoryVote") == true do
+			local counts = `♾️ {state:GetAttribute("VoteContinue") or 0}   🏁 {state:GetAttribute("VoteFinish") or 0}`
+			voteLabel.Text = `{if myVote() then "Votaste" else "Vota"}: gana la mayoría · {counts} · ⏱️ {secondsLeft(state)} s`
+			task.wait(0.2)
+		end
+		if showCount == thisShow then
+			hide()
+		end
+	end)
 end
 
 -- Tabla del equipo: una fila por jugador, la tuya resaltada
@@ -117,18 +208,20 @@ local function openTalents()
 end
 
 local function show(summary)
-	for _, child in panel:GetChildren() do
-		if child:IsA("TextLabel") or child:IsA("TextButton") or child:IsA("Frame") then
-			child:Destroy()
-		end
-	end
+	clearPanel()
 
 	local gameState = game:GetService("ReplicatedStorage"):FindFirstChild("GameState")
-	local dead = gameState ~= nil and gameState:GetAttribute("EndReason") == "Dead"
-	makeLabel(panel, if dead then "¡CAÍSTE!" else "¡LA CAMPANA CAYÓ!", 32, Color3.fromRGB(255, 90, 80))
-	makeLabel(panel, `Llegaste a la oleada {summary.Wave}`, 20)
-	-- Estrellas según qué tan cerca quedaste de la meta de la dificultad
 	local difficulty = Config.Difficulties[(gameState and gameState:GetAttribute("Difficulty")) or 1] or Config.Difficulties[1]
+	if summary.Victory then
+		-- Ganaron y eligieron terminar
+		makeLabel(panel, "🏆 ¡VICTORIA!", 32, GOLD)
+		makeLabel(panel, `Superaste {difficulty.Icon} {difficulty.Name}: la campana resistió {summary.Wave} oleadas`, 20)
+	else
+		local dead = gameState ~= nil and gameState:GetAttribute("EndReason") == "Dead"
+		makeLabel(panel, if dead then "¡CAÍSTE!" else "¡LA CAMPANA CAYÓ!", 32, Color3.fromRGB(255, 90, 80))
+		makeLabel(panel, `Llegaste a la oleada {summary.Wave}`, 20)
+	end
+	-- Estrellas según qué tan cerca quedaste de la meta de la dificultad
 	local stars = 1 + (if summary.Waves >= math.ceil(difficulty.Goal / 2) then 1 else 0) + (if summary.Waves >= difficulty.Goal then 1 else 0)
 	makeLabel(panel, string.rep("⭐", stars) .. string.rep("☆", 3 - stars) .. `   (meta: oleada {difficulty.Goal})`, 22, GOLD, 28)
 	makeLabel(panel, `🌊 Oleadas superadas: {summary.Waves}     🧟 Bajas: {summary.Kills}     💀 Jefes: {summary.BossKills}`, 17, nil, 26)
@@ -174,55 +267,54 @@ local function show(summary)
 		makeLabel(panel, `⭐ Tienes {summary.StatPoints} punto(s) de mejora y {summary.TalentPoints} de talento: al elegir Reintentar los repartes.`, 16, GOLD, 44)
 	end
 
-	-- Dos botones: Reintentar de nuevo o Volver al lobby. No hay cuenta
-	-- regresiva: la partida sigue cuando todos eligieron.
+	-- Dos botones para el equipo: Reintentar de nuevo o Volver al lobby (con
+	-- cuenta regresiva; quien no vota no cuenta)
 	local state = ReplicatedStorage:FindFirstChild("GameState")
-	local row = Instance.new("Frame")
-	row.Size = UDim2.fromOffset(440, 46)
-	row.BackgroundTransparency = 1
-	row.LayoutOrder = nextOrder()
-	row.Parent = panel
-	local rowLayout = Instance.new("UIListLayout")
-	rowLayout.FillDirection = Enum.FillDirection.Horizontal
-	rowLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-	rowLayout.Padding = UDim.new(0, 12)
-	rowLayout.Parent = row
+	local myVote = voteRow({
+		{ "Retry", "🔄 Reintentar de nuevo", GOLD },
+		{ "Lobby", "🏰 Todos al lobby", Color3.fromRGB(150, 200, 255) },
+	}, function(choice)
+		-- Al reintentar con puntos nuevos, sale el panel de habilidades
+		local points = Profile.get()
+		if choice == "Retry" and (points.StatPoints > 0 or points.TalentPoints > 0) then
+			openTalents()
+		end
+	end)
 	local voteLabel = makeLabel(panel, "", 15, Color3.fromRGB(200, 200, 200), 22)
-	local myVote: string? = nil
-	local buttons: { [string]: TextButton } = {}
-	local function makeButton(choice: string, text: string, color: Color3)
-		local button = Instance.new("TextButton")
-		button.Size = UDim2.fromOffset(200, 44)
-		button.BackgroundColor3 = color
-		button.Font = Enum.Font.GothamBlack
-		button.TextSize = 18
-		button.TextColor3 = Color3.fromRGB(30, 24, 10)
-		button.Text = text
-		-- Modal libera el mouse en primera persona
-		button.Modal = true
-		button.Parent = row
-		local corner = Instance.new("UICorner")
-		corner.CornerRadius = UDim.new(0, 10)
-		corner.Parent = button
-		button.Activated:Connect(function()
-			if myVote == choice then
+	-- Botón personal: solo tú vuelves al lobby, sin esperar la votación
+	if state and state:GetAttribute("RoomMatch") == true then
+		local leave = Instance.new("TextButton")
+		leave.Size = UDim2.fromOffset(300, 34)
+		leave.BackgroundColor3 = Color3.fromRGB(70, 74, 82)
+		leave.Font = Enum.Font.GothamBold
+		leave.TextSize = 15
+		leave.TextColor3 = Color3.new(1, 1, 1)
+		leave.Text = "🚪 Volver al lobby (solo yo)"
+		leave.Modal = true
+		leave.LayoutOrder = nextOrder()
+		leave.Parent = panel
+		local leaveCorner = Instance.new("UICorner")
+		leaveCorner.CornerRadius = UDim.new(0, 8)
+		leaveCorner.Parent = leave
+		local sent = false
+		leave.Activated:Connect(function()
+			if sent then
 				return
 			end
-			myVote = choice
-			Remotes.Vote:FireServer(choice)
-			for name, other in buttons do
-				other.BackgroundTransparency = if name == choice then 0 else 0.55
-			end
-			-- Al reintentar con puntos nuevos, sale el panel de habilidades
-			local points = Profile.get()
-			if choice == "Retry" and (points.StatPoints > 0 or points.TalentPoints > 0) then
-				openTalents()
-			end
+			sent = true
+			leave.Text = "Volviendo al lobby..."
+			leave.AutoButtonColor = false
+			Remotes.LeaveToLobby:FireServer()
+			-- Si el viaje falla, se puede volver a intentar
+			task.delay(10, function()
+				if leave.Parent then
+					sent = false
+					leave.Text = "🚪 Volver al lobby (solo yo)"
+					leave.AutoButtonColor = true
+				end
+			end)
 		end)
-		buttons[choice] = button
 	end
-	makeButton("Retry", "🔄 Reintentar de nuevo", GOLD)
-	makeButton("Lobby", "🏰 Volver al lobby", Color3.fromRGB(150, 200, 255))
 
 	gui.Enabled = true
 	showCount += 1
@@ -236,7 +328,7 @@ local function show(summary)
 			if voting then
 				seenVote = true
 				local counts = `🔄 {state:GetAttribute("VoteRetry") or 0}   🏰 {state:GetAttribute("VoteLobby") or 0}`
-				voteLabel.Text = `{if myVote then "Votaste. Gana la mayoría del equipo · " else "Vota: gana la mayoría del equipo · "}{counts}`
+				voteLabel.Text = `{if myVote() then "Votaste. Gana la mayoría del equipo · " else "Vota: gana la mayoría del equipo · "}{counts} · ⏱️ {secondsLeft(state)} s`
 			elseif seenVote or os.clock() - started > AUTO_CLOSE then
 				hide()
 				break
@@ -298,6 +390,19 @@ function MatchSummary.init()
 		-- Esperamos el perfil actualizado (llega junto con la XP)
 		task.wait(0.2)
 		show(summary)
+	end)
+
+	-- Votación de la victoria: seguir en modo sin fin o terminar
+	task.spawn(function()
+		local state = ReplicatedStorage:WaitForChild("GameState")
+		state:GetAttributeChangedSignal("VictoryVote"):Connect(function()
+			if state:GetAttribute("VictoryVote") == true then
+				showVictoryVote(state)
+			end
+		end)
+		if state:GetAttribute("VictoryVote") == true then
+			showVictoryVote(state)
+		end
 	end)
 end
 

@@ -1,13 +1,17 @@
 -- Cinemática de derrota: la cámara de todos vuela hacia la campana y la rodea
 -- despacio mientras se derrumba. Franjas negras arriba y abajo, todo se tiñe
 -- de rojo, la cámara tiembla con el golpe y aparece el título.
+-- Al superar la meta de la dificultad sale en cambio el cartel de ¡VICTORIA!
+-- (dorado, con fanfarria y destellos, como el de subir de nivel).
 local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 
-local Remotes = require(ReplicatedStorage:WaitForChild("Shared").Remotes)
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Config = require(Shared.Config)
+local Remotes = require(Shared.Remotes)
 local Sfx = require(script.Parent.Sfx)
 
 local FLY_TIME = 1.8 -- de donde estabas hasta la campana
@@ -172,6 +176,90 @@ local function play(reason: string?, bell: Vector3, duration: number)
 	playing = false
 end
 
+-- Destello de cuadraditos dorados que sube y se apaga
+local function sparkle(parent: Frame)
+	local size = math.random(6, 12)
+	local square = Instance.new("Frame")
+	square.BorderSizePixel = 0
+	square.AnchorPoint = Vector2.new(0.5, 0.5)
+	square.Position = UDim2.new(math.random(), 0, math.random() * 1.4 - 0.2, 0)
+	square.Size = UDim2.fromOffset(size, size)
+	square.BackgroundColor3 = if math.random() < 0.3 then Color3.new(1, 1, 1) else Color3.fromRGB(255, 220, 110)
+	square.Parent = parent
+	local delay = math.random() * 1.2
+	task.delay(delay, function()
+		local info = TweenInfo.new(1.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+		TweenService:Create(square, info, { Position = square.Position - UDim2.fromOffset(0, 40), BackgroundTransparency = 1 }):Play()
+	end)
+	task.delay(delay + 1.3, function()
+		square:Destroy()
+	end)
+end
+
+-- Cartel de ¡VICTORIA! (sin mover la cámara): entra grande, rebota y se va
+local function victory(bell: Vector3, duration: number)
+	Sfx.play("LevelUp")
+	Sfx.playAt("BellToll", bell)
+	local state = ReplicatedStorage:FindFirstChild("GameState")
+	local info = Config.Difficulties[(state and state:GetAttribute("Difficulty")) or 1] or Config.Difficulties[1]
+
+	local frame = Instance.new("Frame")
+	frame.BackgroundTransparency = 1
+	frame.AnchorPoint = Vector2.new(0.5, 0.5)
+	frame.Position = UDim2.fromScale(0.5, 0.3)
+	frame.Size = UDim2.fromOffset(760, 160)
+	frame.Parent = gui
+	local big = Instance.new("TextLabel")
+	big.BackgroundTransparency = 1
+	big.Size = UDim2.new(1, 0, 0, 96)
+	big.Font = Config.PixelFont
+	big.TextScaled = true
+	big.Text = "¡VICTORIA!"
+	big.TextColor3 = Color3.new(1, 1, 1)
+	big.Parent = frame
+	local gradient = Instance.new("UIGradient")
+	gradient.Rotation = 90
+	gradient.Color = ColorSequence.new(Color3.fromRGB(255, 248, 210), Color3.fromRGB(255, 190, 60))
+	gradient.Parent = big
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = Color3.fromRGB(70, 40, 10)
+	stroke.Thickness = 5
+	stroke.LineJoinMode = Enum.LineJoinMode.Miter
+	stroke.Parent = big
+	local detail = Instance.new("TextLabel")
+	detail.BackgroundTransparency = 1
+	detail.Position = UDim2.fromOffset(0, 104)
+	detail.Size = UDim2.new(1, 0, 0, 32)
+	detail.Font = Config.PixelFont
+	detail.TextSize = 26
+	detail.TextColor3 = Color3.new(1, 1, 1)
+	detail.TextStrokeTransparency = 0
+	detail.Text = `{info.Icon} ¡Superaron {info.Name}! La campana resistió`
+	detail.Parent = frame
+
+	gui.Enabled = true
+	local scale = Instance.new("UIScale")
+	scale.Scale = 1.6
+	scale.Parent = frame
+	TweenService:Create(scale, TweenInfo.new(0.45, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
+	gradient.Offset = Vector2.new(0, -0.6)
+	TweenService:Create(gradient, TweenInfo.new(0.8, Enum.EasingStyle.Sine), { Offset = Vector2.new(0, 0) }):Play()
+	for _ = 1, 34 do
+		sparkle(frame)
+	end
+
+	task.wait(math.max(duration - 0.5, 0.5))
+	local fadeInfo = TweenInfo.new(0.5)
+	TweenService:Create(big, fadeInfo, { TextTransparency = 1 }):Play()
+	TweenService:Create(stroke, fadeInfo, { Transparency = 1 }):Play()
+	TweenService:Create(detail, fadeInfo, { TextTransparency = 1, TextStrokeTransparency = 1 }):Play()
+	task.wait(0.55)
+	frame:Destroy()
+	if not playing then
+		gui.Enabled = false
+	end
+end
+
 local function bar(anchorY: number): Frame
 	local frame = Instance.new("Frame")
 	frame.AnchorPoint = Vector2.new(0, anchorY)
@@ -220,7 +308,11 @@ function GameOverCinematic.init()
 	gui.Parent = player:WaitForChild("PlayerGui")
 
 	Remotes.GameOverCinematic.OnClientEvent:Connect(function(reason, bell, duration)
-		task.spawn(play, reason, bell, duration)
+		if reason == "Victory" then
+			task.spawn(victory, bell, duration)
+		else
+			task.spawn(play, reason, bell, duration)
+		end
 	end)
 end
 
