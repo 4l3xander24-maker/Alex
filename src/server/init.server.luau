@@ -91,6 +91,12 @@ Remotes.GetSnapshot.OnServerInvoke = EnemyService.getSnapshot
 
 -- Al salir: primero la XP de la partida, después se guarda el perfil
 Players.PlayerRemoving:Connect(function(player)
+	-- Si se va en plena partida, su puntaje del reto semanal se sube ahora
+	-- (WeeklyService.submit solo sube a quienes siguen al terminar)
+	local currentWave = WaveService.getCurrentWave()
+	if currentWave > 0 and MatchService.isPlaying(player) then
+		WeeklyService.submitPlayer(player, currentWave, GameState.get("Difficulty") or 1)
+	end
 	MatchService.award(player, WaveService.getCurrentWave())
 	DataService.release(player)
 	-- Si se desconectó (no se fue al Lobby a propósito) puede volver desde el Lobby

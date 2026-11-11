@@ -148,6 +148,21 @@ function Leaderboard.weeklySubmit(weekId: number, userId: number, score: number)
 	end)
 end
 
+-- Puntaje de un jugador en esa semana: 0 si no jugó, nil si no se pudo consultar
+function Leaderboard.weeklyScore(weekId: number, userId: number): number?
+	local store = weeklyStore(weekId)
+	if not store then
+		return nil
+	end
+	local ok, result = pcall(function()
+		return store:GetAsync(tostring(userId))
+	end)
+	if not ok then
+		return nil
+	end
+	return if type(result) == "number" then result else 0
+end
+
 function Leaderboard.weeklyTop(weekId: number, count: number): { Row }?
 	local store = weeklyStore(weekId)
 	if not store then
