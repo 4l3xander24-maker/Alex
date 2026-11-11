@@ -28,6 +28,7 @@ local EVENTS = {
 	"Vote",
 	"SelectDifficulty",
 	"ContinueCancel",
+	"LeaveToLobby",
 }
 local FUNCTIONS = { "GetSnapshot", "ShopAction" }
 

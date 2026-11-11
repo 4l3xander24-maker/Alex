@@ -29,6 +29,62 @@ local currentWave = 0
 local difficultyId = 1
 local startRequested = false
 local startPrompt: ProximityPrompt? = nil
+-- Partida suave: equipo novato (nadie terminó una partida) en la dificultad más
+-- baja. Sin modificadores, sin reto semanal y sin oferta de Continuar.
+local gentle = false
+
+-- Novato: nunca terminó una partida. Los perfiles de antes del contador
+-- (MatchesPlayed) que ya jugaron tienen récord o bajas.
+local function isNovice(data): boolean
+	return (data.MatchesPlayed or 0) == 0 and (data.BestWave or 0) == 0 and (data.TotalKills or 0) == 0
+end
+
+local function teamIsNovice(): boolean
+	for _, player in Players:GetPlayers() do
+		local data = DataService.get(player)
+		if data and not isNovice(data) then
+			return false
+		end
+	end
+	return true
+end
+
+-- Los modificadores solo los ve quien ya superó la dificultad más baja, y nunca
+-- en un equipo novato
+local function canUseModifiers(player: Player): boolean
+	local data = DataService.get(player)
+	return data ~= nil and (data.Difficulty or 1) > 1 and not teamIsNovice()
+end
+
+local function openDifficultyMenu(player: Player)
+	local data = DataService.get(player)
+	Remotes.DifficultyMenu:FireClient(player, if data then data.Difficulty else 1, canUseModifiers(player))
+end
+
+-- Esperando al grupo que mandó el Lobby (LobbyReturn.partyStatus). Publica
+-- cuántos llegaron para el HUD; true cuando ya se puede empezar.
+local partyReady = false
+
+local function updateParty(): boolean
+	if partyReady then
+		return true
+	end
+	local arrived, expected, endsAt = LobbyReturn.partyStatus()
+	if expected == 0 then
+		partyReady = true
+		local waited = GameState.get("PartyExpected") or 0
+		if waited > 0 then
+			local missing = waited - (GameState.get("PartyArrived") or 0)
+			Remotes.Notify:FireAllClients(if missing > 0 then "⏱️ No llegaron todos: pueden empezar igual" else "👥 ¡Llegó todo el equipo!")
+		end
+		GameState.set("PartyExpected", 0)
+		return true
+	end
+	GameState.set("PartyArrived", arrived)
+	GameState.set("PartyExpected", expected)
+	GameState.set("PartyWaitEnds", endsAt)
+	return false
+end
 
 -- Aviso "Reconstruir la campana": solo se ve durante la preparación. Al
 -- reconstruirla se arma con animación y empieza la partida.
@@ -39,8 +95,11 @@ function WaveService.setStartPrompt(prompt: ProximityPrompt)
 	-- abierta y la siguiente con candado)
 	prompt.Triggered:Connect(function(player)
 		if GameState.get("State") == "Lobby" and not startRequested then
-			local data = DataService.get(player)
-			Remotes.DifficultyMenu:FireClient(player, if data then data.Difficulty else 1)
+			if not updateParty() then
+				Remotes.Notify:FireClient(player, "⏳ Esperando a tu equipo: todavía no llegaron todos")
+				return
+			end
+			openDifficultyMenu(player)
 		end
 	end)
 end
@@ -111,6 +170,11 @@ local function finishDifficultyVote()
 	end
 	local info = Config.Difficulties[best]
 	difficultyId = best
+	-- Primera partida del equipo en la dificultad más baja: sin modificadores
+	gentle = best == 1 and teamIsNovice()
+	if gentle then
+		leaderModifiers = {}
+	end
 	applyModifiers(leaderModifiers)
 	GameState.set("Difficulty", best)
 	startRequested = true
@@ -129,20 +193,50 @@ local function finishDifficultyVote()
 	end
 end
 
+-- Quien vota con el perfil todavía cargando: el menú se le abre otra vez al cargar
+local waitingProfile: { [Player]: boolean } = {}
+
+local function reopenWhenLoaded(player: Player)
+	if waitingProfile[player] then
+		return
+	end
+	waitingProfile[player] = true
+	task.spawn(function()
+		local deadline = os.clock() + 30
+		while player.Parent and not DataService.get(player) and os.clock() < deadline do
+			task.wait(0.5)
+		end
+		waitingProfile[player] = nil
+		if player.Parent and DataService.get(player) and GameState.get("State") == "Lobby" and not startRequested and not difficultyVotes[player] then
+			openDifficultyMenu(player)
+		end
+	end)
+end
+
 Remotes.SelectDifficulty.OnServerEvent:Connect(function(player, id, modifiers)
 	if typeof(id) ~= "number" or GameState.get("State") ~= "Lobby" or startRequested then
 		return
 	end
+	if not updateParty() then
+		Remotes.Notify:FireClient(player, "⏳ Esperando a tu equipo: todavía no llegaron todos")
+		return
+	end
 	local info = Config.Difficulties[id]
 	local data = DataService.get(player)
+	if info and not data then
+		Remotes.Notify:FireClient(player, "⏳ Tu perfil todavía se está cargando: el menú se abre otra vez en cuanto esté listo")
+		reopenWhenLoaded(player)
+		return
+	end
 	if not info or not data or id > (data.Difficulty or 1) then
 		return -- esa dificultad todavía tiene candado
 	end
 	local firstVote = next(difficultyVotes) == nil
 	if firstVote then
-		-- Los modificadores salen de quien vota primero (solo los que existen)
+		-- Los modificadores salen de quien vota primero (solo los que existen y
+		-- solo si él puede usarlos)
 		leaderModifiers = {}
-		if typeof(modifiers) == "table" then
+		if typeof(modifiers) == "table" and canUseModifiers(player) then
 			for _, modifier in Config.Modifiers do
 				if table.find(modifiers, modifier.Id) then
 					table.insert(leaderModifiers, modifier.Id)
@@ -161,8 +255,7 @@ Remotes.SelectDifficulty.OnServerEvent:Connect(function(player, id, modifiers)
 		Remotes.Notify:FireClient(other, `🗳️ {player.DisplayName} votó {info.Icon} {info.Name} ({voted}/{total}). Gana la mayoría`)
 		-- A los demás se les abre el menú para que voten
 		if firstVote and other ~= player and not difficultyVotes[other] then
-			local otherData = DataService.get(other)
-			Remotes.DifficultyMenu:FireClient(other, if otherData then otherData.Difficulty else 1)
+			openDifficultyMenu(other)
 		end
 	end
 	if firstVote then
@@ -234,8 +327,9 @@ local function rollWaveEvent(wave: number)
 	waveEvent = nil
 	GameState.set("WaveEvent", "")
 	local events = Config.WaveEvents
-	-- El reto semanal pone su evento en todas las oleadas (menos las de jefe)
-	local weekly = Weekly.current()
+	-- El reto semanal pone su evento en todas las oleadas (menos las de jefe).
+	-- En la partida suave no hay reto semanal.
+	local weekly = if gentle then nil else Weekly.current()
 	if weekly and wave == 1 and not weekly.Event then
 		Remotes.Notify:FireAllClients(`🗓️ Reto semanal: {weekly.Name} · {weekly.Description}`)
 	end
@@ -353,20 +447,24 @@ end
 
 -- Preparación: el único momento para comprar. La campana está destruida y la
 -- partida no empieza hasta que alguien la reconstruye (no hay tiempo límite).
+-- Si vinieron en grupo desde el Lobby, antes se espera a que lleguen todos.
 -- Devuelve false si todos se fueron.
 local function runLobby(): boolean
 	GameState.set("State", "Lobby")
 	GameState.set("Wave", 0)
 	TrapService.reset()
 	CombatService.resetAll()
+	-- Después de una victoria la campana sigue en pie: vuelve a caer para reconstruirla
+	BellTower.collapse()
 	startRequested = false
-	if startPrompt then
-		startPrompt.Enabled = true
-	end
 
 	while not startRequested do
 		if #Players:GetPlayers() == 0 then
 			return false
+		end
+		local ready = updateParty()
+		if startPrompt then
+			startPrompt.Enabled = ready and not startRequested
 		end
 		task.wait(0.25)
 	end
@@ -376,7 +474,7 @@ local function runLobby(): boolean
 	return true
 end
 
--- Descanso antes de cada oleada (sin conteo en pantalla). Devuelve false si
+-- Descanso antes de cada oleada (con la cuenta en pantalla). Devuelve false si
 -- cayeron todos los jugadores.
 -- Cayeron todos: cuenta de ContinueWindow segundos para que cualquiera pague
 -- Continuar (Robux) y vuelvan todos; o todos tocan Cancelar. true si la
@@ -389,6 +487,10 @@ end)
 
 -- reason: "Dead" (cayeron todos los jugadores) o "Bell" (cayó la campana)
 local function offerContinue(reason: string): boolean
+	-- En la partida suave se va directo a la cinemática
+	if gentle then
+		return false
+	end
 	local monetization = Config.Monetization
 	-- Sin producto de Robux creado solo se ofrece en Studio (para probar)
 	if monetization.Products.Continue.Id == 0 and not RunService:IsStudio() then
@@ -441,27 +543,34 @@ local function bellDown(): boolean
 	return GameState.isBellDestroyed() and not offerContinue("Bell")
 end
 
+-- El HUD muestra la cuenta hasta la próxima oleada (NextWaveAt, hora del servidor)
 local function runIntermission(seconds: number): boolean
 	GameState.set("State", "Intermission")
-	CombatService.restockAll()
+	-- En la dificultad más baja además se llenan los cargadores
+	CombatService.restockAll(difficultyId == 1)
 	if TrapService.healGates(Config.Traps.Gate.RepairPerWave) > 0 then
 		Remotes.Notify:FireAllClients("🚧 Las rejas se reparan un poco")
 	end
 	local finish = os.clock() + seconds
+	GameState.set("NextWaveAt", workspace:GetServerTimeNow() + seconds)
+	local survived = true
 	while os.clock() < finish do
 		if everyoneDown() then
 			GameState.set("EndReason", "Dead")
-			return false
+			survived = false
+			break
 		end
 		-- Los zombis que quedaron de la horda anterior siguen atacando
 		if bellDown() then
 			GameState.set("EndReason", "Bell")
-			return false
+			survived = false
+			break
 		end
 		GameState.set("EnemiesLeft", EnemyService.getAliveCount())
 		task.wait(0.25)
 	end
-	return true
+	GameState.set("NextWaveAt", 0)
+	return survived
 end
 
 -- Devuelve true si la campana sobrevivió la oleada
@@ -485,8 +594,8 @@ local function runWave(wave: number): boolean
 	local nextBossIn = 0
 
 	-- Reto semanal con jefe propio (p. ej. el Segador): sale cada 3 oleadas
-	local weeklyChallenge = Weekly.current()
-	if weeklyChallenge.Boss and wave >= waves.MiniBossEvery and wave % waves.MiniBossEvery == 0 and wave % waves.BossEvery ~= 0 then
+	local weeklyChallenge = if gentle then nil else Weekly.current()
+	if weeklyChallenge and weeklyChallenge.Boss and wave >= waves.MiniBossEvery and wave % waves.MiniBossEvery == 0 and wave % waves.BossEvery ~= 0 then
 		EnemyService.spawn(weeklyChallenge.Boss, healthMultiplier)
 		announceBoss(weeklyChallenge.Boss)
 	elseif wave >= waves.MiniBossEvery and wave % waves.MiniBossEvery == 0 and wave % waves.BossEvery ~= 0 then
@@ -559,60 +668,110 @@ local function runWave(wave: number): boolean
 	return true
 end
 
--- Al perder: el equipo vota Reintentar o Volver al lobby y gana la mayoría (vale
--- para todos). No hay cuenta regresiva: termina cuando una opción pasa de la
--- mitad o votan todos; cada uno puede cambiar su voto mientras tanto. (Por si
--- alguien se queda dormido, pasados VoteMaxWait segundos se cuenta como Reintentar.)
+-- Votaciones del equipo entre dos opciones (al terminar: Reintentar o Volver al
+-- lobby; al ganar: Seguir o Terminar). Gana la mayoría y vale para todos. Hay
+-- una cuenta regresiva (VoteEnds, hora del servidor) y termina antes si una
+-- opción pasa de la mitad o votan todos; cada uno puede cambiar su voto mientras
+-- tanto. Quien no vota no cuenta, ni quien ya se va al lobby.
 local votes: { [Player]: string } = {}
-local voting = false
+local openVote: { string }? = nil -- las dos opciones de la votación abierta
 
--- Decide la mayoría y vale para todo el equipo. Devuelve "Lobby" o "Retry"
--- (en empate o sin mayoría para el lobby, se reintenta)
-function WaveService.runVote(): string
+-- Publica la votación en GameState (flagKey = true mientras está abierta y los
+-- conteos en firstKey y secondKey). Devuelve los votos de cada opción.
+local function runTimedVote(options: { string }, seconds: number, flagKey: string, firstKey: string, secondKey: string): (number, number)
 	table.clear(votes)
-	voting = true
-	GameState.set("VoteRetry", 0)
-	GameState.set("VoteLobby", 0)
-	GameState.set("Vote", true)
-	local started = os.clock()
+	openVote = options
+	local endsAt = workspace:GetServerTimeNow() + seconds
+	GameState.set(firstKey, 0)
+	GameState.set(secondKey, 0)
+	GameState.set("VoteEnds", endsAt)
+	GameState.set(flagKey, true)
+	local first, second = 0, 0
 	while true do
-		local retry, lobby, total = 0, 0, 0
+		local total = 0
+		first, second = 0, 0
 		for _, player in Players:GetPlayers() do
-			total += 1
-			if votes[player] == "Retry" then
-				retry += 1
-			elseif votes[player] == "Lobby" then
-				lobby += 1
+			if not LobbyReturn.isLeaving(player) then
+				total += 1
+				if votes[player] == options[1] then
+					first += 1
+				elseif votes[player] == options[2] then
+					second += 1
+				end
 			end
 		end
-		GameState.set("VoteRetry", retry)
-		GameState.set("VoteLobby", lobby)
-		-- Termina cuando una opción tiene más de la mitad, o votaron todos
-		if total == 0 or retry * 2 > total or lobby * 2 > total or retry + lobby >= total or os.clock() - started > Config.Rooms.VoteMaxWait then
+		GameState.set(firstKey, first)
+		GameState.set(secondKey, second)
+		-- Termina cuando una opción tiene más de la mitad, votaron todos o se acabó el tiempo
+		if total == 0 or first * 2 > total or second * 2 > total or first + second >= total or workspace:GetServerTimeNow() >= endsAt then
 			break
 		end
 		task.wait(0.25)
 	end
-	voting = false
-	GameState.set("Vote", false)
-	local retry, lobby = 0, 0
-	for _, player in Players:GetPlayers() do
-		if votes[player] == "Lobby" then
-			lobby += 1
-		elseif votes[player] == "Retry" then
-			retry += 1
-		end
-	end
-	return if lobby > retry and lobby * 2 > #Players:GetPlayers() then "Lobby" else "Retry"
+	openVote = nil
+	GameState.set(flagKey, false)
+	GameState.set("VoteEnds", 0)
+	return first, second
+end
+
+-- Al terminar la partida. Devuelve "Lobby" o "Retry" (en empate o sin votos, se reintenta)
+function WaveService.runVote(): string
+	local retry, lobby = runTimedVote({ "Retry", "Lobby" }, Config.Rooms.VoteTime, "Vote", "VoteRetry", "VoteLobby")
+	return if lobby > retry then "Lobby" else "Retry"
 end
 
 Remotes.Vote.OnServerEvent:Connect(function(player, choice)
-	if voting and (choice == "Retry" or choice == "Lobby") then
+	local options = openVote
+	if options and typeof(choice) == "string" and table.find(options, choice) then
 		votes[player] = choice
 	end
 end)
 
+-- Botón personal del resumen: solo ese jugador vuelve al lobby, ya mismo
+Remotes.LeaveToLobby.OnServerEvent:Connect(function(player)
+	if GameState.get("Vote") ~= true or LobbyReturn.isLeaving(player) then
+		return
+	end
+	if not LobbyReturn.isRoomMatch() then
+		Remotes.Notify:FireClient(player, "🏰 Aquí no hay lobby: sigues en la partida")
+		return
+	end
+	for _, other in Players:GetPlayers() do
+		if other ~= player then
+			Remotes.Notify:FireClient(other, `🏰 {player.DisplayName} volvió al lobby`)
+		end
+	end
+	task.spawn(function()
+		if not LobbyReturn.sendPlayers({ player }) and player.Parent then
+			Remotes.Notify:FireClient(player, "⚠️ No se pudo volver al lobby. Prueba otra vez")
+		end
+	end)
+end)
+
+-- Superaron la meta de la dificultad: cartel de ¡VICTORIA! y el equipo vota
+-- Seguir (modo sin fin, como siempre) o Terminar (en empate o sin votos). Los
+-- premios de la meta ya se pagaron al superar la oleada (runWave), así que no
+-- se pagan de nuevo. Devuelve true si la partida termina aquí.
+local function runVictory(): boolean
+	-- Los zombis que quedaban de la horda se esfuman: nadie defiende mientras vota
+	EnemyService.clear()
+	GameState.set("EnemiesLeft", 0)
+	GameState.set("State", "Victory")
+	Remotes.GameOverCinematic:FireAllClients("Victory", Config.Arena.Bell, Config.Rooms.VictoryBannerTime)
+	task.wait(Config.Rooms.VictoryBannerTime)
+	local keep, finish = runTimedVote({ "Continue", "Finish" }, Config.Rooms.VictoryVoteTime, "VictoryVote", "VoteContinue", "VoteFinish")
+	if keep > finish then
+		Remotes.Notify:FireAllClients("♾️ ¡Modo sin fin! Las oleadas siguen hasta que caiga la campana")
+		return false
+	end
+	Remotes.Notify:FireAllClients("🏁 ¡Partida ganada!")
+	return true
+end
+
 function WaveService.start()
+	-- Partida de una sala del Lobby: se espera al grupo y hay botón para volver
+	LobbyReturn.watchParty()
+	GameState.set("RoomMatch", LobbyReturn.isRoomMatch())
 	task.spawn(function()
 		while true do
 			GameState.set("State", "Waiting")
@@ -650,22 +809,38 @@ function WaveService.start()
 			GameState.set("EndReason", "")
 			PlayerService.setInMatch(true)
 			local wave = 0
-			repeat
+			local won = false
+			while true do
 				wave += 1
 				-- Si quedaron zombis de la horda anterior, la siguiente llega enseguida
 				local pause = if wave == 1 then waves.FirstIntermission elseif EnemyService.getAliveCount() > 0 then waves.OverlapIntermission else waves.Intermission
-			until not runIntermission(pause) or not runWave(wave)
+				if not runIntermission(pause) or not runWave(wave) then
+					break
+				end
+				-- Superaron la meta (pasa una sola vez por partida): ¿siguen o terminan?
+				if wave == WaveService.getDifficulty().Goal and runVictory() then
+					won = true
+					break
+				end
+			end
 			PlayerService.setInMatch(false)
 
-			GameState.set("State", "GameOver")
-			-- Cinemática: todos ven a la campana derrumbarse
-			Remotes.GameOverCinematic:FireAllClients(GameState.get("EndReason"), Config.Arena.Bell, Config.Rooms.CinematicTime)
-			task.wait(2.6)
-			BellTower.collapse()
-			task.wait(Config.Rooms.CinematicTime - 2.6)
-			EnemyService.clear()
+			if won then
+				-- Victoria: sin cinemática de derrota, directo al resumen
+				GameState.set("EndReason", "Victory")
+			else
+				GameState.set("State", "GameOver")
+				-- Cinemática: todos ven a la campana derrumbarse
+				Remotes.GameOverCinematic:FireAllClients(GameState.get("EndReason"), Config.Arena.Bell, Config.Rooms.CinematicTime)
+				task.wait(2.6)
+				BellTower.collapse()
+				task.wait(Config.Rooms.CinematicTime - 2.6)
+				EnemyService.clear()
+			end
 			GameState.set("EnemiesLeft", 0)
-			MatchService.endMatch(wave)
+			-- Lo de toda partida terminada (récord, ranking, misiones, logros, reto
+			-- semanal), una sola vez, se gane o se pierda
+			MatchService.endMatch(wave, won)
 			WeeklyService.submit(wave, difficultyId)
 			currentWave = 0
 			GameState.set("Wave", 0)
@@ -674,7 +849,13 @@ function WaveService.start()
 			if decision == "Lobby" then
 				if LobbyReturn.isRoomMatch() then
 					Remotes.Notify:FireAllClients("🏰 La mayoría eligió volver al lobby")
-					LobbyReturn.sendPlayers(Players:GetPlayers())
+					local staying = {}
+					for _, player in Players:GetPlayers() do
+						if not LobbyReturn.isLeaving(player) then
+							table.insert(staying, player)
+						end
+					end
+					LobbyReturn.sendPlayers(staying)
 					task.wait(4)
 				else
 					-- Fuera de una sala (Studio) no hay lobby al que volver

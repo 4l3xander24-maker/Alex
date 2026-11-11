@@ -98,7 +98,7 @@ end
 
 -- Cierra la partida de un jugador: récord, ranking y el resumen (si sigue
 -- conectado). La XP ya se entregó durante la partida.
-function MatchService.award(player: Player, wave: number, team: { TeamRow }?)
+function MatchService.award(player: Player, wave: number, team: { TeamRow }?, victory: boolean?)
 	local entry = stats[player]
 	stats[player] = nil
 	if not entry then
@@ -144,18 +144,25 @@ function MatchService.award(player: Player, wave: number, team: { TeamRow }?)
 			PreviousBest = previousBest,
 			NewRecord = newRecord,
 			Team = team or {},
+			Victory = victory == true, -- superaron la meta y eligieron terminar
 		})
 	end
 end
 
-function MatchService.endMatch(wave: number)
+-- victory: la partida terminó ganada (superaron la meta y eligieron Terminar)
+function MatchService.endMatch(wave: number, victory: boolean?)
 	-- Todos reciben el resumen (y la votación), aunque no hayan matado nada
 	for _, player in Players:GetPlayers() do
 		ensure(player)
+		-- Partidas terminadas: con la primera deja de ser novato (WaveService)
+		local data = DataService.get(player)
+		if data then
+			data.MatchesPlayed = (data.MatchesPlayed or 0) + 1
+		end
 	end
 	local team = teamRows()
 	for player in stats do
-		MatchService.award(player, wave, team)
+		MatchService.award(player, wave, team, victory)
 	end
 end
 

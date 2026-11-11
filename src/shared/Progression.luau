@@ -38,6 +38,7 @@ export type Profile = {
 	Title: string, -- título que muestra
 	WeeklyClaimed: number, -- última semana cuyo premio ya cobró
 	Daily: { Day: string, Kills: number, BossKills: number, Waves: number, Claimed: { [string]: boolean } }, -- misiones del día
+	MatchesPlayed: number, -- partidas terminadas (ganadas o perdidas)
 }
 
 local Progression = {}
@@ -59,7 +60,7 @@ end
 
 function Progression.defaultProfile(): Profile
 	return {
-		Coins = 0,
+		Coins = 150, -- para comprar algo en la primera preparación
 		Level = 1,
 		Xp = 0,
 		StatPoints = 0,
@@ -93,6 +94,7 @@ function Progression.defaultProfile(): Profile
 		Title = "",
 		WeeklyClaimed = 0,
 		Daily = { Day = "", Kills = 0, BossKills = 0, Waves = 0, Claimed = {} },
+		MatchesPlayed = 0,
 	}
 end
 

@@ -167,7 +167,8 @@ end
 -- En la partida no se reaparece: quien muere queda afuera hasta la próxima
 -- preparación, y si caen todos se acaba la partida (WaveService)
 local inMatch = false
-local fallen: { [Player]: boolean } = {}
+-- Por UserId (no por Player): quien cae, se desconecta y vuelve a entrar sigue caído
+local fallen: { [number]: boolean } = {}
 -- Quien cae puede comprar Revivir unos segundos: mientras tanto la partida sigue
 local reviveUntil: { [Player]: number } = {}
 local reviveEnabled = Config.Monetization.Products.Revive.Id ~= 0
@@ -182,12 +183,12 @@ local function watchDeath(player: Player, character: Model)
 	local humanoid = character:WaitForChild("Humanoid") :: Humanoid
 	humanoid.Died:Connect(function()
 		if inMatch then
-			fallen[player] = true
+			fallen[player.UserId] = true
 			-- Si ya no queda nadie en pie, la oferta que sale es la de Continuar (la de
 			-- toda la partida): no se muestra además la de revivir solo a uno
 			local someoneAlive = false
 			for _, other in Players:GetPlayers() do
-				if other ~= player and not fallen[other] then
+				if other ~= player and not fallen[other.UserId] then
 					someoneAlive = true
 					break
 				end
@@ -206,10 +207,7 @@ end
 function PlayerService.setInMatch(value: boolean)
 	inMatch = value
 	if not value then
-		-- Vuelven todos los que cayeron
-		for player in fallen do
-			loadCharacter(player)
-		end
+		-- Vuelven todos los que cayeron (los que no tienen personaje se cargan abajo)
 		table.clear(fallen)
 		table.clear(reviveUntil)
 		for _, player in Players:GetPlayers() do
@@ -224,10 +222,10 @@ end
 -- Revivir comprado con Robux: vuelve en el campamento con la vida llena.
 -- false si ya no se puede (no está en partida o no estaba caído).
 function PlayerService.revive(player: Player): boolean
-	if not inMatch or not fallen[player] then
+	if not inMatch or not fallen[player.UserId] then
 		return false
 	end
-	fallen[player] = nil
+	fallen[player.UserId] = nil
 	reviveUntil[player] = nil
 	loadCharacter(player)
 	return true
@@ -267,6 +265,11 @@ function PlayerService.init()
 		player.CharacterAdded:Connect(function(character)
 			watchDeath(player, character)
 		end)
+		-- Si había caído en esta partida y se reconecta, sigue afuera hasta la próxima preparación
+		if inMatch and fallen[player.UserId] then
+			Remotes.Notify:FireClient(player, "💀 Caíste en esta partida: vuelves en la próxima preparación")
+			return
+		end
 		loadCharacter(player)
 	end)
 	for _, player in Players:GetPlayers() do
@@ -281,7 +284,6 @@ function PlayerService.init()
 	end
 	Players.PlayerRemoving:Connect(function(player)
 		states[player] = nil
-		fallen[player] = nil
 		reviveUntil[player] = nil
 	end)
 
