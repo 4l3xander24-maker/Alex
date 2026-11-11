@@ -1,6 +1,7 @@
--- Ajustes: volumen de música y de efectos, y calidad gráfica (Auto, Baja, Alta).
--- Se guardan como atributos del jugador (Sfx y WorldFx los leen) y se acuerdan
--- con el perfil del jugador local en esta sesión.
+-- Ajustes: volumen de música y de efectos, calidad gráfica (Auto, Baja, Alta)
+-- y ayudas para disparar (disparo automático y ayuda de puntería).
+-- Se guardan como atributos del jugador (Sfx, WorldFx y WeaponController los
+-- leen) y se acuerdan con el perfil del jugador local en esta sesión.
 local Players = game:GetService("Players")
 local SoundService = game:GetService("SoundService")
 local UserInputService = game:GetService("UserInputService")
@@ -110,7 +111,7 @@ function OptionsUi.init()
 	local panel = Instance.new("Frame")
 	panel.AnchorPoint = Vector2.new(0.5, 0.5)
 	panel.Position = UDim2.fromScale(0.5, 0.5)
-	panel.Size = UDim2.fromOffset(340, 300)
+	panel.Size = UDim2.fromOffset(340, 348)
 	panel.BackgroundColor3 = PANEL
 	panel.Visible = false
 	panel.Parent = gui
@@ -192,6 +193,42 @@ function OptionsUi.init()
 	end
 	mark()
 
+	-- Ayudas para disparar: como la calidad, son atributos del jugador que lee
+	-- WeaponController. Encendidas de entrada solo en celular (sin mouse).
+	local touchOnly = touch and not UserInputService.MouseEnabled
+	local assistRow = Instance.new("Frame")
+	assistRow.Size = UDim2.new(1, 0, 0, 40)
+	assistRow.BackgroundTransparency = 1
+	assistRow.LayoutOrder = 5
+	assistRow.Parent = panel
+	local assistLayout = Instance.new("UIListLayout")
+	assistLayout.FillDirection = Enum.FillDirection.Horizontal
+	assistLayout.Padding = UDim.new(0, 8)
+	assistLayout.Parent = assistRow
+	for _, option in { { "AutoFire", "Disparo automático" }, { "AimAssist", "Ayuda de puntería" } } do
+		local name, label = option[1], option[2]
+		if player:GetAttribute(name) == nil then
+			player:SetAttribute(name, touchOnly)
+		end
+		local toggle = Instance.new("TextButton")
+		toggle.Size = UDim2.new(0.5, -4, 1, 0)
+		toggle.Font = Enum.Font.GothamBold
+		toggle.TextSize = 13
+		toggle.Parent = assistRow
+		round(toggle, 8)
+		local function show()
+			local on = player:GetAttribute(name) == true
+			toggle.Text = `{label}\n{if on then "SÍ" else "NO"}`
+			toggle.BackgroundColor3 = if on then GOLD else Color3.fromRGB(60, 66, 70)
+			toggle.TextColor3 = if on then Color3.fromRGB(30, 24, 10) else Color3.new(1, 1, 1)
+		end
+		toggle.Activated:Connect(function()
+			player:SetAttribute(name, player:GetAttribute(name) ~= true)
+			show()
+		end)
+		show()
+	end
+
 	local close = Instance.new("TextButton")
 	close.Size = UDim2.new(1, 0, 0, 40)
 	close.BackgroundColor3 = Color3.fromRGB(90, 40, 40)
@@ -200,7 +237,7 @@ function OptionsUi.init()
 	close.TextColor3 = Color3.new(1, 1, 1)
 	close.Text = "Cerrar"
 	close.Modal = true -- libera el mouse en primera persona
-	close.LayoutOrder = 5
+	close.LayoutOrder = 6
 	close.Parent = panel
 	round(close, 8)
 	close.Activated:Connect(function()

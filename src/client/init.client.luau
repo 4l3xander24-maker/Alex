@@ -45,7 +45,12 @@ GameOverCinematic.init()
 WorldFx.init()
 Viewmodel.init("Pistol", 1.3, Progression.weaponTier(0))
 MovementController.init()
-WeaponController.init(EnemyRenderer.folder, function()
+-- Los tiros se prueban contra los zombis que dibuja EnemyRenderer (sus piezas no se pueden raycastear)
+WeaponController.init({
+	raycast = EnemyRenderer.raycast,
+	nearestToAim = EnemyRenderer.nearestToAim,
+	anyInSwing = EnemyRenderer.anyInSwing,
+}, function()
 	Hud.flashHitMarker()
 	Sfx.play("HitMarker")
 	Guide.onEnemyHit()
@@ -66,7 +71,7 @@ VillageController.init()
 PetRenderer.init()
 Hud.init({
 	setTrigger = WeaponController.setTrigger,
-	setAiming = WeaponController.setAiming,
+	toggleAiming = WeaponController.toggleAiming,
 	reload = WeaponController.reload,
 	cycleWeapon = WeaponController.cycle,
 	equipWeapon = WeaponController.equip,
