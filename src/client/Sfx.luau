@@ -1,6 +1,8 @@
 -- Sonidos y música. Todo es local: cada cliente escucha sus disparos, los
 -- zombis que tiene cerca y la música según el estado de la partida.
--- Los ids están en Shared.Sounds.
+-- Los ids están en Shared.Sounds. Los efectos usan voces recicladas: cada
+-- sonido tiene unas pocas copias (Config.Graphics.SoundVoices) que se vuelven a
+-- tocar; si todas siguen sonando se corta la que empezó primero.
 local Debris = game:GetService("Debris")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -34,7 +36,7 @@ local HURT_WINDOW = 0.6
 local HURT_THRESHOLD = 2
 local HURT_COOLDOWN = 0.7
 local MIN_DISTANCE = 10
-local MAX_LIFETIME = 15
+local graphics = Config.Graphics
 
 local Sfx = {}
 
@@ -44,6 +46,11 @@ local lastPlayed: { [string]: number } = {}
 local bossesAlive = 0
 local musicTrack: string? = nil
 local musicSound: Sound? = nil
+local lowQuality = player:GetAttribute("LowQuality") == true
+
+-- Copia de un sonido para reusar. Holder: el punto del mundo de donde sale (o nil)
+type Voice = { Sound: Sound, Holder: Attachment?, Started: number }
+local voices: { [string]: { Voice } } = {}
 
 local function pickId(spec): number
 	if spec.Ids then
@@ -63,13 +70,18 @@ local function getGroup(name: string): SoundGroup
 	return group :: SoundGroup
 end
 
-local function newSound(spec, parent: Instance, music: boolean?): Sound
-	local sound = Instance.new("Sound")
+-- Audio y tono (los que tienen varios audios o un rango de tono varían cada vez)
+local function pickSound(sound: Sound, spec)
 	sound.SoundId = `rbxassetid://{pickId(spec)}`
-	sound.Volume = spec.Volume or 0.5
 	sound.PlaybackSpeed = if spec.PitchRange
 		then random:NextNumber(spec.PitchRange[1], spec.PitchRange[2])
 		else spec.Pitch or 1
+end
+
+local function newSound(spec, parent: Instance, music: boolean?): Sound
+	local sound = Instance.new("Sound")
+	sound.Volume = spec.Volume or 0.5
+	pickSound(sound, spec)
 	if spec.Distance then
 		sound.RollOffMode = Enum.RollOffMode.InverseTapered
 		sound.RollOffMinDistance = MIN_DISTANCE
@@ -90,12 +102,57 @@ local function canPlay(key: string): boolean
 	return true
 end
 
-local function playOnce(sound: Sound, holder: Instance)
-	sound.Ended:Once(function()
-		holder:Destroy()
-	end)
-	sound:Play()
-	Debris:AddItem(holder, MAX_LIFETIME)
+local function newVoice(spec, attached: boolean): Voice
+	if not attached then
+		return { Sound = newSound(spec, SoundService), Holder = nil, Started = 0 }
+	end
+	local holder = Instance.new("Attachment")
+	holder.Parent = workspace.Terrain
+	return { Sound = newSound(spec, holder), Holder = holder, Started = 0 }
+end
+
+-- Toca `spec` con una voz libre de `key` (o una nueva, o la más vieja si ya
+-- hay tantas como el tope). position: de dónde sale en el mundo (o en la cabeza)
+local function playVoice(key: string, spec, position: Vector3?)
+	local list = voices[key]
+	if not list then
+		list = {}
+		voices[key] = list
+	end
+	local chosen: Voice? = nil
+	local oldest: Voice? = nil
+	for index, voice in list do
+		if not voice.Sound.Parent or (voice.Holder and not voice.Holder.Parent) then
+			-- Se borró por fuera: se reemplaza
+			voice = newVoice(spec, position ~= nil)
+			list[index] = voice
+		end
+		if not voice.Sound.IsPlaying then
+			chosen = voice
+			break
+		end
+		if not oldest or voice.Started < oldest.Started then
+			oldest = voice
+		end
+	end
+	if not chosen then
+		local limit = if lowQuality then graphics.LowSoundVoices else graphics.SoundVoices
+		if #list < limit or not oldest then
+			local fresh = newVoice(spec, position ~= nil)
+			table.insert(list, fresh)
+			chosen = fresh
+		else
+			chosen = oldest
+		end
+	end
+	local voice = chosen :: Voice
+	if position and voice.Holder then
+		voice.Holder.WorldPosition = position
+	end
+	pickSound(voice.Sound, spec)
+	voice.Sound.TimePosition = 0
+	voice.Sound:Play()
+	voice.Started = os.clock()
 end
 
 -- Sonido "en la cabeza" del jugador (armas, interfaz)
@@ -104,8 +161,7 @@ function Sfx.play(name: string)
 	if not spec or not canPlay(name) then
 		return
 	end
-	local sound = newSound(spec, SoundService)
-	playOnce(sound, sound)
+	playVoice(name, spec, nil)
 end
 
 -- Sonido en un punto del mundo: se oye más bajo cuanto más lejos
@@ -118,10 +174,7 @@ function Sfx.playAt(name: string, position: Vector3)
 	if spec.Distance and distance > spec.Distance then
 		return
 	end
-	local attachment = Instance.new("Attachment")
-	attachment.WorldPosition = position
-	attachment.Parent = workspace.Terrain
-	playOnce(newSound(spec, attachment), attachment)
+	playVoice(`At.{name}`, spec, position)
 end
 
 function Sfx.weapon(weaponId: string)
@@ -129,8 +182,7 @@ function Sfx.weapon(weaponId: string)
 	if not spec or not canPlay(`Weapon.{weaponId}`) then
 		return
 	end
-	local sound = newSound(spec, SoundService)
-	playOnce(sound, sound)
+	playVoice(`Weapon.{weaponId}`, spec, nil)
 end
 
 -- Música en bucle con fundido entre canciones
@@ -261,6 +313,9 @@ local function watchHealth(character: Model)
 end
 
 function Sfx.init()
+	player:GetAttributeChangedSignal("LowQuality"):Connect(function()
+		lowQuality = player:GetAttribute("LowQuality") == true
+	end)
 	local ambience = newSound(Sounds.Ambience, SoundService, true)
 	ambience.Looped = true
 	ambience:Play()
