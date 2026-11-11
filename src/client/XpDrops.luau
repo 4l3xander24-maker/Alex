@@ -120,11 +120,14 @@ function XpDrops.spawn(position: Vector3, killerId: number, typeName: string)
 	part.Color = if boss then BOSS_COLOR else COLOR
 	part.Size = Vector3.one * (if boss then 1.4 else 0.8)
 	part.CFrame = CFrame.new(position)
-	local light = Instance.new("PointLight")
-	light.Color = part.Color
-	light.Range = if boss then 10 else 5
-	light.Brightness = 1.2
-	light.Parent = part
+	-- En calidad baja sin luz (WorldFx marca LowQuality): cada luz cuesta en celular
+	if player:GetAttribute("LowQuality") ~= true then
+		local light = Instance.new("PointLight")
+		light.Color = part.Color
+		light.Range = if boss then 10 else 5
+		light.Brightness = 1.2
+		light.Parent = part
+	end
 	part.Parent = folder
 	table.insert(drops, {
 		Part = part,
