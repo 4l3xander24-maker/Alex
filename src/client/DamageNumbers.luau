@@ -1,6 +1,9 @@
 -- Números de daño que saltan sobre los enemigos al pegarles, con letra
 -- pixelada (como en Guns 'n Goblins). Blancos al pegar, amarillos al matar.
--- Se reciclan para no crear y borrar etiquetas todo el tiempo.
+-- Se reciclan para no crear y borrar etiquetas todo el tiempo. El tamaño de
+-- letra se calcula una vez al mostrarlo (no TextScaled) y en cada cuadro solo
+-- se mueve; la transparencia se toca solo al desvanecerse.
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
@@ -8,18 +11,21 @@ local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Co
 
 local DamageNumbers = {}
 
-local MAX_NUMBERS = 40
 local LIFE = 0.75
+local FADE_FROM = 0.6 -- desde esta parte de su vida se desvanece
+local CHAR_WIDTH = 0.7 -- ancho de una letra pixelada respecto a su alto (aproximado)
 local RISE = 3.2
 local MAX_DISTANCE = 140
 local HIT_COLOR = Color3.fromRGB(255, 255, 255)
 local KILL_COLOR = Color3.fromRGB(255, 220, 80)
 
-type Number = { Gui: BillboardGui, Label: TextLabel, Start: number, Origin: Vector3, Drift: number, Active: boolean }
+type Number = { Gui: BillboardGui, Label: TextLabel, Start: number, Origin: Vector3, Drift: number, Active: boolean, Faded: boolean }
 
 local pool: { Number } = {}
 local active: { Number } = {}
 local holder: Part
+local player = Players.LocalPlayer
+local lowQuality = player:GetAttribute("LowQuality") == true
 
 local function create(): Number
 	local gui = Instance.new("BillboardGui")
@@ -34,11 +40,17 @@ local function create(): Number
 	label.Size = UDim2.fromScale(1, 1)
 	label.BackgroundTransparency = 1
 	label.Font = Config.PixelFont
-	label.TextScaled = true
+	label.TextScaled = false
+	label.TextWrapped = false
 	label.TextStrokeTransparency = 0
 	label.TextStrokeColor3 = Color3.fromRGB(20, 20, 28)
 	label.Parent = gui
-	return { Gui = gui, Label = label, Start = 0, Origin = Vector3.zero, Drift = 0, Active = false }
+	return { Gui = gui, Label = label, Start = 0, Origin = Vector3.zero, Drift = 0, Active = false, Faded = false }
+end
+
+-- Tamaño de letra que entra en la caja, como hacía TextScaled
+local function fitSize(text: string, width: number, height: number): number
+	return math.min(height, math.floor(width / (#text * CHAR_WIDTH)))
 end
 
 -- Muestra `amount` sobre `position`. Los decimales se redondean a uno.
@@ -47,21 +59,27 @@ function DamageNumbers.show(position: Vector3, amount: number, killed: boolean)
 	if (camera.CFrame.Position - position).Magnitude > MAX_DISTANCE then
 		return
 	end
-	local number = table.remove(pool)
-	if not number then
-		if #active >= MAX_NUMBERS then
-			return
-		end
-		number = create()
+	if #active >= (if lowQuality then Config.Graphics.LowMaxDamageNumbers else Config.Graphics.MaxDamageNumbers) then
+		return
 	end
+	local number = table.remove(pool) or create()
 	local rounded = math.floor(amount * 10 + 0.5) / 10
-	number.Label.Text = if rounded == math.floor(rounded) then tostring(math.floor(rounded)) else string.format("%.1f", rounded)
+	local text = if rounded == math.floor(rounded) then tostring(math.floor(rounded)) else string.format("%.1f", rounded)
+	local width, height = if killed then 110 else 90, if killed then 48 else 40
+	number.Label.Text = text
+	number.Label.TextSize = fitSize(text, width, height)
 	number.Label.TextColor3 = if killed then KILL_COLOR else HIT_COLOR
+	if number.Faded then
+		number.Faded = false
+		number.Label.TextTransparency = 0
+		number.Label.TextStrokeTransparency = 0
+	end
 	number.Start = os.clock()
 	number.Origin = position
 	number.Drift = math.random() * 2 - 1
 	number.Active = true
-	number.Gui.Size = if killed then UDim2.fromOffset(110, 48) else UDim2.fromOffset(90, 40)
+	number.Gui.Size = UDim2.fromOffset(width, height)
+	number.Gui.StudsOffsetWorldSpace = position
 	number.Gui.Enabled = true
 	table.insert(active, number)
 end
@@ -83,9 +101,12 @@ local function step()
 		-- Salta rápido y frena, se corre un poco al costado y se desvanece al final
 		local rise = (1 - (1 - age) * (1 - age)) * RISE
 		number.Gui.StudsOffsetWorldSpace = number.Origin + Vector3.new(number.Drift * age * 1.5, rise, 0)
-		local fade = if age > 0.6 then (age - 0.6) / 0.4 else 0
-		number.Label.TextTransparency = fade
-		number.Label.TextStrokeTransparency = fade
+		if age > FADE_FROM then
+			local fade = (age - FADE_FROM) / (1 - FADE_FROM)
+			number.Faded = true
+			number.Label.TextTransparency = fade
+			number.Label.TextStrokeTransparency = fade
+		end
 		index += 1
 	end
 end
@@ -101,6 +122,9 @@ function DamageNumbers.init()
 	holder.Size = Vector3.one * 0.1
 	holder.CFrame = CFrame.new()
 	holder.Parent = workspace
+	player:GetAttributeChangedSignal("LowQuality"):Connect(function()
+		lowQuality = player:GetAttribute("LowQuality") == true
+	end)
 	RunService.RenderStepped:Connect(step)
 end
 
