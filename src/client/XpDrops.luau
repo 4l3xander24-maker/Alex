@@ -2,7 +2,6 @@
 -- gira, y después vuela hacia quien lo mató. Al llegarte a ti muestra "+N XP".
 -- Es solo visual: la XP ya se cuenta en el servidor al matar (MatchService).
 -- Los rombos se reciclan y hay un tope a la vez (más bajo en calidad baja).
-local Debris = game:GetService("Debris")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -25,6 +24,7 @@ local player = Players.LocalPlayer
 local folder: Folder
 local drops: { Drop } = {}
 local pool: { BasePart } = {}
+local textPool: { BillboardGui } = {} -- carteles "+N XP" listos para reusar
 local random = Random.new()
 
 local function targetPosition(target: Player): Vector3?
@@ -39,22 +39,33 @@ local function popText(amount: number, boss: boolean)
 	if not head then
 		return
 	end
-	local gui = Instance.new("BillboardGui")
-	gui.Size = UDim2.fromOffset(90, 26)
-	gui.StudsOffset = Vector3.new(random:NextNumber(-1.5, 1.5), 2.2, 0)
-	gui.AlwaysOnTop = true
-	gui.Adornee = head
-	local label = Instance.new("TextLabel")
-	label.Size = UDim2.fromScale(1, 1)
-	label.BackgroundTransparency = 1
-	label.Font = Config.PixelFont
+	local gui = table.remove(textPool)
+	if not gui then
+		local new = Instance.new("BillboardGui")
+		new.Size = UDim2.fromOffset(90, 26)
+		new.AlwaysOnTop = true
+		local text = Instance.new("TextLabel")
+		text.Size = UDim2.fromScale(1, 1)
+		text.BackgroundTransparency = 1
+		text.Font = Config.PixelFont
+		text.TextStrokeTransparency = 0.2
+		text.Parent = new
+		gui = new
+	end
+	local popup = gui :: BillboardGui
+	local label = popup:FindFirstChildOfClass("TextLabel") :: TextLabel
+	popup.StudsOffset = Vector3.new(random:NextNumber(-1.5, 1.5), 2.2, 0)
+	popup.Adornee = head
 	label.TextSize = if boss then 24 else 18
 	label.TextColor3 = if boss then BOSS_COLOR else COLOR
-	label.TextStrokeTransparency = 0.2
 	label.Text = `+{amount} XP`
-	label.Parent = gui
-	gui.Parent = folder
-	Debris:AddItem(gui, 0.8)
+	popup.Parent = folder
+	-- A los 0.8 s vuelve a la reserva (sin Parent ni Adornee)
+	task.delay(0.8, function()
+		popup.Parent = nil
+		popup.Adornee = nil
+		table.insert(textPool, popup)
+	end)
 end
 
 local function finish(index: number, collected: boolean)
