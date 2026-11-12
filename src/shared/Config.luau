@@ -917,6 +917,21 @@ Config.Version = {
 	},
 }
 
+-- Insignias de Roblox (se ven en el perfil del jugador). Cada una se crea en Creator
+-- Hub (ver docs/insignias.md) y su número se pega en Id; con Id = 0 está apagada.
+-- Key es lo que usa el servidor (Insignias.award); Name y Description son para copiar.
+Config.Badges = {
+	{ Key = "FirstMatch", Id = 0, Name = "Primera guardia", Description = "Termina tu primera partida defendiendo la campana." },
+	{ Key = "FirstVictory", Id = 0, Name = "Campana a salvo", Description = "Supera la oleada meta de una dificultad por primera vez." },
+	{ Key = "Wave10", Id = 0, Name = "Resistencia", Description = "Llega a la oleada 10 en una sola partida." },
+	{ Key = "FirstBoss", Id = 0, Name = "Cazajefes", Description = "Derrota a tu primer jefe." },
+	{ Key = "Kills1000", Id = 0, Name = "Mil zombis", Description = "Elimina 1000 zombis en total." },
+	{ Key = "ClearHard", Id = 0, Name = "Duro de roer", Description = "Supera la dificultad Difícil." },
+	{ Key = "ClearExpert", Id = 0, Name = "Experto en zombis", Description = "Supera la dificultad Experto." },
+	{ Key = "HallOfFame", Id = 0, Name = "Salón de la fama", Description = "Sé el primer jugador del mundo en superar una dificultad y entra al Salón de la fama." },
+	{ Key = "Streak7", Id = 0, Name = "Una semana fiel", Description = "Juega 7 días seguidos y llega a la racha de 7 días." },
+}
+
 -- Bestiario (se ve en la tienda del Veterano): orden y descripción de cada enemigo
 Config.Bestiary = {
 	Order = { "Walker", "Runner", "Cone", "Knight", "Brute", "Bomber", "Spitter", "Parasite", "Colossus", "Mutant", "Fatso", "King", "Dragon", "Queen", "Reaper" },

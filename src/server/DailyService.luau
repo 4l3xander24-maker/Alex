@@ -10,6 +10,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local DailyDay = require(ReplicatedStorage.Shared.DailyDay)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local DataService = require(script.Parent.DataService)
+local Insignias = require(script.Parent.Insignias)
 
 local rules = Config.DailyRules
 
@@ -163,6 +164,9 @@ function DailyService.onPlayerReady(player: Player)
 	end
 	streak.Count = count
 	streak.LastDay = currentDay()
+	if count >= 7 then
+		Insignias.award(player, "Streak7")
+	end
 	local reward = Config.DailyRules.StreakRewards[DailyDay.cycleDay(count, #rules.StreakRewards)]
 	DataService.addCoins(player, reward)
 	DataService.changed(player, "Profile")

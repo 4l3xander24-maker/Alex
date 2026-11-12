@@ -14,6 +14,7 @@ local GameState = require(script.Parent.GameState)
 local Weekly = require(ReplicatedStorage.Shared.Weekly)
 local ConquestService = require(script.Parent.ConquestService)
 local FriendService = require(script.Parent.FriendService)
+local Insignias = require(script.Parent.Insignias)
 local WeeklyService = require(script.Parent.WeeklyService)
 local CampBuilder = require(script.Parent.CampBuilder)
 local LobbyReturn = require(script.Parent.LobbyReturn)
@@ -654,6 +655,14 @@ local function runWave(wave: number): boolean
 	if wave == info.Goal then
 		Remotes.Notify:FireAllClients(`🏆 ¡Dificultad {info.Name} superada!`)
 		ConquestService.onCleared(difficultyId)
+		for _, player in Players:GetPlayers() do
+			Insignias.award(player, "FirstVictory")
+			if difficultyId == 2 then
+				Insignias.award(player, "ClearHard")
+			elseif difficultyId == 3 then
+				Insignias.award(player, "ClearExpert")
+			end
+		end
 		-- Premio por completar la dificultad (cada vez que se logra)
 		local bonus = Config.Economy.ClearBonus[difficultyId] or 0
 		for _, player in Players:GetPlayers() do

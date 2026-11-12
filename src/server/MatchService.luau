@@ -12,6 +12,7 @@ local AchievementService = require(script.Parent.AchievementService)
 local DailyService = require(script.Parent.DailyService)
 local DataService = require(script.Parent.DataService)
 local FriendService = require(script.Parent.FriendService)
+local Insignias = require(script.Parent.Insignias)
 local Leaderboard = require(script.Parent.Leaderboard)
 local StoreService = require(script.Parent.StoreService)
 local GameState = require(script.Parent.GameState)
@@ -80,6 +81,11 @@ function MatchService.onKill(player: Player, isBoss: boolean, coins: number)
 	entry.Coins += coins
 	if isBoss then
 		entry.BossKills += 1
+		Insignias.award(player, "FirstBoss")
+	end
+	local data = DataService.get(player)
+	if data and data.TotalKills + entry.Kills >= 1000 then
+		Insignias.award(player, "Kills1000")
 	end
 	grantXp(player, entry, progression.XpPerKill + (if isBoss then progression.XpPerBossKill else 0))
 end
@@ -88,6 +94,9 @@ function MatchService.onWaveCleared()
 	for _, player in Players:GetPlayers() do
 		local entry = ensure(player)
 		entry.Waves += 1
+		if entry.Waves >= 10 then
+			Insignias.award(player, "Wave10")
+		end
 		grantXp(player, entry, Config.Progression.XpPerWave)
 	end
 end
@@ -133,6 +142,9 @@ function MatchService.award(player: Player, wave: number, team: { TeamRow }?, vi
 		Leaderboard.submit(player.UserId, "Kills", data.TotalKills)
 		-- Solo cuenta como partida jugada si terminó (no al salirse a la mitad)
 		DailyService.onMatchEnd(player, entry.Waves, team ~= nil)
+		if team ~= nil then
+			Insignias.award(player, "FirstMatch")
+		end
 		AchievementService.check(player, { Kills = data.TotalKills, Wave = data.BestWave, BossKills = entry.BossKills, Level = data.Level, MatchKills = entry.Kills })
 	end
 	if player.Parent and data then
