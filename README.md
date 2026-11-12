@@ -109,7 +109,7 @@ el círculo de runas y el cuchillo), [`docs/capturas/pixel/`](docs/capturas/pixe
   - **Don Ramiro, el Veterano**: gasta tus puntos de mejora y aprende talentos.
   - **Gustavo, el Intendente**: **cartuchera** (más balas máximas y más balas al empezar), **refuerzo de la campana** y **trampas**:
     hasta 8 **minas** sobre el camino y 2 **rejas** (entrada y salida del puente) que los detienen hasta que las rompen.
-- **Zombis que te persiguen** si te acercas, y vuelven a atacar la campana si te alejas. Tienes vida y reapareces.
+- **Zombis que te persiguen** si te acercas, y vuelven a atacar la campana si te alejas. Tienes vida: si caes, te quedas fuera hasta que termine la partida (o hasta que te revivan con Revivir o Continuar), y si caen todos se acaba la partida.
 - **5 tipos de zombi** de dibujo animado (piel verde, ojos enormes, boca abierta, camisa rota y jean): Zombi,
   Corredor, Zombi con cono, Caballero zombi y Bruto.
 - **Jefes 6 veces más grandes** cada 5 oleadas, con su barra de vida arriba:

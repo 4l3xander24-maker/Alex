@@ -89,11 +89,22 @@ reconnectStroke.Color = Color3.fromRGB(190, 255, 210)
 reconnectStroke.Thickness = 1.5
 reconnectStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 reconnectStroke.Parent = reconnect
+local PROBLEM_TIME = 6 -- segundos que se ve un aviso antes de volver al texto normal
+local currentRoom = nil
+local statusToken = 0
 reconnectOffer.OnClientEvent:Connect(function(available)
 	reconnect.Visible = available == true
 	reconnect.Text = "VOLVER A MI PARTIDA"
 	if available ~= true then
 		panel.Text = "Esa partida ya terminó."
+		-- El aviso se borra solo si no llegó nada nuevo mientras tanto
+		statusToken += 1
+		local token = statusToken
+		task.delay(PROBLEM_TIME, function()
+			if token == statusToken then
+				panel.Text = IDLE
+			end
+		end)
 	end
 end)
 reconnect.Activated:Connect(function()
@@ -101,9 +112,6 @@ reconnect.Activated:Connect(function()
 	reconnectGo:FireServer()
 end)
 
-local PROBLEM_TIME = 6 -- segundos que se ve un aviso antes de volver al texto normal
-local currentRoom = nil
-local statusToken = 0
 status.OnClientEvent:Connect(function(room, count, seconds, problem)
 	statusToken += 1
 	cancel.Visible = room ~= nil and not problem

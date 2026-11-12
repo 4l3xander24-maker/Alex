@@ -142,6 +142,9 @@ end
 local DIFFICULTY_VOTE_TIME = 15
 local difficultyVotes: { [Player]: number } = {}
 local leaderModifiers: { string } = {} -- los marca quien vota primero
+-- Dificultad más alta que tenía abierta cada uno al empezar la partida. Solo quien
+-- la tenía abierta (o la anterior) cobra la primera vez y la desbloquea a la siguiente.
+local startUnlocked: { [Player]: number } = {}
 local difficultyTimer = 0
 
 local function tally(): ({ [number]: number }, number)
@@ -179,6 +182,13 @@ local function finishDifficultyVote()
 	end
 	applyModifiers(leaderModifiers)
 	GameState.set("Difficulty", best)
+	table.clear(startUnlocked)
+	for _, other in Players:GetPlayers() do
+		local otherData = DataService.get(other)
+		if otherData then
+			startUnlocked[other] = otherData.Difficulty or 1
+		end
+	end
 	startRequested = true
 	difficultyTimer += 1
 	table.clear(difficultyVotes)
@@ -654,7 +664,15 @@ local function runWave(wave: number): boolean
 	local info = WaveService.getDifficulty()
 	if wave == info.Goal then
 		Remotes.Notify:FireAllClients(`🏆 ¡Dificultad {info.Name} superada!`)
-		ConquestService.onCleared(difficultyId)
+		-- Quien entró con la partida en marcha no tiene foto: cuenta lo que tiene abierto ahora
+		-- (solo cambia al superar la meta, y eso se decide aquí abajo)
+		local eligible: { [Player]: boolean } = {}
+		for _, player in Players:GetPlayers() do
+			local data = DataService.get(player)
+			local unlocked = startUnlocked[player] or (if data then data.Difficulty or 1 else 1)
+			eligible[player] = unlocked >= difficultyId - 1
+		end
+		ConquestService.onCleared(difficultyId, eligible)
 		for _, player in Players:GetPlayers() do
 			Insignias.award(player, "FirstVictory")
 			if difficultyId == 2 then
@@ -674,7 +692,7 @@ local function runWave(wave: number): boolean
 		local nextInfo = Config.Difficulties[difficultyId + 1]
 		for _, player in Players:GetPlayers() do
 			local data = DataService.get(player)
-			if data and nextInfo and (data.Difficulty or 1) == difficultyId then
+			if data and nextInfo and eligible[player] and (data.Difficulty or 1) == difficultyId then
 				data.Difficulty = difficultyId + 1
 				DataService.changed(player, "Profile")
 				DataService.saveNow(player)

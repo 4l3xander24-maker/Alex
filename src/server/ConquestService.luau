@@ -42,13 +42,15 @@ local function claimFirst(player: Player, difficultyId: number)
 	Remotes.Notify:FireClient(player, `👑 Salón de la fama: título "{title}" y +{bonus} monedas{if skinId then " + rastro exclusivo" else ""}`)
 end
 
--- Se llama cuando el equipo supera la dificultad `difficultyId`
-function ConquestService.onCleared(difficultyId: number)
+-- Se llama cuando el equipo supera la dificultad `difficultyId`. Solo cobra la primera
+-- vez (y entra al Salón de la fama) quien está en `eligible`; los demás juegan con el
+-- equipo pero esa conquista no se les marca todavía.
+function ConquestService.onCleared(difficultyId: number, eligible: { [Player]: boolean })
 	local conquest = Config.Conquest
 	local key = tostring(difficultyId)
 	for _, player in Players:GetPlayers() do
 		local data = DataService.get(player)
-		if data and not data.Conquests[key] then
+		if data and eligible[player] and not data.Conquests[key] then
 			data.Conquests[key] = true
 			local reward = conquest.Rewards[difficultyId] or 0
 			if reward > 0 then
