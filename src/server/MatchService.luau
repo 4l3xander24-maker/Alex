@@ -7,6 +7,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage.Shared
 local Config = require(Shared.Config)
+local Progression = require(Shared.Progression)
 local Remotes = require(Shared.Remotes)
 local AchievementService = require(script.Parent.AchievementService)
 local DailyService = require(script.Parent.DailyService)
@@ -60,6 +61,12 @@ local function grantXp(player: Player, entry: MatchStats, amount: number)
 		amount *= 1 + Config.Monetization.VipXpBonus
 	end
 	amount *= FriendService.multiplier(player)
+	-- Potenciador de XP de Robux (por tiempo)
+	local data = DataService.get(player)
+	local boost = Config.Monetization.Products.BoostXp
+	if data and Progression.boostLeft(data, boost.Boost) > 0 then
+		amount *= boost.Multiplier
+	end
 	entry.XpExact += amount
 	local whole = math.floor(entry.XpExact) - entry.Xp
 	if whole > 0 then
