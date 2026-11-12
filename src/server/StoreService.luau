@@ -216,12 +216,13 @@ local function applySkin(player: Player)
 end
 
 -- Guarda skins compradas con monedas y la elegida. Devuelve si se pudo.
-local function persist(player: Player): boolean
+local function persist(player: Player, held: SkinSave?): boolean
 	local store = skinStore
-	if not store then
+	-- Si el jugador ya se fue, saveOf crearía una lista vacía y borraría sus skins
+	if not store or (not held and not player.Parent) then
 		return false
 	end
-	local save = saveOf(player)
+	local save = held or saveOf(player)
 	local ok = pcall(function()
 		store:SetAsync(keyFor(player), { Equipped = save.Equipped, Owned = save.Owned }, { player.UserId })
 	end)
@@ -233,6 +234,9 @@ local function equip(player: Player, skinId: string)
 	applySkin(player)
 	task.spawn(persist, player)
 end
+
+-- Compras con monedas en curso: guardar espera, y un doble toque no debe cobrar dos veces
+local buying: { [Player]: boolean } = {}
 
 -- Compra con monedas (solo en la partida)
 local function buyWithCoins(player: Player, skinId: string): (boolean, string)
@@ -250,21 +254,29 @@ local function buyWithCoins(player: Player, skinId: string): (boolean, string)
 	if not spend or not refund or not flush then
 		return false, "Con monedas se compra dentro de la partida (tienda 🛒 o tecla B)"
 	end
+	if buying[player] then
+		return false, "Espera, estamos guardando tu compra"
+	end
 	if not spend(player, skin.CoinPrice) then
 		return false, `Te faltan monedas: cuesta {skin.CoinPrice}`
 	end
+	buying[player] = true
+	-- Se toma la lista de skins antes de esperar: si el jugador se va mientras se
+	-- guarda, no se escribe una lista vacía encima de las que ya tenía
+	local save = saveOf(player)
 	-- Primero se guarda el cobro en el perfil; la skin se escribe después. Así,
 	-- si el servidor cae entre los dos pasos, no queda una skin gratis.
-	if not flush(player) then
+	local saved = flush(player)
+	buying[player] = nil
+	if not saved then
 		refund(player, skin.CoinPrice)
 		return false, "No se pudo guardar la compra, intenta de nuevo"
 	end
-	local save = saveOf(player)
 	save.Owned[skinId] = true
 	save.Equipped = skinId
 	local persisted = false
 	for _ = 1, 2 do
-		persisted = persist(player)
+		persisted = persist(player, save)
 		if persisted then
 			break
 		end
@@ -384,6 +396,7 @@ function StoreService.init()
 	Players.PlayerRemoving:Connect(function(player)
 		owned[player] = nil
 		saves[player] = nil
+		buying[player] = nil
 	end)
 end
 

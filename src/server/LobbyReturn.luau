@@ -125,8 +125,18 @@ function LobbyReturn.sendPlayers(players: { Player }): boolean
 		MatchRegistry.clear(player.UserId)
 	end
 	for attempt = 1, 3 do
+		-- Quien cerró el juego mientras tanto haría fallar el viaje de todos
+		local present = {}
+		for _, player in players do
+			if player.Parent then
+				table.insert(present, player)
+			end
+		end
+		if #present == 0 then
+			return true
+		end
 		local ok, err = pcall(function()
-			TeleportService:TeleportAsync(Config.Places.Lobby, players)
+			TeleportService:TeleportAsync(Config.Places.Lobby, present)
 		end)
 		if ok then
 			return true

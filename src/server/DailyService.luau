@@ -34,8 +34,9 @@ local function migrateLegacy(data, missions)
 		return
 	end
 	local now = os.time()
-	-- La fecha UTC de ahora y la de hace ResetHourUtc horas (el día de juego puede empezar ayer)
-	if legacy.Day ~= os.date("!%Y-%m-%d", now) and legacy.Day ~= os.date("!%Y-%m-%d", now - rules.ResetHourUtc * 3600) then
+	-- Solo si es la fecha UTC en que empezó el día de juego actual: lo cobrado
+	-- antes de la hora de cambio pertenece al día de juego anterior
+	if legacy.Day ~= os.date("!%Y-%m-%d", now - rules.ResetHourUtc * 3600) then
 		return
 	end
 	missions.Progress.DKills = legacy.Kills or 0
@@ -131,14 +132,14 @@ function DailyService.onKill(player: Player, isBoss: boolean)
 end
 
 -- Al terminar la partida: cuántas oleadas superó
-function DailyService.onMatchEnd(player: Player, waves: number)
+function DailyService.onMatchEnd(player: Player, waves: number, finished: boolean?)
 	matchKills[player] = nil
 	local data = DataService.get(player)
 	if not data then
 		return
 	end
 	record(data, "Waves", waves, true)
-	if waves >= 1 then
+	if waves >= 1 and finished then
 		record(data, "Matches", 1, false)
 	end
 	check(player, data)

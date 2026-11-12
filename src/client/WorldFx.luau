@@ -60,6 +60,17 @@ local function findBlades()
 	end
 end
 
+-- Nivel que corresponde al dispositivo sin ajustes del juego
+local function deviceLevel(): number
+	local ok, level = pcall(function()
+		return UserSettings():GetService("UserGameSettings").SavedQualityLevel.Value
+	end)
+	if ok and level > 0 then
+		return level
+	end
+	return if UserInputService.TouchEnabled then 3 else 7
+end
+
 -- Nivel de calidad gráfica que eligió el jugador (1 a 10). En "Automático"
 -- Roblox no dice el nivel real, así que en celular asumimos uno bajo.
 local function getQualityLevel(): number
@@ -73,13 +84,7 @@ local function getQualityLevel(): number
 	if autoLevel then
 		return autoLevel
 	end
-	local ok, level = pcall(function()
-		return UserSettings():GetService("UserGameSettings").SavedQualityLevel.Value
-	end)
-	if ok and level > 0 then
-		return level
-	end
-	return if UserInputService.TouchEnabled then 3 else 7
+	return deviceLevel()
 end
 
 local function applyQuality()
@@ -353,10 +358,12 @@ function WorldFx.init()
 				fastFrames += 1
 				fastTime += dt
 				if fastTime >= graphics.AutoFastTime then
-					if fastFrames / fastTime >= graphics.AutoFastFps and now >= nextRetry then
+					-- Solo vuelve al nivel propio del dispositivo (nunca más alto): un
+					-- celular que empieza en bajo se queda en bajo
+					if fastFrames / fastTime >= graphics.AutoFastFps and now >= nextRetry and deviceLevel() > LOW_QUALITY_LEVEL then
 						raisedAt = now
 						slowTime = 0
-						autoLevel = 10
+						autoLevel = nil
 						applyQuality()
 					end
 					fastFrames, fastTime = 0, 0

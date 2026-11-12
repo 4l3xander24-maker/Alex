@@ -232,6 +232,13 @@ Remotes.SelectDifficulty.OnServerEvent:Connect(function(player, id, modifiers)
 	if not info or not data or id > (data.Difficulty or 1) then
 		return -- esa dificultad todavía tiene candado
 	end
+	-- Los votos de quien ya se fue no cuentan: si se fueron todos los que
+	-- votaron, este voto vuelve a ser el primero y arranca su propio tiempo
+	for voter in difficultyVotes do
+		if not voter.Parent then
+			difficultyVotes[voter] = nil
+		end
+	end
 	local firstVote = next(difficultyVotes) == nil
 	if firstVote then
 		-- Los modificadores salen de quien vota primero (solo los que existen y

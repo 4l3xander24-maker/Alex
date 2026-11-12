@@ -46,7 +46,6 @@ local equipped = "Pistol"
 local ammo: { [string]: number } = {}
 local reserve: { [string]: number } = {}
 local triggerHeld = false
-local triggerFromMouse = false -- con el mouse nunca se usa la ayuda de puntería
 local aimHeld = false
 local lastShot = 0
 local reloading = false
@@ -260,7 +259,8 @@ local function aimAt(origin: Vector3, direction: Vector3, range: number): (Vecto
 	if direct then
 		return direction, worldRaycast(origin, direction, direct.Distance) == nil
 	end
-	local assist = player:GetAttribute("AimAssist") == true and not (triggerHeld and triggerFromMouse)
+	-- Solo con el dedo: con mouse nunca, aunque dispare el disparo automático
+	local assist = player:GetAttribute("AimAssist") == true and UserInputService:GetLastInputType() == Enum.UserInputType.Touch
 	if not assist then
 		return direction, false
 	end
@@ -347,7 +347,6 @@ end
 -- Gatillo táctil (botón de disparar del HUD)
 function WeaponController.setTrigger(held: boolean)
 	triggerHeld = held
-	triggerFromMouse = false
 end
 
 -- Botón de apuntar del celular: alterna. El estado vive solo aquí, así se
@@ -408,6 +407,9 @@ local function dryFire(now: number)
 	end
 end
 
+-- Hay un menú con botón Modal a la vista (lo actualiza watchMenus)
+local menuOpen = false
+
 local function update()
 	local now = os.clock()
 	if reloading and now >= reloadEnd then
@@ -418,6 +420,10 @@ local function update()
 	-- Disparo automático (opción): dispara solo mientras la mira está sobre
 	-- un zombi, con la misma cadencia, munición y recarga que el gatillo
 	local autoFire = player:GetAttribute("AutoFire") == true and player:GetAttribute("InCinematic") ~= true
+	-- Con una tienda o un menú abierto no se dispara (ni con el dedo apoyado)
+	if menuOpen then
+		return
+	end
 	if not (triggerHeld or autoFire) or reloading or not isAlive() or MovementController.isSprinting() then
 		return
 	end
@@ -463,7 +469,8 @@ end
 
 -- Los menús (tiendas de los NPC, resumen, tienda) liberan el mouse con un
 -- botón Modal, pero el puntero sigue escondido por el arma: se muestra
--- mientras haya alguno visible y se vuelve a esconder al cerrarlo.
+-- mientras haya alguno visible y se vuelve a esconder al cerrarlo. También
+-- avisa (menuOpen) para no disparar detrás de un menú.
 local function watchMenus()
 	local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
 	local modals: { [GuiButton]: boolean } = {}
@@ -505,7 +512,8 @@ local function watchMenus()
 					break
 				end
 			end
-			if UserInputService.MouseIconEnabled ~= open then
+			menuOpen = open
+			if UserInputService.MouseEnabled and UserInputService.MouseIconEnabled ~= open then
 				UserInputService.MouseIconEnabled = open
 			end
 			task.wait(0.15)
@@ -519,8 +527,8 @@ function WeaponController.init(enemyQueries: EnemyQueries, hitCallback: () -> ()
 
 	if UserInputService.MouseEnabled then
 		UserInputService.MouseIconEnabled = false
-		watchMenus()
 	end
+	watchMenus()
 
 	UserInputService.InputBegan:Connect(function(input, processed)
 		if processed then
@@ -528,7 +536,6 @@ function WeaponController.init(enemyQueries: EnemyQueries, hitCallback: () -> ()
 		end
 		if isTriggerInput(input) then
 			triggerHeld = true
-			triggerFromMouse = input.UserInputType == Enum.UserInputType.MouseButton1
 		elseif isAimInput(input) then
 			aimHeld = true
 		elseif input.KeyCode == Enum.KeyCode.R or input.KeyCode == Enum.KeyCode.ButtonX then

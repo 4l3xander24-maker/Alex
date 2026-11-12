@@ -321,6 +321,22 @@ local function bindFireArea(gui: ScreenGui, area: GuiObject, setHeld: (boolean) 
 			release()
 		end
 	end)
+	-- Si el sistema corta el toque (una llamada, bajar la barra de avisos, salir
+	-- de la app) puede que no llegue InputEnded: se suelta igual
+	UserInputService.WindowFocusReleased:Connect(function()
+		if activeTouch then
+			release()
+		end
+	end)
+	task.spawn(function()
+		while true do
+			task.wait(0.25)
+			local touch = activeTouch
+			if touch and (touch.UserInputState == Enum.UserInputState.End or touch.UserInputState == Enum.UserInputState.Cancel) then
+				release()
+			end
+		end
+	end)
 end
 
 local function makeRoundButton(parent: Instance, text: string, position: UDim2, size: number, color: Color3): TextButton

@@ -394,7 +394,7 @@ function MatchSummary.init()
 	local function refit()
 		local height = workspace.CurrentCamera.ViewportSize.Y
 		local needed = panel.AbsoluteSize.Y / math.max(fit.Scale, 0.01)
-		fit.Scale = if needed > 0 then math.clamp((height - 24) / needed, 0.55, 1) else 1
+		fit.Scale = if needed > 0 then math.clamp((height - 24) / needed, 0.35, 1) else 1
 	end
 	panel:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
 		task.defer(refit)

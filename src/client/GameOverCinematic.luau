@@ -209,6 +209,8 @@ local function victory(bell: Vector3, duration: number)
 	frame.Position = UDim2.fromScale(0.5, 0.3)
 	frame.Size = UDim2.fromOffset(760, 160)
 	frame.Parent = gui
+	-- En celulares angostos se achica para no cortarse a los lados
+	local fit = math.min(1, (workspace.CurrentCamera.ViewportSize.X - 24) / 760)
 	local big = Instance.new("TextLabel")
 	big.BackgroundTransparency = 1
 	big.Size = UDim2.new(1, 0, 0, 96)
@@ -239,9 +241,9 @@ local function victory(bell: Vector3, duration: number)
 
 	gui.Enabled = true
 	local scale = Instance.new("UIScale")
-	scale.Scale = 1.6
+	scale.Scale = 1.6 * fit
 	scale.Parent = frame
-	TweenService:Create(scale, TweenInfo.new(0.45, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
+	TweenService:Create(scale, TweenInfo.new(0.45, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = fit }):Play()
 	gradient.Offset = Vector2.new(0, -0.6)
 	TweenService:Create(gradient, TweenInfo.new(0.8, Enum.EasingStyle.Sine), { Offset = Vector2.new(0, 0) }):Play()
 	for _ = 1, 34 do

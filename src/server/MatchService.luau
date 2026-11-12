@@ -131,7 +131,8 @@ function MatchService.award(player: Player, wave: number, team: { TeamRow }?, vi
 		data.TotalKills += entry.Kills
 		Leaderboard.submit(player.UserId, "BestWave", data.BestWave)
 		Leaderboard.submit(player.UserId, "Kills", data.TotalKills)
-		DailyService.onMatchEnd(player, entry.Waves)
+		-- Solo cuenta como partida jugada si terminó (no al salirse a la mitad)
+		DailyService.onMatchEnd(player, entry.Waves, team ~= nil)
 		AchievementService.check(player, { Kills = data.TotalKills, Wave = data.BestWave, BossKills = entry.BossKills, Level = data.Level, MatchKills = entry.Kills })
 	end
 	if player.Parent and data then
