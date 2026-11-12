@@ -184,6 +184,11 @@ function DataService.addXp(player: Player, amount: number): number
 	if not data then
 		return 0
 	end
+	-- Potenciador de XP de Robux (la XP viene ya con VIP y dificultad)
+	local boost = Config.Monetization.Products.BoostXp
+	if Progression.boostLeft(data, boost.Boost) > 0 then
+		amount = math.floor(amount * boost.Multiplier)
+	end
 	local levels = Progression.addXp(data, amount)
 	DataService.changed(player, "Level")
 	return levels

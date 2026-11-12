@@ -243,8 +243,8 @@ local function refresh()
 	end
 
 	if showCoins then
-		header("💰 Monedas", nextOrder())
-		for _, key in { "CoinsSmall", "CoinsBig" } do
+		header("💰 Monedas y potenciadores", nextOrder())
+		for _, key in { "CoinsSmall", "CoinsBig", "BoostCoins", "BoostXp" } do
 			local product = (monetization.Products :: any)[key]
 			if product.Id == 0 then
 				card(nextOrder(), nil, product.Icon, product.Name, product.Description, { { Text = "Pronto", Color = GREY } })

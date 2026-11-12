@@ -42,6 +42,7 @@ export type Profile = {
 	Streak: { Count: number, LastDay: number }, -- racha de días: cuántos seguidos y el último día de juego contado
 	MatchesPlayed: number, -- partidas terminadas (ganadas o perdidas)
 	Codes: { [string]: boolean }, -- códigos de regalo ya canjeados (clave = código en mayúsculas)
+	Boosts: { Coins: number, Xp: number }, -- potenciadores de Robux: hora (os.time) en que termina cada uno
 }
 
 local Progression = {}
@@ -101,7 +102,17 @@ function Progression.defaultProfile(): Profile
 		Streak = { Count = 0, LastDay = 0 },
 		MatchesPlayed = 0,
 		Codes = {},
+		Boosts = { Coins = 0, Xp = 0 },
 	}
+end
+
+-- Segundos que le quedan a un potenciador de Robux ("Coins" o "Xp"); 0 si no está activo
+function Progression.boostLeft(profile: Profile, kind: string): number
+	local untilTime = profile.Boosts[kind]
+	if type(untilTime) ~= "number" then
+		return 0
+	end
+	return math.max(0, untilTime - os.time())
 end
 
 function Progression.getStatInfo(id: string)

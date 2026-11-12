@@ -2,6 +2,8 @@
 --   * Entrega los productos (bolsas de monedas y Revivir) con ProcessReceipt.
 --     Cada compra se anota en el perfil para no entregarla dos veces, y solo se
 --     confirma a Roblox cuando el perfil quedó guardado.
+--   * Potenciadores con tiempo (Monedas x2 y XP x2): guardan la hora en que
+--     terminan (os.time), así siguen corriendo entre sesiones.
 --   * Bonos de los pases: Monedas x2, VIP (+XP) y lo del Pack Inicial
 --     (se entrega una sola vez, aunque lo hayan comprado en el Lobby).
 --   * Conecta las monedas del perfil a la tienda de skins.
@@ -16,6 +18,7 @@ local DataService = require(script.Parent.DataService)
 local PlayerService = require(script.Parent.PlayerService)
 local GameState = require(script.Parent.GameState)
 local StoreService = require(script.Parent.StoreService)
+local Progression = require(Shared.Progression)
 
 local monetization = Config.Monetization
 local MAX_RECEIPTS = 40
@@ -30,7 +33,22 @@ for key, product in monetization.Products do
 end
 
 function PurchaseService.coinMultiplier(player: Player): number
-	return if StoreService.hasPass(player, "DoubleCoins") then 2 else 1
+	local multiplier = if StoreService.hasPass(player, "DoubleCoins") then 2 else 1
+	local data = DataService.get(player)
+	local boost = monetization.Products.BoostCoins
+	if data and Progression.boostLeft(data, boost.Boost) > 0 then
+		multiplier *= boost.Multiplier
+	end
+	return multiplier
+end
+
+-- Publica cuándo terminan los potenciadores para que el cliente muestre la cuenta
+local function publishBoosts(player: Player)
+	local data = DataService.get(player)
+	if data then
+		player:SetAttribute("BoostCoinsUntil", data.Boosts.Coins)
+		player:SetAttribute("BoostXpUntil", data.Boosts.Xp)
+	end
 end
 
 function PurchaseService.xpMultiplier(player: Player): number
@@ -84,6 +102,15 @@ local function grant(player: Player, key: string)
 			data.WeaponSkins[product.WeaponSkin] = true
 			data.WeaponSkin = product.WeaponSkin
 			Remotes.Notify:FireClient(player, `{product.Icon} ¡{product.Name} puesta en tus armas!`)
+		end
+	elseif product.Boost then
+		local data = DataService.get(player)
+		if data then
+			-- Si ya está activo se suma desde donde termina; si no, desde ahora
+			local now = os.time()
+			data.Boosts[product.Boost] = math.max(data.Boosts[product.Boost], now) + product.Duration
+			publishBoosts(player)
+			Remotes.Notify:FireClient(player, `{product.Icon} ¡{product.Name} activado! Corre aunque salgas del juego`)
 		end
 	elseif product.Coins then
 		DataService.addCoins(player, product.Coins)
@@ -143,6 +170,7 @@ end
 
 -- Se llama cuando el perfil del jugador terminó de cargar
 function PurchaseService.onPlayerReady(player: Player)
+	publishBoosts(player)
 	task.spawn(grantStarterPack, player)
 end
 
