@@ -905,15 +905,31 @@ Config.ProfileReset = {
 
 -- Versión del juego y lista de novedades que ve quien ya había jugado
 Config.Version = {
-	Id = "1.2",
-	Title = "armas nuevas, mochila y más reto",
+	Id = "1.3",
+	Title = "temporada de invierno y mucho más",
 	Lines = {
-		"🏹 Ballesta y 🔥 Lanzallamas nuevos en la Armería",
-		"🎒 La cartuchera ahora es la Mochila: te cura al empezar cada oleada",
-		"👑 Salón de la fama y 🗓️ reto semanal en el lobby",
-		"🐾 Tus compañeros suben de nivel mientras pelean",
-		"⚙️ Modificadores opcionales al elegir dificultad",
+		"❄️ Temporada de invierno: 3 skins nuevas hasta el 7 de enero",
+		"🏆 Victoria al llegar a la oleada meta, con modo sin fin opcional",
+		"🔥 Racha diaria y misiones que van rotando",
+		"🤝 Bono por jugar con amigos",
+		"🎁 Códigos de regalo para canjear en el lobby",
+		"📱 Disparo automático y ayuda de puntería en celulares",
 	},
+}
+
+-- Insignias de Roblox (se ven en el perfil del jugador). Cada una se crea en Creator
+-- Hub (ver docs/insignias.md) y su número se pega en Id; con Id = 0 está apagada.
+-- Key es lo que usa el servidor (Insignias.award); Name y Description son para copiar.
+Config.Badges = {
+	{ Key = "FirstMatch", Id = 0, Name = "Primera guardia", Description = "Termina tu primera partida defendiendo la campana." },
+	{ Key = "FirstVictory", Id = 0, Name = "Campana a salvo", Description = "Supera la oleada meta de una dificultad por primera vez." },
+	{ Key = "Wave10", Id = 0, Name = "Resistencia", Description = "Llega a la oleada 10 en una sola partida." },
+	{ Key = "FirstBoss", Id = 0, Name = "Cazajefes", Description = "Derrota a tu primer jefe." },
+	{ Key = "Kills1000", Id = 0, Name = "Mil zombis", Description = "Elimina 1000 zombis en total." },
+	{ Key = "ClearHard", Id = 0, Name = "Duro de roer", Description = "Supera la dificultad Difícil." },
+	{ Key = "ClearExpert", Id = 0, Name = "Experto en zombis", Description = "Supera la dificultad Experto." },
+	{ Key = "HallOfFame", Id = 0, Name = "Salón de la fama", Description = "Sé el primer jugador del mundo en superar una dificultad y entra al Salón de la fama." },
+	{ Key = "Streak7", Id = 0, Name = "Una semana fiel", Description = "Juega 7 días seguidos y llega a la racha de 7 días." },
 }
 
 -- Bestiario (se ve en la tienda del Veterano): orden y descripción de cada enemigo
@@ -1091,6 +1107,10 @@ Config.Monetization = {
 		-- Temporada de Halloween: solo se compran hasta Until (hora UTC, segundos); quien las compró las conserva
 		{ Id = "Pumpkin", Name = "Calabaza maldita", CoinPrice = 2500, Until = 1794096000, Seasonal = "🎃 Halloween", Cape = rgb(230, 120, 20), Trim = rgb(40, 24, 10), Armor = true, Glow = true, Hat = "Brim" },
 		{ Id = "Ghost", Name = "Fantasma", CoinPrice = 3500, Until = 1794096000, Seasonal = "🎃 Halloween", Cape = rgb(220, 230, 255), Trim = rgb(120, 140, 220), Glow = true, Hat = "Hood" },
+		-- Temporada de invierno: hasta el 2027-01-07 00:00 UTC (1799280000)
+		{ Id = "Santa", Name = "Gorro navideño", CoinPrice = 2500, Until = 1799280000, Seasonal = "❄️ Invierno", Cape = rgb(190, 30, 40), Trim = rgb(245, 245, 250), Armor = true, Hat = "Hood" },
+		{ Id = "Snowman", Name = "Muñeco de nieve", CoinPrice = 2500, Until = 1799280000, Seasonal = "❄️ Invierno", Cape = rgb(235, 242, 250), Trim = rgb(230, 120, 30), Armor = true, Glow = true, Hat = "Brim" },
+		{ Id = "IceQueen", Name = "Reina del hielo", CoinPrice = 3500, Until = 1799280000, Seasonal = "❄️ Invierno", Cape = rgb(120, 190, 240), Trim = rgb(225, 245, 255), Glow = true, Hat = "Crown" },
 		{ Id = "Pioneer", Name = "Pionero", Pass = "StarterPack", Exclusive = true, Cape = rgb(30, 110, 120), Trim = rgb(210, 214, 222), Armor = true, Hat = "Helmet" },
 		{ Id = "Golden", Name = "Dorada", Pass = "Vip", Exclusive = true, Cape = rgb(220, 170, 50), Trim = rgb(255, 240, 160), Armor = true, Glow = true, Hat = "Crown" },
 	},

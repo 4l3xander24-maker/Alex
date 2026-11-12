@@ -8,6 +8,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local DataService = require(script.Parent.DataService)
+local Insignias = require(script.Parent.Insignias)
 local Leaderboard = require(script.Parent.Leaderboard)
 
 local ConquestService = {}
@@ -36,17 +37,20 @@ local function claimFirst(player: Player, difficultyId: number)
 	DataService.addCoins(player, bonus)
 	DataService.changed(player, "Profile")
 	DataService.saveNow(player)
+	Insignias.award(player, "HallOfFame")
 	Remotes.Notify:FireAllClients(`👑 ¡{player.DisplayName} es el PRIMER jugador del mundo en superar {info.Icon} {info.Name}!`)
 	Remotes.Notify:FireClient(player, `👑 Salón de la fama: título "{title}" y +{bonus} monedas{if skinId then " + rastro exclusivo" else ""}`)
 end
 
--- Se llama cuando el equipo supera la dificultad `difficultyId`
-function ConquestService.onCleared(difficultyId: number)
+-- Se llama cuando el equipo supera la dificultad `difficultyId`. Solo cobra la primera
+-- vez (y entra al Salón de la fama) quien está en `eligible`; los demás juegan con el
+-- equipo pero esa conquista no se les marca todavía.
+function ConquestService.onCleared(difficultyId: number, eligible: { [Player]: boolean })
 	local conquest = Config.Conquest
 	local key = tostring(difficultyId)
 	for _, player in Players:GetPlayers() do
 		local data = DataService.get(player)
-		if data and not data.Conquests[key] then
+		if data and eligible[player] and not data.Conquests[key] then
 			data.Conquests[key] = true
 			local reward = conquest.Rewards[difficultyId] or 0
 			if reward > 0 then
