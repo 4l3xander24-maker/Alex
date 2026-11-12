@@ -16,6 +16,11 @@ local EnemyService = require(script.Parent.EnemyService)
 local GameState = require(script.Parent.GameState)
 
 local anticheat = Config.Anticheat
+-- Margen tras el primer golpe contra el mundo: un zombi pegado a la pared o al suelo
+-- (y su posición con compensación de lag) no debe quedar fuera por centímetros
+local WALL_SLACK = 1.5
+local worldParams = RaycastParams.new()
+worldParams.FilterType = Enum.RaycastFilterType.Exclude
 local talents = Config.TalentValues
 local random = Random.new()
 
@@ -255,9 +260,25 @@ local function onShoot(player: Player, origin: any, direction: any, shotTime: an
 	state.LastGun = weaponId
 	local explosive = Progression.hasTalent(data, "Explosive")
 
+	-- Las balas se detienen en paredes y edificios, como el rastro del cliente (los
+	-- zombis no existen como partes en el servidor; los personajes no cuentan).
+	-- Un raycast por perdigón, con el filtro armado una sola vez por disparo.
+	local characters = {}
+	for _, other in Players:GetPlayers() do
+		if other.Character then
+			table.insert(characters, other.Character)
+		end
+	end
+	worldParams.FilterDescendantsInstances = characters
+
 	for _ = 1, stats.Pellets do
 		local pelletDirection = applySpread(aim, stats.Spread)
-		for _, enemyId in EnemyService.raycast(origin, pelletDirection, stats.Range, time, stats.Pierce + 1) do
+		local pelletRange = stats.Range
+		local wall = workspace:Raycast(origin, pelletDirection * stats.Range, worldParams)
+		if wall then
+			pelletRange = math.min(stats.Range, wall.Distance + WALL_SLACK)
+		end
+		for _, enemyId in EnemyService.raycast(origin, pelletDirection, pelletRange, time, stats.Pierce + 1) do
 			local damage = rollDamage(player, stats.Damage, stats.CritChance)
 			if explosive and random:NextNumber() < talents.ExplosiveChance then
 				explode(player, enemyId, damage, time)
