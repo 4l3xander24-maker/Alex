@@ -1083,6 +1083,10 @@ Config.Monetization = {
 		SkinGalaxy = { Id = 3719236685, Name = "Skin Galaxia", Icon = "🟪", Description = "Skin de arma morada brillante.", WeaponSkin = "Galaxy" },
 		SkinGold = { Id = 3719236545, Name = "Skin Oro Macizo", Icon = "🟨", Description = "Skin de arma dorada brillante.", WeaponSkin = "Gold" },
 		CoinsSmall = { Id = 3719236258, Name = "Bolsa de monedas", Icon = "💰", Description = "+500 monedas.", Coins = 500 },
+		-- Potenciadores con tiempo (Id = 0: sin crear todavía). Boost = "Coins" o "Xp"; Duration en segundos;
+		-- Multiplier se suma al resto de bonos (pase Monedas x2, VIP) multiplicando
+		BoostCoins = { Id = 0, Name = "Monedas x2 (30 min)", Icon = "⏱️", Description = "Doble de monedas por zombi durante 30 minutos. Comprar otra vez suma tiempo.", Short = "Monedas x2", Boost = "Coins", Duration = 1800, Multiplier = 2 },
+		BoostXp = { Id = 0, Name = "XP x2 (1 hora)", Icon = "⚡", Description = "Doble de XP durante 1 hora. Comprar otra vez suma tiempo.", Short = "XP x2", Boost = "Xp", Duration = 3600, Multiplier = 2 },
 		CoinsBig = { Id = 3719236344, Name = "Cofre de monedas", Icon = "💎", Description = "+2000 monedas.", Coins = 2000 },
 	},
 	ReviveWindow = 10, -- segundos para comprar Revivir después de caer

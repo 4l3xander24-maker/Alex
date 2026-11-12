@@ -91,6 +91,28 @@ function BoostUi.init()
 	gameState:GetAttributeChangedSignal("Objective"):Connect(showObjective)
 	showObjective()
 
+	-- Potenciadores de Robux (Monedas x2 y XP x2): el servidor publica la hora en que terminan
+	for key, product in Config.Monetization.Products do
+		local boost = (product :: any).Boost
+		if boost then
+			local attribute = `Boost{boost}Until`
+			local function showBoost()
+				local untilTime = player:GetAttribute(attribute)
+				if typeof(untilTime) == "number" and untilTime > workspace:GetServerTimeNow() then
+					local info = { Name = (product :: any).Short, Icon = product.Icon, Color = Color3.fromRGB(255, 205, 80) }
+					local chip = chips[key]
+					if chip then
+						chip.EndTime = untilTime
+					else
+						makeChip(key, info, untilTime, true)
+					end
+				end
+			end
+			player:GetAttributeChangedSignal(attribute):Connect(showBoost)
+			showBoost()
+		end
+	end
+
 	Remotes.Boost.OnClientEvent:Connect(function(name: string, duration: number)
 		local info = Config.Powerups.Types[name]
 		if not info then
@@ -111,12 +133,14 @@ function BoostUi.init()
 		local now = workspace:GetServerTimeNow()
 		for name, chip in chips do
 			local left = chip.EndTime - now
-			local info = Config.Powerups.Types[name]
+			local info = Config.Powerups.Types[name] or Config.Monetization.Products[name]
 			if left <= 0 then
 				chip.Frame:Destroy()
 				chips[name] = nil
 			elseif chip.Timed then
-				chip.Label.Text = `{info.Icon} {info.Name} {math.ceil(left)}s`
+				local seconds = math.ceil(left)
+				local shown = if seconds >= 60 then string.format("%d:%02d", seconds // 60, seconds % 60) else `{seconds}s`
+				chip.Label.Text = `{info.Icon} {info.Short or info.Name} {shown}`
 			else
 				chip.Label.Text = `{info.Icon} {info.Name}`
 			end

@@ -22,11 +22,20 @@ Sugerido: 99 R$ las comunes (Crimson, Royal), 149 R$ Emerald y Shadow, 249–349
 | Continue | Continuar partida | cuando caen todos o la campana: sigue el equipo | 49 R$ |
 | CoinsSmall | Bolsa de monedas | +500 monedas | 49 R$ |
 | CoinsBig | Cofre de monedas | +2000 monedas | 149 R$ |
+| BoostCoins | Monedas x2 (30 min) | doble de monedas 30 minutos; comprar otra vez suma tiempo | 49 R$ |
+| BoostXp | XP x2 (1 hora) | doble de XP 1 hora; comprar otra vez suma tiempo | 49 R$ |
 | PetGolem | Gólem de piedra | compañero que aplasta en área | 299 R$ |
 | PetPhoenix | Fénix | compañero que lanza fuego | 399 R$ |
 | SkinBlood | Skin Sangrienta | skin de arma roja brillante | 99 R$ |
 | SkinGalaxy | Skin Galaxia | skin de arma morada brillante | 129 R$ |
 | SkinGold | Skin Oro Macizo | skin de arma dorada brillante | 199 R$ |
+
+## Potenciadores con tiempo
+BoostCoins y BoostXp (Id = 0: crear los productos y poner el id en Config). Guardan en el perfil
+(`Boosts.Coins` / `Boosts.Xp`) la hora en que terminan (`os.time`), así siguen corriendo entre
+sesiones; comprar otra vez mientras están activos suma el tiempo desde donde terminan. Se
+multiplican con el pase Monedas x2 y con el VIP. Se muestran con cuenta regresiva en los
+potenciadores de la partida y solo se venden dentro de la partida (como las bolsas de monedas).
 
 ## Notas
 - Los precios en Robux se leen de Roblox: la tienda del juego los muestra sola.

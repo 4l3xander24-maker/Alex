@@ -12,6 +12,7 @@ local TweenService = game:GetService("TweenService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
 local Sounds = require(Shared.Sounds)
+local DeathFx = require(script.Parent.DeathFx)
 
 -- Separación mínima entre dos sonidos iguales, para que una ráfaga o una
 -- horda no se vuelva ruido
@@ -273,12 +274,14 @@ function Sfx.onEnemyRemoved(typeName: string, position: Vector3?, killed: boolea
 		-- Explosivo: estallido que se ve y se oye
 		if info and info.ExplodeOnDeath then
 			Sfx.playAt("SmallExplosion", position)
-			local blast = Instance.new("Explosion")
-			blast.BlastPressure = 0
-			blast.DestroyJointRadiusPercent = 0
-			blast.BlastRadius = info.ExplodeOnDeath.Radius
-			blast.Position = position
-			blast.Parent = workspace
+			-- Solo visual (el daño lo calcula el servidor): cubos de fuego del pool de DeathFx,
+			-- con tope propio, en vez de crear una Explosion por cada zombi
+			local speed = info.ExplodeOnDeath.Radius * 1.4
+			for _ = 1, math.min(10, DeathFx.budget()) do
+				local direction = Vector3.new(random:NextNumber(-1, 1), random:NextNumber(0.2, 1.2), random:NextNumber(-1, 1)).Unit
+				local color = if random:NextInteger(1, 2) == 1 then Color3.fromRGB(255, 140, 40) else Color3.fromRGB(255, 210, 90)
+				DeathFx.addCube(position + Vector3.new(0, 2, 0), color, random:NextNumber(0.5, 1), direction * random:NextNumber(speed * 0.5, speed), 40, random:NextNumber(0.3, 0.6), true)
+			end
 		end
 	end
 end

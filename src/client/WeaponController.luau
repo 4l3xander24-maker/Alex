@@ -244,11 +244,18 @@ local function slash(weaponStats)
 end
 
 -- Raycast contra el mundo (paredes, suelo), sin el personaje propio
+-- Los parámetros se reutilizan: el filtro solo se cambia cuando cambia el personaje
+local worldParams = RaycastParams.new()
+worldParams.FilterType = Enum.RaycastFilterType.Exclude
+local worldParamsCharacter: Model? = nil
+
 local function worldRaycast(origin: Vector3, direction: Vector3, distance: number): RaycastResult?
-	local params = RaycastParams.new()
-	params.FilterType = Enum.RaycastFilterType.Exclude
-	params.FilterDescendantsInstances = { player.Character :: Instance }
-	return workspace:Raycast(origin, direction * distance, params)
+	local character = player.Character
+	if character ~= worldParamsCharacter then
+		worldParamsCharacter = character
+		worldParams.FilterDescendantsInstances = if character then { character } else {}
+	end
+	return workspace:Raycast(origin, direction * distance, worldParams)
 end
 
 -- Hacia dónde sale el tiro y si va a dar en un zombi (para el disparo
