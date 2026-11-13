@@ -2,7 +2,8 @@
 -- despacio mientras se derrumba. Franjas negras arriba y abajo, todo se tiñe
 -- de rojo, la cámara tiembla con el golpe y aparece el título.
 -- Al superar la meta de la dificultad sale en cambio el cartel de ¡VICTORIA!
--- (dorado, con fanfarria y destellos, como el de subir de nivel).
+-- (dorado, con fanfarria y destellos, como el de subir de nivel). Antes, al
+-- caer el jefe final, un temblor dorado con su título (finalBossDown).
 local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -29,6 +30,7 @@ local bottomBar: Frame
 local title: TextLabel
 local subtitle: TextLabel
 local playing = false
+local overlays = 0 -- carteles abiertos sin mover la cámara (victoria, jefe final)
 local flash: Frame
 local fade: Frame
 
@@ -176,6 +178,70 @@ local function play(reason: string?, bell: Vector3, duration: number)
 	playing = false
 end
 
+-- Muerte del jefe final (sin mover la cámara, para que se siga jugando): el
+-- servidor pone a los zombis en cámara lenta, aquí el mundo se tiñe de dorado,
+-- la cámara tiembla, estalla polvo y brasas donde cayó y sale el título.
+local function finalBossDown(position: Vector3, duration: number)
+	if playing then
+		return
+	end
+	overlays += 1
+	local info = Config.Enemies[Config.FinalBoss.Type]
+	Sfx.play("BossRoar")
+	Sfx.playAt("Explosion", position)
+	Sfx.playAt("BellToll", position)
+	task.delay(0.8, Sfx.playAt, "BossBell", position)
+	collapseBurst(position)
+	local grade = Instance.new("ColorCorrectionEffect")
+	grade.Name = "FinalBossGrade"
+	grade.Parent = Lighting
+	tween(grade, 0.3, { Saturation = -0.35, TintColor = Color3.fromRGB(255, 220, 160), Contrast = 0.15 })
+
+	gui.Enabled = true
+	flash.BackgroundTransparency = 0.3
+	tween(flash, 0.9, { BackgroundTransparency = 1 })
+	title.Text = `¡EL {string.upper(info.DisplayName)} HA CAÍDO!`
+	title.TextColor3 = Color3.fromRGB(255, 205, 90)
+	subtitle.Text = "La maldición de la campana se rompe..."
+	tween(title, 0.4, { TextTransparency = 0 })
+	task.delay(0.4, function()
+		tween(subtitle, 0.6, { TextTransparency = 0 })
+	end)
+
+	-- Temblor que se apaga (con CameraOffset: la cámara sigue siendo del jugador)
+	local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+	local started = os.clock()
+	local connection
+	connection = RunService.RenderStepped:Connect(function()
+		local age = os.clock() - started
+		local power = math.max(0, 1 - age / 1.6) * 1.4
+		if humanoid then
+			humanoid.CameraOffset = if power > 0 then Vector3.new(math.noise(age * 30, 1) * power, math.noise(age * 30, 2) * power, 0) else Vector3.zero
+		end
+		if power <= 0 then
+			connection:Disconnect()
+		end
+	end)
+
+	task.wait(math.max(duration - 0.4, 0.4))
+	tween(grade, 0.8, { Saturation = 0, TintColor = Color3.new(1, 1, 1), Contrast = 0 }).Completed:Connect(function()
+		grade:Destroy()
+	end)
+	-- Si mientras tanto empezó la cinemática de derrota, el título ya es suyo
+	if not playing then
+		tween(title, 0.4, { TextTransparency = 1 })
+		tween(subtitle, 0.4, { TextTransparency = 1 })
+		task.wait(0.45)
+		if not playing then
+			title.TextColor3 = Color3.fromRGB(255, 70, 60)
+		end
+	end
+	overlays -= 1
+	if not playing and overlays == 0 then
+		gui.Enabled = false
+	end
+end
+
 -- Destello de cuadraditos dorados que sube y se apaga
 local function sparkle(parent: Frame)
 	local size = math.random(6, 12)
@@ -198,6 +264,7 @@ end
 
 -- Cartel de ¡VICTORIA! (sin mover la cámara): entra grande, rebota y se va
 local function victory(bell: Vector3, duration: number)
+	overlays += 1
 	Sfx.play("LevelUp")
 	Sfx.playAt("BellToll", bell)
 	local state = ReplicatedStorage:FindFirstChild("GameState")
@@ -257,7 +324,8 @@ local function victory(bell: Vector3, duration: number)
 	TweenService:Create(detail, fadeInfo, { TextTransparency = 1, TextStrokeTransparency = 1 }):Play()
 	task.wait(0.55)
 	frame:Destroy()
-	if not playing then
+	overlays -= 1
+	if not playing and overlays == 0 then
 		gui.Enabled = false
 	end
 end
@@ -312,6 +380,8 @@ function GameOverCinematic.init()
 	Remotes.GameOverCinematic.OnClientEvent:Connect(function(reason, bell, duration)
 		if reason == "Victory" then
 			task.spawn(victory, bell, duration)
+		elseif reason == "FinalBoss" then
+			task.spawn(finalBossDown, bell, duration)
 		else
 			task.spawn(play, reason, bell, duration)
 		end

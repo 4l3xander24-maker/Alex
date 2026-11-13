@@ -21,6 +21,7 @@ local EXPLOSION_COLOR = Color3.fromRGB(255, 140, 50)
 local LIGHTNING_COLOR = Color3.fromRGB(140, 220, 255)
 local BELL_COLOR = Color3.fromRGB(255, 215, 100)
 local GRENADE_COLOR = Color3.fromRGB(60, 80, 50)
+local PUSH_AIR = 0.45 -- segundos en el aire al recibir el campanazo del jefe final
 -- En pixel art 3D las explosiones y la granada son cubos
 local voxel = Config.Style.Blocky
 local ROUND = if voxel then Enum.PartType.Block else Enum.PartType.Ball
@@ -217,6 +218,37 @@ local fxHandlers = {
 		if (workspace.CurrentCamera.CFrame.Position - position).Magnitude < radius * 3 then
 			shake(0.35, 0.2)
 		end
+	end,
+	-- Campanazo del jefe final: anillo de bronce que se abre, toque de campana y,
+	-- si te alcanza, te tira hacia atrás (nunca al agua). El daño es del servidor.
+	Shockwave = function(center: Vector3, radius: number, push: number)
+		local ring = newFxPart(Vector3.new(0.4, 2, 2), Color3.fromRGB(255, 180, 70))
+		ring.Shape = DISC
+		ring.Transparency = 0.2
+		ring.CFrame = CFrame.new(center + Vector3.new(0, 1, 0)) * CFrame.Angles(0, 0, math.pi / 2)
+		fadeOut(ring, 0.5, { Size = Vector3.new(0.4, radius * 2, radius * 2) })
+		flashLight(center + Vector3.new(0, 6, 0), Color3.fromRGB(255, 170, 60), radius * 1.5, 0.5)
+		Sfx.playAt("BossBell", center)
+		local character = player.Character
+		local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+		if not root or not humanoid or humanoid.Health <= 0 then
+			return
+		end
+		local position = root.Position
+		local offset = Vector3.new(position.X - center.X, 0, position.Z - center.Z)
+		if offset.Magnitude > radius then
+			if offset.Magnitude < radius * 2 then
+				shake(0.5, 0.3)
+			end
+			return
+		end
+		shake(1.2, 0.5)
+		local away = if offset.Magnitude > 0.1 then offset.Unit else Vector3.new(0, 0, 1)
+		local landing = Paths.lastWalkable(position, position + away * push)
+		local distance = Vector3.new(landing.X - position.X, 0, landing.Z - position.Z).Magnitude
+		-- Un saltito de PUSH_AIR segundos que cae en `landing`
+		root.AssemblyLinearVelocity = away * (distance / PUSH_AIR) + Vector3.new(0, workspace.Gravity * PUSH_AIR / 2, 0)
 	end,
 	Mine = function(position: Vector3, radius: number)
 		explosion(position, radius)

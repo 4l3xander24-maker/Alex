@@ -47,6 +47,7 @@ export type Enemy = {
 	HealthMultiplier: number,
 	SummonAt: number?, -- cuándo vuelve a llamar zombis (jefes con Summon)
 	StrikeAt: number?, -- cuándo vuelve a atacar a distancia (jefes con Strike)
+	Phase: number, -- fases ya empezadas (jefes con Phases)
 }
 
 local EnemyService = {}
@@ -229,13 +230,15 @@ local function publishBoss()
 		return
 	end
 	local info = Config.Enemies[boss.Type]
-	GameState.set("BossName", `{info.Icon or "💀"} {info.DisplayName}`)
+	local phase = if info.Phases and boss.Phase > 0 then `  ·  {info.Phases[boss.Phase].Tag}` else ""
+	GameState.set("BossName", `{info.Icon or "💀"} {info.DisplayName}{phase}`)
 	GameState.set("BossMaxHealth", math.ceil(info.MaxHealth * boss.HealthMultiplier))
 	GameState.set("BossHealth", math.max(0, math.ceil(boss.Health)))
 end
 
--- Crea un zombi en `start` (o al principio de su camino) y lo manda a la campana
-local function create(typeName: string, healthMultiplier: number, start: Vector3?, routeName: string?)
+-- Crea un zombi en `start` (o al principio de su camino) y lo manda a la campana.
+-- Devuelve su id.
+local function create(typeName: string, healthMultiplier: number, start: Vector3?, routeName: string?): number
 	local info = Config.Enemies[typeName]
 	local arena = Config.Arena
 	local flying = info.Flying == true
@@ -278,7 +281,8 @@ local function create(typeName: string, healthMultiplier: number, start: Vector3
 	end
 	origin = Vector3.new(origin.X, halfHeight, origin.Z)
 	local spawnTime = workspace:GetServerTimeNow()
-	local speed = info.Speed * Config.Waves.SpeedMultiplier * speedScale
+	-- Con la cámara lenta puesta (setTimeScale) los que nacen también van lentos
+	local speed = info.Speed * Config.Waves.SpeedMultiplier * speedScale * timeScale
 
 	nextId += 1
 	local enemy: Enemy = {
@@ -303,6 +307,7 @@ local function create(typeName: string, healthMultiplier: number, start: Vector3
 		IsBoss = info.IsBoss == true,
 		SummonAt = if info.Summon then spawnTime + info.Summon.Every else nil,
 		StrikeAt = if info.Strike then spawnTime + info.Strike.Every * 0.6 else nil,
+		Phase = 0,
 	}
 	enemies[nextId] = enemy
 	aliveCount += 1
@@ -311,13 +316,18 @@ local function create(typeName: string, healthMultiplier: number, start: Vector3
 
 	table.insert(pendingSpawns, { nextId, typeName, enemy.Path.Points, speed, spawnTime })
 	if enemy.IsBoss then
+		-- El jefe final se queda con la barra aunque haya otros jefes vivos
+		if info.Final then
+			shownBoss = enemy
+		end
 		publishBoss()
 	end
+	return enemy.Id
 end
 
--- Un zombi nuevo al principio de uno de los caminos
-function EnemyService.spawn(typeName: string, healthMultiplier: number)
-	create(typeName, healthMultiplier, nil, nil)
+-- Un zombi nuevo al principio de uno de los caminos. Devuelve su id.
+function EnemyService.spawn(typeName: string, healthMultiplier: number): number
+	return create(typeName, healthMultiplier, nil, nil)
 end
 
 -- Los jefes como el Gordo sueltan zombis al morir
@@ -336,6 +346,78 @@ local function spawnChildren(enemy: Enemy, position: Vector3)
 	end
 end
 
+-- Jugadores cerca de `center` (medido sobre el suelo)
+local function playersInRadius(center: Vector3, radius: number): { Player }
+	local found = {}
+	for _, other in Players:GetPlayers() do
+		local root = other.Character and other.Character:FindFirstChild("HumanoidRootPart")
+		if root and flatDistance((root :: BasePart).Position, center) <= radius then
+			table.insert(found, other)
+		end
+	end
+	return found
+end
+
+-- Una fase del jefe (Config.Enemies[*].Phases): se avisa a todos y hace lo
+-- que diga: llamar un anillo de zombis, enfurecerse o dar un campanazo
+local function startPhase(enemy: Enemy, phase)
+	local now = workspace:GetServerTimeNow()
+	local position = EnemyMath.getPosition(enemy.Path, now)
+	Remotes.Notify:FireAllClients(phase.Message)
+	if phase.Enrage then
+		-- Camina más rápido sin saltar de lugar (como en setTimeScale)
+		local path = enemy.Path
+		local traveled = EnemyMath.getTraveled(path, now)
+		path.Speed *= phase.Enrage
+		path.SpawnTime = now - traveled / path.Speed
+		pendingUpdates[enemy.Id] = enemy
+	end
+	local summon = phase.Summon
+	if summon then
+		for index = 1, summon.Count do
+			local angle = index / summon.Count * math.pi * 2
+			local offset = Vector3.new(math.cos(angle), 0, math.sin(angle)) * (enemy.Radius + 4)
+			create(summon.Type, enemy.HealthMultiplier, Paths.lastWalkable(position, position + offset), enemy.Route)
+		end
+	end
+	local shockwave = phase.Shockwave
+	if shockwave then
+		-- Anillo de aviso y, al terminar el retraso, el campanazo (si el jefe sigue vivo)
+		local center = Vector3.new(position.X, Paths.walkHeight(position), position.Z)
+		Remotes.PowerFx:FireAllClients("Telegraph", center, shockwave.Radius, shockwave.Delay, shockwave.Color)
+		task.delay(shockwave.Delay, function()
+			if enemies[enemy.Id] ~= enemy or GameState.isSlowmo() then
+				return
+			end
+			-- El empujón lo aplica cada cliente a su personaje; el daño, aquí
+			Remotes.PowerFx:FireAllClients("Shockwave", center, shockwave.Radius, shockwave.Push)
+			if playerDamageHandler then
+				for _, other in playersInRadius(center, shockwave.Radius) do
+					playerDamageHandler(other, shockwave.Damage)
+				end
+			end
+			GameState.damageBell(shockwave.BellDamage)
+		end)
+	end
+	if enemy == shownBoss then
+		publishBoss()
+	end
+end
+
+-- Empieza las fases cuya vida (fracción At) ya se pasó, de a una y en orden
+local function checkPhases(enemy: Enemy)
+	local info = Config.Enemies[enemy.Type]
+	local phases = info.Phases
+	if not phases then
+		return
+	end
+	local maxHealth = info.MaxHealth * enemy.HealthMultiplier
+	while enemy.Phase < #phases and enemy.Health <= maxHealth * phases[enemy.Phase + 1].At do
+		enemy.Phase += 1
+		startPhase(enemy, phases[enemy.Phase])
+	end
+end
+
 function EnemyService.damage(enemyId: number, amount: number, player: Player)
 	local enemy = enemies[enemyId]
 	if not enemy then
@@ -347,6 +429,7 @@ function EnemyService.damage(enemyId: number, amount: number, player: Player)
 	if enemy.Health > 0 then
 		-- Id y daño (para los números que saltan en los clientes)
 		table.insert(pendingHits, { enemyId, amount })
+		checkPhases(enemy)
 		if enemy == shownBoss and math.ceil(enemy.Health) ~= before then
 			GameState.set("BossHealth", math.ceil(enemy.Health))
 		end
