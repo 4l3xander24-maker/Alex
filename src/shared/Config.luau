@@ -780,8 +780,8 @@ Config.Enemies = {
 	-- dificultad igual que la de los otros jefes.
 	-- Phases: al bajar su vida de At (fracción) hace algo que se ve: Summon
 	-- (anillo de zombis), Enrage (camina más rápido) y Shockwave (campanazo que
-	-- avisa con un anillo, empuja y daña a quien esté cerca y le quita un poco
-	-- a la campana). Tag se ve en la barra del jefe.
+	-- avisa con un anillo, empuja Push studs y daña a quien esté cerca y le quita
+	-- BellDamage a la campana). Tag se ve en la barra del jefe.
 	Bellringer = {
 		DisplayName = "Campanero Maldito",
 		Icon = "🔔",
@@ -811,7 +811,7 @@ Config.Enemies = {
 				Tag = "🔔 Toque de difuntos",
 				Message = "🔔 ¡El Campanero toca a difuntos! Los muertos acuden a su llamado",
 				Summon = { Type = "Runner", Count = 8 },
-				Shockwave = { Radius = 30, Damage = 30, BellDamage = 3, Push = 70, Delay = 1.6, Color = Color3.fromRGB(255, 190, 80) },
+				Shockwave = { Radius = 30, Damage = 30, BellDamage = 3, Push = 16, Delay = 1.6, Color = Color3.fromRGB(255, 190, 80) },
 			},
 			{
 				At = 0.33,
@@ -819,7 +819,7 @@ Config.Enemies = {
 				Message = "🔥 ¡El Campanero enfurece! Camina más rápido y llama a sus caballeros",
 				Enrage = 1.4,
 				Summon = { Type = "Knight", Count = 6 },
-				Shockwave = { Radius = 36, Damage = 35, BellDamage = 4, Push = 85, Delay = 1.4, Color = Color3.fromRGB(255, 90, 50) },
+				Shockwave = { Radius = 36, Damage = 35, BellDamage = 4, Push = 20, Delay = 1.4, Color = Color3.fromRGB(255, 90, 50) },
 			},
 		},
 		Skin = Color3.fromRGB(96, 112, 100),
