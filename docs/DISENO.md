@@ -100,7 +100,7 @@ mejorar tus estadísticas y aprender talentos.
 - **Aldea**: casas con ventanas encendidas, pozo y carreta a los lados del campo.
 
 ## Ciclo de juego
-0. **Preparación** (hasta 2 minutos): el único momento para comprar en el campamento. Termina cuando alguien
+0. **Preparación**: el único momento para comprar en el campamento. Termina cuando alguien
    reconstruye la campana (mantener E) o se acaba el tiempo (entonces se arma sola). Durante la partida las
    tiendas están cerradas.
 1. **Entre oleadas** hay 12 segundos de respiro (sin tiendas).

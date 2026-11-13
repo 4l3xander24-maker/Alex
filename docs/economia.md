@@ -56,7 +56,7 @@ Si todas las partidas se completaran, el núcleo saldría en ~29 partidas (~19 c
 
 ## Colección del bestiario
 Maestría por enemigo (`Config.Collection`, una sola vez por cuenta): comunes 5 / 15 / 40 monedas (bronce / plata / oro, a 10 / 100 / 500 bajas) y jefes 15 / 40 / 100 (a 1 / 5 / 20 bajas). Completar un nivel con todos los enemigos paga 100 / 300 / 800 y el oro da el título «Maestro del Bestiario».
-Con 10 comunes y 5 jefes: 600 + 775 + 1.200 = **2.575 monedas** en total (~5% del núcleo). Cada enemigo nuevo suma 60 (común) o 155 (jefe). El oro de los comunes pide cientos de bajas y el del Segador, que solo sale en su semana, es de largo plazo.
+Con 10 comunes y 6 jefes (incluye el Campanero Maldito, jefe final): 600 + 930 + 1.200 = **2.730 monedas** en total (~5% del núcleo). Cada enemigo nuevo suma 60 (común) o 155 (jefe). El oro de los comunes pide cientos de bajas y el del Segador, que solo sale en su semana, es de largo plazo.
 
 ## Cosas que NO toqué (y por qué)
 - **Puntos de estadística:** salen del nivel de cuenta, que crece exponencialmente (~9 partidas al nivel 20, cientos al 50). Ya frena solo.
@@ -68,3 +68,7 @@ Con 10 comunes y 5 jefes: 600 + 775 + 1.200 = **2.575 monedas** en total (~5% de
 - ¿Se siente injusto el candado del nivel 3 (superar Normal)? Si cuesta más de 5 intentos, hay que bajar el reto de Normal, no quitar el candado.
 - ¿Qué porcentaje completa Normal? Meta: 50–70% en los primeros 5 intentos.
 - ¿Sigue jugando quien perdió 3 veces seguidas? Si no, subir el consuelo.
+
+## Jefe final
+
+Al caer el Campanero Maldito (oleada meta) cada jugador presente cobra `Config.FinalBoss.KillCoins` según la dificultad: 30 / 45 / 65 / 90 / 120, además de las monedas normales por baja. Se paga una vez por partida (en el modo sin fin no vuelve a salir).
