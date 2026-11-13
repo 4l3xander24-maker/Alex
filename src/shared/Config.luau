@@ -954,6 +954,24 @@ Config.Bestiary = {
 	},
 }
 
+-- Colección del bestiario: cada enemigo tiene 3 niveles de maestría según las
+-- veces que lo matas. Cada nivel paga monedas una sola vez; completar un nivel
+-- con TODOS los enemigos paga un premio extra, y el oro da además un título.
+-- Los comunes piden 10 / 100 / 500 (se matan a cientos por partida, el oro es
+-- cuestión de unas pocas partidas) y los jefes 1 / 5 / 20 (salen 1 vez por
+-- partida larga). Premios bajos a propósito: la economía va ajustada.
+Config.Collection = {
+	Tiers = {
+		{ Id = "Bronze", Name = "Bronce", Icon = "🥉" },
+		{ Id = "Silver", Name = "Plata", Icon = "🥈" },
+		{ Id = "Gold", Name = "Oro", Icon = "🥇" },
+	},
+	Kills = { Common = { 10, 100, 500 }, Boss = { 1, 5, 20 } }, -- bajas para cada nivel
+	Rewards = { Common = { 5, 15, 40 }, Boss = { 15, 40, 100 } }, -- monedas por nivel y enemigo
+	SetRewards = { 100, 300, 800 }, -- monedas por completar el nivel con todos los enemigos
+	SetTitle = "Maestro del Bestiario", -- título al completar el oro (solo se pone si no lleva otro)
+}
+
 -- Conquistas: la primera vez que superas una dificultad ganas monedas; el primer
 -- jugador del mundo en superar Experto o más sube al Salón de la fama (sin límite
 -- de tiempo), con título, monedas extra y, en Experto, un rastro exclusivo.

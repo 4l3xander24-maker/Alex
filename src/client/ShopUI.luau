@@ -520,14 +520,40 @@ local function briefText(line: Frame, text: string)
 	})
 end
 
--- Bestiario: cada enemigo con su vista 3D, su vida, velocidad y premio
-local function renderBestiary()
-	sectionHeader("Bestiario  ·  conoce a tus enemigos")
-	for _, typeName in Config.Bestiary.Order do
+-- Silueta oscura de un enemigo que todavía no mataste
+local function silhouette(typeName: string): Model
+	local model = EnemyPreview.model(typeName)
+	for _, part in model:GetDescendants() do
+		if part:IsA("BasePart") then
+			part.Color = Color3.fromRGB(12, 12, 14)
+			part.Material = Enum.Material.SmoothPlastic
+		end
+	end
+	return model
+end
+
+-- Bestiario (colección): silueta "???" hasta la primera baja; después nombre,
+-- datos, bajas y nivel de maestría. La lista sale de Config.Enemies.
+local function renderBestiary(data: Progression.Profile)
+	local discovered, total, tiers, tiersTotal = Progression.collectionProgress(data)
+	sectionHeader("Bestiario  ·  colección de enemigos")
+	label(list, { Size = UDim2.new(1, -10, 0, 22), Text = `Descubiertos {discovered}/{total} · Maestría {tiers}/{tiersTotal}`, TextSize = 15, TextColor3 = MUTED, LayoutOrder = nextOrder() })
+	local collection = Config.Collection
+	for _, typeName in Progression.collectionEnemies() do
 		local info = Config.Enemies[typeName]
-		if info then
-			local stats = `Vida {info.MaxHealth} · Velocidad {info.Speed} · {info.Coins} 💰`
-			row(if info.IsBoss then "👹" else "🧟", info.DisplayName, `{Config.Bestiary.Text[typeName]}\n{stats}`, {}, if info.IsBoss then GOLD else nil, nil, { Title = info.DisplayName, Builder = function()
+		local kills = data.BestiaryKills[typeName] or 0
+		local icon = if info.IsBoss then "👹" else "🧟"
+		if kills <= 0 then
+			row(icon, "???", "Aún no lo has eliminado.", {}, MUTED, nil, { Title = "???", Builder = function()
+				return silhouette(typeName)
+			end })
+		else
+			local goals = Progression.collectionGoals(typeName)
+			local tier = Progression.masteryTier(typeName, kills)
+			local tierInfo = collection.Tiers[tier]
+			local name = `{info.DisplayName}  ·  {if tierInfo then `{tierInfo.Icon} {tierInfo.Name}` else "Sin maestría"}`
+			local stats = `Vida {info.MaxHealth} · Velocidad {info.Speed} · {info.Coins} 💰\n{kills} bajas{if goals[tier + 1] then ` · próximo nivel: {goals[tier + 1]}` else " · ¡maestría completa!"}`
+			row(icon, name, `{Config.Bestiary.Text[typeName] or ""}\n{stats}`, {}, if info.IsBoss then GOLD else nil, nil, { Title = info.DisplayName, Builder = function()
 				return EnemyPreview.model(typeName)
 			end })
 		end
@@ -653,7 +679,7 @@ function ShopUI.render()
 		renderTailor(data, coins)
 	else
 		renderTrainer(data)
-		renderBestiary()
+		renderBestiary(data)
 	end
 end
 

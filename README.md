@@ -23,6 +23,11 @@ el círculo de runas y el cuchillo), [`docs/capturas/pixel/`](docs/capturas/pixe
 [`docs/capturas/otono/`](docs/capturas/otono/) (otoño) y [`docs/capturas/`](docs/capturas/) (versiones anteriores). El diseño completo está en [`docs/DISENO.md`](docs/DISENO.md).
 
 ## Qué tiene ya
+- **Colección del bestiario**: el bestiario del Veterano muestra una silueta "???" hasta que matas a ese enemigo; después
+  enseña sus datos, tus bajas y su maestría (🥉🥈🥇: 10 / 100 / 500 bajas en comunes, 1 / 5 / 20 en jefes). Cada nivel paga
+  monedas una vez, y completar un nivel con todos los enemigos paga un extra; el oro da el título «Maestro del
+  Bestiario». Todo se decide en el servidor (`CollectionService`) y se guarda en `BestiaryKills` y `BestiaryClaimed`.
+  Valores en `Config.Collection`; los enemigos nuevos de `Config.Enemies` entran solos. Paga hasta 2.575 monedas en total.
 - **Misiones diarias y racha**: cada día de juego (cambia a las 9:00 UTC) salen 3 misiones de un grupo de 10, iguales para
   todos, y cumplir las 3 da un extra. Entrar cada día suma una **racha** de 7 días con premio creciente. Se ven en 🏆 Logros.
 - **Bonus por amigos**: cada amigo de Roblox presente en la partida suma +10% de monedas de bajas y de XP de cuenta,
