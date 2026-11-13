@@ -448,6 +448,27 @@ local function spawnFinalBoss(healthMultiplier: number): number
 	return id
 end
 
+-- Cayó el jefe final: premio chico a cada jugador presente, cámara lenta de
+-- los zombis y el momento de su muerte para todos (GameOverCinematic
+-- "FinalBoss"). runWave lo llama una sola vez por partida.
+local function finalBossDown(position: Vector3?)
+	local settings = Config.FinalBoss
+	local info = Config.Enemies[settings.Type]
+	local reward = settings.KillCoins[difficultyId] or 0
+	for _, player in Players:GetPlayers() do
+		if reward > 0 and DataService.get(player) then
+			DataService.addCoins(player, reward)
+			Remotes.Notify:FireClient(player, `{info.Icon} ¡Cayó el {info.DisplayName}! +{reward} monedas`)
+		end
+	end
+	if position then
+		EnemyService.setTimeScale(settings.SlowScale, workspace:GetServerTimeNow())
+		Remotes.GameOverCinematic:FireAllClients("FinalBoss", position, settings.SlowTime)
+		task.wait(settings.SlowTime)
+		EnemyService.setTimeScale(1, workspace:GetServerTimeNow())
+	end
+end
+
 function WaveService.getCurrentWave(): number
 	return currentWave
 end
@@ -650,7 +671,11 @@ local function runWave(wave: number): boolean
 		local info = Config.Enemies[Config.FinalBoss.Type]
 		Remotes.Notify:FireAllClients(`{info.Icon} ¡Oleada final! Al terminar la horda llega el {info.DisplayName}`)
 	end
-	while toSpawn > 0 or #bosses > 0 or finalPending or EnemyService.getAliveCount() > keep do
+	-- Mientras el jefe final siga vivo la oleada no termina, aunque queden
+	-- pocos zombis: la victoria espera a que caiga
+	local finalId: number? = nil
+	local finalAt: Vector3? = nil
+	while toSpawn > 0 or #bosses > 0 or finalPending or finalId ~= nil or EnemyService.getAliveCount() > keep do
 		if #Players:GetPlayers() == 0 or bellDown() then
 			GameState.set("EndReason", "Bell")
 			return false
@@ -674,7 +699,17 @@ local function runWave(wave: number): boolean
 		end
 		if finalPending and toSpawn <= 0 and #bosses == 0 and nextBossIn <= 0 then
 			finalPending = false
-			spawnFinalBoss(healthMultiplier)
+			finalId = spawnFinalBoss(healthMultiplier)
+		end
+		if finalId then
+			local position = EnemyService.getPosition(finalId, workspace:GetServerTimeNow())
+			if position then
+				finalAt = position
+			else
+				-- Murió (solo se ve una vez: se suelta el id)
+				finalId = nil
+				finalBossDown(finalAt)
+			end
 		end
 		budget = math.min(budget + dt * spawnRate, spawnRate)
 		while budget >= 1 and toSpawn > 0 and EnemyService.getAliveCount() < waves.MaxAlive do

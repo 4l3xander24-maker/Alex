@@ -281,7 +281,8 @@ local function create(typeName: string, healthMultiplier: number, start: Vector3
 	end
 	origin = Vector3.new(origin.X, halfHeight, origin.Z)
 	local spawnTime = workspace:GetServerTimeNow()
-	local speed = info.Speed * Config.Waves.SpeedMultiplier * speedScale
+	-- Con la cámara lenta puesta (setTimeScale) los que nacen también van lentos
+	local speed = info.Speed * Config.Waves.SpeedMultiplier * speedScale * timeScale
 
 	nextId += 1
 	local enemy: Enemy = {
