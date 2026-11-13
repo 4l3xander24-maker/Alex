@@ -434,6 +434,20 @@ local function announceBoss(typeName: string)
 	end
 end
 
+-- Jefe final de la oleada meta (Config.FinalBoss): su vida escala como la de
+-- los otros jefes (oleada, dificultad y BossHealth por jugador extra) y es más
+-- baja en la partida suave. Devuelve su id.
+local function spawnFinalBoss(healthMultiplier: number): number
+	local settings = Config.FinalBoss
+	local extra = extraPlayers()
+	local scale = waves.PerExtraPlayer
+	local multiplier = healthMultiplier * (1 + scale.BossHealth * extra) / (1 + scale.Health * extra) * (if gentle then settings.GentleHealth else 1)
+	local id = EnemyService.spawn(settings.Type, multiplier)
+	local info = Config.Enemies[settings.Type]
+	Remotes.Notify:FireAllClients(`{info.Icon} ¡JEFE FINAL! Llega el {info.DisplayName}: derrótenlo para salvar la campana`)
+	return id
+end
+
 function WaveService.getCurrentWave(): number
 	return currentWave
 end
@@ -628,7 +642,15 @@ local function runWave(wave: number): boolean
 	-- Termina cuando ya salieron todos y quedan pocos vivos (NextWaveAt): los
 	-- que quedan siguen y llega la próxima horda. Con jefes, hay que matarlos a todos.
 	local keep = if wave % waves.BossEvery == 0 then 0 else waves.NextWaveAt
-	while toSpawn > 0 or #bosses > 0 or EnemyService.getAliveCount() > keep do
+	-- Oleada meta: la horda termina con el jefe final, que sale cuando ya
+	-- salieron todos los demás. Pasa una sola vez por partida (en el modo sin
+	-- fin la meta ya quedó atrás).
+	local finalPending = wave == WaveService.getDifficulty().Goal
+	if finalPending then
+		local info = Config.Enemies[Config.FinalBoss.Type]
+		Remotes.Notify:FireAllClients(`{info.Icon} ¡Oleada final! Al terminar la horda llega el {info.DisplayName}`)
+	end
+	while toSpawn > 0 or #bosses > 0 or finalPending or EnemyService.getAliveCount() > keep do
 		if #Players:GetPlayers() == 0 or bellDown() then
 			GameState.set("EndReason", "Bell")
 			return false
@@ -650,6 +672,10 @@ local function runWave(wave: number): boolean
 			announceBoss(boss)
 			nextBossIn = waves.BossSpacing
 		end
+		if finalPending and toSpawn <= 0 and #bosses == 0 and nextBossIn <= 0 then
+			finalPending = false
+			spawnFinalBoss(healthMultiplier)
+		end
 		budget = math.min(budget + dt * spawnRate, spawnRate)
 		while budget >= 1 and toSpawn > 0 and EnemyService.getAliveCount() < waves.MaxAlive do
 			EnemyService.spawn(WaveService.pickType(wave), healthMultiplier)
@@ -657,7 +683,7 @@ local function runWave(wave: number): boolean
 			budget -= 1
 		end
 
-		GameState.set("EnemiesLeft", toSpawn + #bosses + EnemyService.getAliveCount())
+		GameState.set("EnemiesLeft", toSpawn + #bosses + (if finalPending then 1 else 0) + EnemyService.getAliveCount())
 	end
 	MatchService.onWaveCleared()
 	-- Superó las oleadas de la dificultad: se abre la que sigue (para quien la tenía de tope)

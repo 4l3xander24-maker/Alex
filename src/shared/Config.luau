@@ -774,6 +774,72 @@ Config.Enemies = {
 		Pants = Color3.fromRGB(58, 62, 56), -- alas
 		Eyes = Color3.fromRGB(120, 255, 120),
 	},
+	-- Jefe final (Config.FinalBoss): sale una sola vez, al final de la oleada
+	-- meta de cada dificultad. Un gigante con una campana de bronce rajada por
+	-- casco, cadenas y ojos de fuego. Su vida sube con la oleada y la
+	-- dificultad igual que la de los otros jefes.
+	-- Phases: al bajar su vida de At (fracción) hace algo que se ve: Summon
+	-- (anillo de zombis), Enrage (camina más rápido) y Shockwave (campanazo que
+	-- avisa con un anillo, empuja y daña a quien esté cerca y le quita un poco
+	-- a la campana). Tag se ve en la barra del jefe.
+	Bellringer = {
+		DisplayName = "Campanero Maldito",
+		Icon = "🔔",
+		MaxHealth = 450,
+		Speed = 2.8,
+		DamagePerSecond = 40,
+		PlayerDamage = 90,
+		Coins = 80,
+		IsBoss = true,
+		Final = true,
+		Size = Vector2.new(26, 42),
+		SpriteSize = Vector2.new(26, 42),
+		HitRadius = 10,
+		HitExtra = 9, -- la campana del casco sobresale de Size
+		Sprite = "",
+		Model = "Zombie",
+		Buff = true,
+		Belt = true,
+		Claws = true,
+		BellHelm = true,
+		Chains = true,
+		-- Campanazo: onda alrededor de él, como el pisotón del Rey
+		Strike = { Name = "Campanazo", Every = 8, Range = 30, Radius = 22, Damage = 50, Delay = 1.4, Color = Color3.fromRGB(220, 150, 60), OnSelf = true },
+		Phases = {
+			{
+				At = 0.66,
+				Tag = "🔔 Toque de difuntos",
+				Message = "🔔 ¡El Campanero toca a difuntos! Los muertos acuden a su llamado",
+				Summon = { Type = "Runner", Count = 8 },
+				Shockwave = { Radius = 30, Damage = 30, BellDamage = 3, Push = 70, Delay = 1.6, Color = Color3.fromRGB(255, 190, 80) },
+			},
+			{
+				At = 0.33,
+				Tag = "🔥 Furia",
+				Message = "🔥 ¡El Campanero enfurece! Camina más rápido y llama a sus caballeros",
+				Enrage = 1.4,
+				Summon = { Type = "Knight", Count = 6 },
+				Shockwave = { Radius = 36, Damage = 35, BellDamage = 4, Push = 85, Delay = 1.4, Color = Color3.fromRGB(255, 90, 50) },
+			},
+		},
+		Skin = Color3.fromRGB(96, 112, 100),
+		Shirt = Color3.fromRGB(46, 36, 44), -- hábito de campanero
+		Pants = Color3.fromRGB(30, 26, 32),
+		Cape = Color3.fromRGB(70, 20, 28), -- capa raída (con color: también la activa)
+		Eyes = Color3.fromRGB(255, 150, 40),
+	},
+}
+
+-- Jefe final de la oleada meta (Config.Enemies.Bellringer). La victoria espera
+-- a que muera. KillCoins: premio extra a cada jugador presente cuando cae
+-- (según la dificultad; bajo a propósito). SlowScale y SlowTime: cámara lenta
+-- de los zombis mientras todos ven su muerte.
+Config.FinalBoss = {
+	Type = "Bellringer",
+	GentleHealth = 0.6, -- en la partida suave (equipo novato) tiene menos vida
+	KillCoins = { [1] = 30, [2] = 45, [3] = 65, [4] = 90, [5] = 120 },
+	SlowScale = 0.25,
+	SlowTime = 2.6,
 }
 
 -- Dificultades: al reconstruir la campana se elige una. Solo se ve la que
@@ -934,7 +1000,7 @@ Config.Badges = {
 
 -- Bestiario (se ve en la tienda del Veterano): orden y descripción de cada enemigo
 Config.Bestiary = {
-	Order = { "Walker", "Runner", "Cone", "Knight", "Brute", "Bomber", "Spitter", "Parasite", "Colossus", "Mutant", "Fatso", "King", "Dragon", "Queen", "Reaper" },
+	Order = { "Walker", "Runner", "Cone", "Knight", "Brute", "Bomber", "Spitter", "Parasite", "Colossus", "Mutant", "Fatso", "King", "Dragon", "Queen", "Reaper", "Bellringer" },
 	Text = {
 		Walker = "El zombi común. Lento y fácil de eliminar.",
 		Runner = "Veloz y frágil: llega antes de que reacciones.",
@@ -951,6 +1017,7 @@ Config.Bestiary = {
 		Dragon = "JEFE volador (oleada 15). Escupe fuego desde el aire.",
 		Queen = "JEFE (oleada 20). Invoca zombis sin parar: elimínala rápido.",
 		Reaper = "JEFE de la semana del Segador (cada 3 oleadas). Su guadaña golpea en un área grande y llama corredores.",
+		Bellringer = "JEFE FINAL de la oleada meta. Hay que derrotarlo para ganar. Al 66% y al 33% de vida llama zombis y su campanazo empuja y daña la campana; al 33% además enfurece.",
 	},
 }
 

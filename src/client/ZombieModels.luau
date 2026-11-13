@@ -51,6 +51,8 @@ ZombieModels.Palette = {
 	Steel = Color3.fromRGB(206, 212, 224),
 	Acid = Color3.fromRGB(150, 230, 60),
 	Purple = Color3.fromRGB(186, 72, 224),
+	Bronze = Color3.fromRGB(170, 112, 48), -- campana del Campanero Maldito
+	Patina = Color3.fromRGB(74, 138, 118), -- verdín del bronce viejo
 }
 
 local PLASTIC = Enum.Material.SmoothPlastic
@@ -283,6 +285,51 @@ local function zombie(info): { PartSpec }
 		end
 	end
 
+	-- Campanero Maldito: cadenas de hierro cruzadas en el pecho, grilletes en
+	-- las muñecas y un tramo de cadena que cuelga del cinturón
+	if info.Chains then
+		local links = 7
+		local from, to = Vector3.new(-torsoSize.X * 0.42, torsoSize.Y * 0.9, 0), Vector3.new(torsoSize.X * 0.42, torsoSize.Y * 0.18, 0)
+		local angle = math.atan2(to.Y - from.Y, to.X - from.X)
+		for index = 0, links - 1 do
+			local point = from:Lerp(to, index / (links - 1))
+			local size = if index % 2 == 0 then v(0.34, 0.18, 0.08) else v(0.34, 0.08, 0.18)
+			table.insert(list, part("ChainLink" .. index, size, hip, v(point.X, point.Y, front - 0.06), torsoTilt, "Iron", "Torso", { Material = METAL, Turn = CFrame.Angles(0, 0, angle), Detail = true }))
+		end
+		for index = 1, 3 do
+			local size = if index % 2 == 0 then v(0.08, 0.3, 0.18) else v(0.18, 0.3, 0.08)
+			table.insert(list, part("ChainHang" .. index, size, hip, v(torsoSize.X * 0.3, 0.2 - index * 0.26, front - 0.08), torsoTilt, "Iron", "Torso", { Material = METAL, Detail = true }))
+		end
+		for _, side in { -1, 1 } do
+			local shoulder = upper(v(side * (torsoSize.X / 2 + armSize.X / 2), torsoSize.Y - 0.5, 0))
+			table.insert(list, part((if side < 0 then "Left" else "Right") .. "Shackle", v(armSize.X + 0.18, 0.4, armSize.Z + 0.18), shoulder, v(0, -armSize.Y + 0.8, 0), -1.35, "Iron", "Arm", { Material = METAL, Role = if side < 0 then "ArmL" else "ArmR" }))
+		end
+	end
+	-- Campanero Maldito: una campana de bronce rajada por casco (los ojos de
+	-- fuego asoman bajo el borde) con dos franjas de verdín y la grieta que brilla
+	if info.BellHelm then
+		local upright = CFrame.Angles(0, 0, math.pi / 2)
+		local function bell(name, size, y, color, extra)
+			local options = { Material = METAL, Shape = Enum.PartType.Cylinder, Turn = upright }
+			for key, value in extra or {} do
+				options[key] = value
+			end
+			table.insert(list, part("CursedBell" .. name, size, headPivot, v(0, y, 0), headTilt, color, "Head", options))
+		end
+		bell("Rim", v(0.22, 2.05, 2.05), headSize * 0.92, "Bronze")
+		bell("Body", v(1.05, 1.68, 1.68), headSize * 0.92 + 0.62, "Bronze")
+		bell("Band", v(0.12, 1.74, 1.74), headSize * 0.92 + 0.3, "Patina")
+		bell("Band2", v(0.1, 1.74, 1.74), headSize * 0.92 + 0.95, "Patina")
+		bell("Shoulder", v(0.3, 1.32, 1.32), headSize * 0.92 + 1.28, "Bronze")
+		bell("Crown", v(0.3, 0.8, 0.8), headSize * 0.92 + 1.55, "Bronze")
+		table.insert(list, part("CursedBellLoop", v(0.24, 0.5, 0.62), headPivot, v(0, headSize * 0.92 + 1.9, 0), headTilt, "Iron", "Head", { Material = METAL }))
+		-- Grieta en zigzag por delante, con el brillo de los ojos
+		local crackZ = -1.68 / 2 - 0.02
+		for index, crack in { { 0.12, 0.32, 0.35 }, { 0.02, 0.55, -0.4 }, { 0.14, 0.78, 0.3 }, { 0.06, 0.98, -0.3 } } do
+			table.insert(list, part("CursedBellCrack" .. index, v(0.09, 0.34, 0.05), headPivot, v(crack[1], headSize * 0.92 + crack[2], crackZ), headTilt, "Eyes", "Head", { Material = Enum.Material.Neon, Turn = CFrame.Angles(0, 0, crack[3]) }))
+		end
+	end
+
 	-- Sombreros
 	local hat = info.Hat
 	local top = headSize
@@ -462,7 +509,7 @@ end
 -- adelante. Los sombreros (cono, yelmo, corona) son los de bloques.
 local Config = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared").Config)
 local MESH_HEIGHT = 5
-local HAT_PREFIXES = { "Cone", "Helmet", "NoseGuard", "Plume", "Crown", "Jewel" }
+local HAT_PREFIXES = { "Cone", "Helmet", "NoseGuard", "Plume", "Crown", "Jewel", "CursedBell" }
 local meshHip: Vector3? = nil
 
 local function meshSource(): Model?

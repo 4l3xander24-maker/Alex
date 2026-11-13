@@ -234,8 +234,9 @@ local function publishBoss()
 	GameState.set("BossHealth", math.max(0, math.ceil(boss.Health)))
 end
 
--- Crea un zombi en `start` (o al principio de su camino) y lo manda a la campana
-local function create(typeName: string, healthMultiplier: number, start: Vector3?, routeName: string?)
+-- Crea un zombi en `start` (o al principio de su camino) y lo manda a la campana.
+-- Devuelve su id.
+local function create(typeName: string, healthMultiplier: number, start: Vector3?, routeName: string?): number
 	local info = Config.Enemies[typeName]
 	local arena = Config.Arena
 	local flying = info.Flying == true
@@ -311,13 +312,18 @@ local function create(typeName: string, healthMultiplier: number, start: Vector3
 
 	table.insert(pendingSpawns, { nextId, typeName, enemy.Path.Points, speed, spawnTime })
 	if enemy.IsBoss then
+		-- El jefe final se queda con la barra aunque haya otros jefes vivos
+		if info.Final then
+			shownBoss = enemy
+		end
 		publishBoss()
 	end
+	return enemy.Id
 end
 
--- Un zombi nuevo al principio de uno de los caminos
-function EnemyService.spawn(typeName: string, healthMultiplier: number)
-	create(typeName, healthMultiplier, nil, nil)
+-- Un zombi nuevo al principio de uno de los caminos. Devuelve su id.
+function EnemyService.spawn(typeName: string, healthMultiplier: number): number
+	return create(typeName, healthMultiplier, nil, nil)
 end
 
 -- Los jefes como el Gordo sueltan zombis al morir
