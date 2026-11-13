@@ -116,6 +116,12 @@ el círculo de runas y el cuchillo), [`docs/capturas/pixel/`](docs/capturas/pixe
   - 🤢 **Zombi Gordo**: lento y resistente; al morir revienta y suelta 8 zombis.
   - 👑 **Rey Zombi**: corona, capa y mucha vida.
   - 🐉 **Dragón Zombi**: vuela directo a la campana por encima de rejas y minas y le escupe fuego verde.
+  - 🔔 **Campanero Maldito (jefe final)**: el más grande de todos, con una campana de bronce rajada por casco,
+    cadenas y ojos de fuego. Sale al final de la **oleada meta** de cada dificultad (una vez por partida) y la
+    **victoria espera a que muera**. Al 66% de vida llama corredores y al 33% enfurece (camina más rápido) y llama
+    caballeros; en las dos fases da un campanazo que empuja, hace daño y le quita un poco a la campana. Al caer,
+    cámara lenta y temblor dorado para todos, monedas extra para cada jugador (`Config.FinalBoss`) y después el
+    cartel de ¡VICTORIA! de siempre.
 - **Muerte pixelada**: el zombi se pone blanco, la cabeza sale volando, el cuerpo se desarma y revienta en
   cubitos que rebotan y se achican, y queda una mancha en el suelo.
 - **Nivel de cuenta**: al terminar la partida ganas XP. Cada nivel da 1 punto de mejora (daño, vida, velocidad,

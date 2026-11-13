@@ -174,6 +174,17 @@ separados 6 segundos). Arriba de la pantalla aparece su barra de vida.
 | 🤢 Zombi Gordo | 150 | Lento; al morir revienta y suelta 8 zombis |
 | 👑 Rey Zombi | 220 | Corona, capa y golpes fuertes |
 | 🐉 Dragón Zombi | 300 | Vuela recto a la campana a 30 de altura (ignora caminos, rejas y minas) y le escupe fuego verde |
+| 🔔 Campanero Maldito (final) | 450 | Jefe final de la oleada meta; campanazo alrededor, fases al 66% y 33% |
+
+**Jefe final y victoria.** En la oleada meta de la dificultad (`Goal`), cuando ya salió toda la horda y los
+jefes de esa oleada, llega el **Campanero Maldito** (`Config.Enemies.Bellringer`, `Config.FinalBoss`). Su vida
+escala igual que la de los otros jefes (oleada, dificultad, +50% por jugador extra; 60% en la partida suave de
+novatos). Al 66% llama 8 corredores en anillo y al 33% enfurece (+40% velocidad) y llama 6 caballeros; en las dos
+fases avisa con un anillo y da un campanazo que empuja y daña a quien esté cerca y quita 3-4 de vida a la campana.
+La fase se ve en su barra. La oleada (y la victoria) no termina mientras siga vivo; si cae la campana o todos los
+jugadores antes, es derrota como siempre. Al morir: cámara lenta de los zombis, temblor dorado y su título para
+todos, y monedas extra a cada jugador presente (30/45/65/90/120 según la dificultad). Después sigue la victoria de
+siempre (cartel, votación Seguir/Terminar, premios una sola vez). En el modo sin fin no vuelve a salir.
 
 La vida de todos crece 12% por oleada. Las balas golpean a los jefes en todo el cuerpo (de los pies a la cabeza).
 
