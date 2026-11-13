@@ -42,6 +42,8 @@ export type Profile = {
 	Streak: { Count: number, LastDay: number }, -- racha de días: cuántos seguidos y el último día de juego contado
 	MatchesPlayed: number, -- partidas terminadas (ganadas o perdidas)
 	Codes: { [string]: boolean }, -- códigos de regalo ya canjeados (clave = código en mayúsculas)
+	BestiaryKills: { [string]: number }, -- bajas por tipo de enemigo (colección del bestiario)
+	BestiaryClaimed: { [string]: boolean }, -- premios de maestría ya cobrados ("Tipo:Nivel" y "Set:Nivel")
 	Boosts: { Coins: number, Xp: number }, -- potenciadores de Robux: hora (os.time) en que termina cada uno
 }
 
@@ -102,6 +104,8 @@ function Progression.defaultProfile(): Profile
 		Streak = { Count = 0, LastDay = 0 },
 		MatchesPlayed = 0,
 		Codes = {},
+		BestiaryKills = {},
+		BestiaryClaimed = {},
 		Boosts = { Coins = 0, Xp = 0 },
 	}
 end
@@ -113,6 +117,59 @@ function Progression.boostLeft(profile: Profile, kind: string): number
 		return 0
 	end
 	return math.max(0, untilTime - os.time())
+end
+
+-- Colección del bestiario: enemigos en orden (los de Config.Bestiary.Order y
+-- después cualquier otro que se agregue a Config.Enemies)
+function Progression.collectionEnemies(): { string }
+	local list, seen = {}, {}
+	for _, typeName in Config.Bestiary.Order do
+		if Config.Enemies[typeName] and not seen[typeName] then
+			seen[typeName] = true
+			table.insert(list, typeName)
+		end
+	end
+	local extra = {}
+	for typeName in Config.Enemies do
+		if not seen[typeName] then
+			table.insert(extra, typeName)
+		end
+	end
+	table.sort(extra)
+	table.move(extra, 1, #extra, #list + 1, list)
+	return list
+end
+
+-- Bajas que piden los 3 niveles y monedas que paga cada uno para este enemigo
+function Progression.collectionGoals(typeName: string): ({ number }, { number })
+	local kind = if Config.Enemies[typeName].IsBoss then "Boss" else "Common"
+	return Config.Collection.Kills[kind], Config.Collection.Rewards[kind]
+end
+
+-- Nivel de maestría (0 a 3) con `kills` bajas
+function Progression.masteryTier(typeName: string, kills: number): number
+	local goals = Progression.collectionGoals(typeName)
+	local tier = 0
+	for index, goal in goals do
+		if kills >= goal then
+			tier = index
+		end
+	end
+	return tier
+end
+
+-- Descubiertos, total de enemigos, niveles de maestría logrados y niveles posibles
+function Progression.collectionProgress(profile: Profile): (number, number, number, number)
+	local list = Progression.collectionEnemies()
+	local discovered, tiers = 0, 0
+	for _, typeName in list do
+		local kills = profile.BestiaryKills[typeName] or 0
+		if kills > 0 then
+			discovered += 1
+		end
+		tiers += Progression.masteryTier(typeName, kills)
+	end
+	return discovered, #list, tiers, #list * #Config.Collection.Tiers
 end
 
 function Progression.getStatInfo(id: string)
