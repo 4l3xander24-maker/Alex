@@ -421,7 +421,8 @@ local function explode(visual: Visual, position: Vector3, cameraPosition: Vector
 	local away = Vector3.new(position.X - cameraPosition.X, 0, position.Z - cameraPosition.Z)
 	away = if away.Magnitude > 0.01 then away.Unit else -visual.Facing
 	local cubeSize = 0.42 * scale ^ 0.8
-	local wanted = if info.IsBoss then 70 else 14
+	-- El jefe final revienta en más cubitos (DeathFx igual pone su tope)
+	local wanted = if info.Final then 140 elseif info.IsBoss then 70 else 14
 	local goo = info.Skin:Lerp(Color3.new(0, 0, 0), 0.35)
 
 	-- En calidad baja las piezas chicas (cara, dientes, manchas) no salen
@@ -499,8 +500,9 @@ local function removeEnemy(id: number, animate: boolean)
 	local position = EnemyMath.getPosition(visual.Path, workspace:GetServerTimeNow())
 	Sfx.onEnemyRemoved(visual.Type, position, true)
 	local cameraPosition = workspace.CurrentCamera.CFrame.Position
-	-- Muy lejos no vale la pena el efecto: desaparece
-	if (position - cameraPosition).Magnitude > graphics.DeathFxDistance + visual.Extent then
+	-- Muy lejos no vale la pena el efecto: desaparece (menos el jefe final, que lo ven todos)
+	local info = Config.Enemies[visual.Type]
+	if not info.Final and (position - cameraPosition).Magnitude > graphics.DeathFxDistance + visual.Extent then
 		destroyPieces(visual)
 		return
 	end
