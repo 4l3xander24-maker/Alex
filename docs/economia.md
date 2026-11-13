@@ -54,6 +54,10 @@ Si todas las partidas se completaran, el núcleo saldría en ~29 partidas (~19 c
 - **Códigos de regalo** (`src/server/GiftCodes.luau`): una vez por cuenta y código; los de inicio dan 200 y 100 monedas (menos que una partida de Normal).
 - **Participación semanal:** 100 monedas (`Config.Weekly.Participation`) a quien sumó puntos en la semana y no entró al podio (1500 / 1000 / 600), una vez por semana.
 
+## Colección del bestiario
+Maestría por enemigo (`Config.Collection`, una sola vez por cuenta): comunes 5 / 15 / 40 monedas (bronce / plata / oro, a 10 / 100 / 500 bajas) y jefes 15 / 40 / 100 (a 1 / 5 / 20 bajas). Completar un nivel con todos los enemigos paga 100 / 300 / 800 y el oro da el título «Maestro del Bestiario».
+Con 10 comunes y 5 jefes: 600 + 775 + 1.200 = **2.575 monedas** en total (~5% del núcleo). Cada enemigo nuevo suma 60 (común) o 155 (jefe). El oro de los comunes pide cientos de bajas y el del Segador, que solo sale en su semana, es de largo plazo.
+
 ## Cosas que NO toqué (y por qué)
 - **Puntos de estadística:** salen del nivel de cuenta, que crece exponencialmente (~9 partidas al nivel 20, cientos al 50). Ya frena solo.
 - **Precios de Robux y skins:** los fija Creator Hub.
