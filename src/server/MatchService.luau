@@ -15,6 +15,7 @@ local DataService = require(script.Parent.DataService)
 local FriendService = require(script.Parent.FriendService)
 local Insignias = require(script.Parent.Insignias)
 local Leaderboard = require(script.Parent.Leaderboard)
+local SeasonService = require(script.Parent.SeasonService)
 local StoreService = require(script.Parent.StoreService)
 local GameState = require(script.Parent.GameState)
 
@@ -110,6 +111,8 @@ function MatchService.onWaveCleared()
 		end
 		grantXp(player, entry, Config.Progression.XpPerWave)
 	end
+	-- Pase de temporada: solo a quien sigue vivo y peleó en la oleada
+	SeasonService.onWaveCleared(Players:GetPlayers())
 end
 
 local function teamRows(): { TeamRow }
@@ -158,6 +161,8 @@ function MatchService.award(player: Player, wave: number, team: { TeamRow }?, vi
 		end
 		AchievementService.check(player, { Kills = data.TotalKills, Wave = data.BestWave, BossKills = entry.BossKills, Level = data.Level, MatchKills = entry.Kills })
 	end
+	-- Después de las misiones del final, que también dan XP de temporada
+	local seasonXp = SeasonService.finishMatch(player)
 	if player.Parent and data then
 		player:SetAttribute("MatchXp", 0)
 		player:SetAttribute("MatchKills", 0)
@@ -168,6 +173,7 @@ function MatchService.award(player: Player, wave: number, team: { TeamRow }?, vi
 			BossKills = entry.BossKills,
 			Coins = entry.Coins,
 			Xp = entry.Xp,
+			SeasonXp = seasonXp,
 			FriendBonus = math.floor(FriendService.bonus(player) * 100 + 0.5),
 			Levels = math.max(0, data.Level - entry.StartLevel),
 			Level = data.Level,

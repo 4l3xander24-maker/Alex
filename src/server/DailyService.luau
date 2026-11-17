@@ -11,6 +11,7 @@ local DailyDay = require(ReplicatedStorage.Shared.DailyDay)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local DataService = require(script.Parent.DataService)
 local Insignias = require(script.Parent.Insignias)
+local SeasonService = require(script.Parent.SeasonService)
 
 local rules = Config.DailyRules
 
@@ -89,6 +90,7 @@ local function check(player: Player, data)
 			missions.Claimed[mission.Id] = true
 			DataService.addCoins(player, mission.Reward)
 			Remotes.Notify:FireClient(player, `📅 Misión diaria cumplida: {mission.Icon} {mission.Name} · +{mission.Reward} monedas`)
+			SeasonService.onMission(player, false)
 			changed = true
 		end
 		if not missions.Claimed[mission.Id] then
@@ -99,6 +101,7 @@ local function check(player: Player, data)
 		missions.BonusClaimed = true
 		DataService.addCoins(player, rules.AllBonus)
 		Remotes.Notify:FireClient(player, `🎉 ¡Misiones del día completas! +{rules.AllBonus} monedas extra`)
+		SeasonService.onMission(player, true)
 		changed = true
 	end
 	if changed then
