@@ -67,6 +67,10 @@ local function grantXp(player: Player, entry: MatchStats, amount: number)
 	if data and Progression.boostLeft(data, boost.Boost) > 0 then
 		amount *= boost.Multiplier
 	end
+	-- Renacer: +10% por cada vez que renació
+	if data then
+		amount *= Progression.rebirthXpMultiplier(data)
+	end
 	entry.XpExact += amount
 	local whole = math.floor(entry.XpExact) - entry.Xp
 	if whole > 0 then

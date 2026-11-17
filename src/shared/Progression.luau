@@ -303,7 +303,8 @@ function Progression.getPlayerStats(profile: Profile)
 	return {
 		MaxHealth = Config.Player.MaxHealth + Progression.statValue(profile, "Health"),
 		WalkSpeed = Config.Player.WalkSpeed * (1 + Progression.statValue(profile, "Speed")),
-		CoinMultiplier = (1 + Progression.statValue(profile, "Loot")) * greed,
+		-- Cada renacer suma +3% de monedas (Config.Rebirth.CoinBonus)
+		CoinMultiplier = (1 + Progression.statValue(profile, "Loot")) * greed * (1 + Progression.rebirths(profile) * Config.Rebirth.CoinBonus),
 		PowerDamage = 1 + power,
 		PowerCooldown = 1 - power * 0.6,
 	}
