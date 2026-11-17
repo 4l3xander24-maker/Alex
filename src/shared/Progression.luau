@@ -46,6 +46,7 @@ export type Profile = {
 	BestiaryClaimed: { [string]: boolean }, -- premios de maestría ya cobrados ("Tipo:Nivel" y "Set:Nivel")
 	Boosts: { Coins: number, Xp: number }, -- potenciadores de Robux: hora (os.time) en que termina cada uno
 	Rebirths: number, -- veces que renació con el Veterano (Config.Rebirth)
+	Season: { Id: string, Xp: number, Claimed: { [string]: boolean }, Premium: boolean }, -- pase de temporada (Config.SeasonPass): XP, premios cobrados ("F5" gratis, "P5" Premium) y si tiene el Premium
 }
 
 local Progression = {}
@@ -109,7 +110,115 @@ function Progression.defaultProfile(): Profile
 		BestiaryClaimed = {},
 		Boosts = { Coins = 0, Xp = 0 },
 		Rebirths = 0,
+		Season = { Id = "", Xp = 0, Claimed = {}, Premium = false },
 	}
+end
+
+-- Pase de temporada del perfil. Si lo guardado es de otra temporada (u otro
+-- formato), empieza de cero: XP, cobrados y Premium. Los cosméticos ganados
+-- viven en ObjectSkins/WeaponSkins/Titles y no se tocan.
+function Progression.season(profile: Profile)
+	local season = profile.Season
+	local pass = Config.SeasonPass
+	if type(season) ~= "table" or season.Id ~= pass.Id or type(season.Xp) ~= "number" or type(season.Claimed) ~= "table" then
+		season = { Id = pass.Id, Xp = 0, Claimed = {}, Premium = false }
+		profile.Season = season
+	end
+	return season
+end
+
+-- ¿La temporada sigue abierta (da XP y vende el Premium)?
+function Progression.seasonOpen(now: number): boolean
+	return now < Config.SeasonPass.Ends
+end
+
+-- Escalón alcanzado (0 a 30) con esa XP de temporada
+function Progression.seasonTier(xp: number): number
+	local pass = Config.SeasonPass
+	return math.clamp(math.floor(xp / pass.XpPerTier), 0, #pass.Rewards)
+end
+
+-- Clave de lo cobrado: "F5" = gratis del escalón 5, "P5" = Premium del 5
+function Progression.seasonKey(track: string, tier: number): string
+	return (if track == "Premium" then "P" else "F") .. tier
+end
+
+-- ¿Se puede cobrar ya ese premio? Si no, el motivo para mostrar
+function Progression.canClaimSeason(profile: Profile, track: string, tier: number): (boolean, string)
+	local season = Progression.season(profile)
+	local reward = Config.SeasonPass.Rewards[tier]
+	if not reward or (track ~= "Free" and track ~= "Premium") then
+		return false, "Premio inválido"
+	end
+	if season.Claimed[Progression.seasonKey(track, tier)] then
+		return false, "Ya lo cobraste"
+	end
+	if Progression.seasonTier(season.Xp) < tier then
+		return false, `Llega al escalón {tier} para cobrarlo`
+	end
+	if track == "Premium" and not season.Premium then
+		return false, "Es de la fila Premium"
+	end
+	return true, ""
+end
+
+-- Cuántos premios se pueden cobrar ahora (el número del botón)
+function Progression.seasonClaimable(profile: Profile): number
+	local count = 0
+	for tier in Config.SeasonPass.Rewards do
+		for _, track in { "Free", "Premium" } do
+			if Progression.canClaimSeason(profile, track, tier) then
+				count += 1
+			end
+		end
+	end
+	return count
+end
+
+local function findSkin(list, id: string)
+	for _, skin in list do
+		if skin.Id == id then
+			return skin
+		end
+	end
+	return nil
+end
+
+function Progression.objectSkinInfo(id: string)
+	return findSkin(Config.ObjectSkins, id)
+end
+
+function Progression.weaponSkinInfo(id: string)
+	return skinById[id]
+end
+
+-- Ícono y texto corto de un premio del pase (para la tarjeta y los avisos)
+function Progression.seasonRewardText(reward): (string, string)
+	local pass = Config.SeasonPass
+	local parts, icon = {}, nil
+	if reward.Title then
+		icon = icon or "🏅"
+		table.insert(parts, `Título «{reward.Title}»`)
+	end
+	if reward.WeaponSkin then
+		local skin = skinById[reward.WeaponSkin]
+		icon = icon or (skin and skin.Icon) or "🔫"
+		table.insert(parts, `Skin de arma {if skin then skin.Name else reward.WeaponSkin}`)
+	end
+	if reward.ObjectSkin then
+		local skin = findSkin(Config.ObjectSkins, reward.ObjectSkin)
+		icon = icon or (skin and skin.Icon) or "🎨"
+		table.insert(parts, if skin then skin.Name else reward.ObjectSkin)
+	end
+	if reward.Boost then
+		icon = icon or (if reward.Boost == "Xp" then "⚡" else "⏱️")
+		table.insert(parts, `{if reward.Boost == "Xp" then "XP" else "Monedas"} x2 ({pass.BoostMinutes} min)`)
+	end
+	if reward.Coins then
+		icon = icon or "💰"
+		table.insert(parts, `{reward.Coins} monedas`)
+	end
+	return icon or "🎁", table.concat(parts, " + ")
 end
 
 -- Segundos que le quedan a un potenciador de Robux ("Coins" o "Xp"); 0 si no está activo

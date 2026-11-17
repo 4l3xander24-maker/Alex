@@ -141,6 +141,19 @@ el círculo de runas y el cuchillo), [`docs/capturas/pixel/`](docs/capturas/pixe
     y +9% monedas; tope +100% / +30%). No paga monedas. Se ve como ⭐ en la tabla de jugadores ("Renacer"), en el
     Veterano, en el resumen de la partida y en el perfil del lobby; el primero da la insignia «Renacido».
   - Pide confirmar en un panel que dice qué se pierde y qué se queda; el servidor revisa todo y guarda al instante.
+- **Pase de temporada** ❄️ «Invierno Maldito» (`Config.SeasonPass`, hasta el 7 de enero): botón **❄️ Pase** junto a
+  Logros, con el número de premios para cobrar. 30 escalones de 500 XP de temporada, cada uno con un premio
+  **Gratis** y uno **Premium** (producto de Robux `SeasonPass`; con `Id = 0` el botón dice «Próximamente»).
+  - **XP de temporada** (solo el servidor, sin bonos de renacer, VIP, amigos ni potenciadores): 10 por oleada
+    superada estando vivo y con al menos una baja en ella, 1 cada 10 bajas, 15 por jefe (tope de 200 por partida
+    para todo eso), 40 por misión diaria y 60 por cumplir las del día. Se ve en el resumen de la partida.
+  - **Premios:** pocas monedas, potenciadores de 30 min (Monedas x2 / XP x2, con los mismos relojes que los de Robux)
+    y cosméticos que **solo se ganan en el pase** (rastro, efecto y fogata de invierno, skins Premium de mina,
+    compañero, reja, campana, rastro, fogata y efecto, y las skins de arma Escarcha y Hielo Maldito). El último
+    escalón Premium da el título «Leyenda del Invierno Maldito» y la skin de arma Hielo Maldito.
+  - Los premios se cobran a mano desde la pantalla (el servidor revisa escalón, fila y Premium, y guarda al
+    momento). Comprar el Premium a mitad de temporada abre todos los escalones Premium ya alcanzados.
+  - Al cambiar `Id` empieza otra temporada: XP, cobrados y Premium vuelven a cero; los cosméticos se quedan.
 - **Todo se guarda** (monedas, nivel, armas, poderes, talentos) con DataStore.
 - **Guía para nuevos**: en la preparación hay flechas doradas sobre los vendedores y la campana, y la primera vez
   sale un tutorial de 4 pasos (vendedor, reconstruir la campana, disparar, poderes) que se puede saltar.
@@ -311,6 +324,7 @@ src/
     DataService.luau        ← guardado del perfil (DataStore)
     ShopService.luau        ← compras de los 4 NPC (solo en la preparación)
     MatchService.luau       ← estadísticas de la partida y XP final
+    SeasonService.luau      ← pase de temporada: XP, Premium y cobro de premios
     EnemyService.luau       ← zombis (caminos, persecución, jefes, daño, empuje)
     WaveService.luau        ← oleadas y orden de los jefes
     CombatService.luau      ← valida disparos y munición (anti-trampas)
@@ -322,6 +336,7 @@ src/
     Profile.luau            ← copia local del perfil
     ShopUI.luau             ← ventanas de los NPC
     MatchSummary.luau       ← pantalla de fin de partida
+    SeasonUi.luau           ← botón y pantalla del pase de temporada
     Hud.luau / Notify.luau  ← interfaz y avisos
     WeaponController.luau   ← disparo, munición, cambio de arma, apuntar
     MovementController.luau ← correr, doble salto, esquivar

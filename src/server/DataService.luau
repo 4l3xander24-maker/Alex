@@ -135,6 +135,8 @@ local function load(player: Player)
 		profile.ResetToken = reset.Token
 		warn(`Perfil de {player.Name} reiniciado ({reset.Token})`)
 	end
+	-- Pase de temporada: si lo guardado es de otra temporada, empieza de cero
+	Progression.season(profile)
 	-- Si no pudimos leer lo guardado, no lo pisamos con un perfil vacío
 	entries[player] = { Data = profile, CanSave = loaded }
 end

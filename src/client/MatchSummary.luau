@@ -249,6 +249,9 @@ local function show(summary)
 		makeLabel(panel, `🏆 Tu récord: {summary.BestWave} oleadas`, 17)
 	end
 	makeLabel(panel, `💰 +{summary.Coins} monedas     ⭐ +{summary.Xp} XP de cuenta`, 20, GOLD)
+	if (summary.SeasonXp or 0) > 0 then
+		makeLabel(panel, `{Config.SeasonPass.Icon} +{summary.SeasonXp} XP del pase de temporada`, 16, Color3.fromRGB(140, 210, 255), 22)
+	end
 	if (summary.FriendBonus or 0) > 0 then
 		makeLabel(panel, `🤝 Bonus por jugar con amigos: +{summary.FriendBonus}% de monedas y XP`, 16, Color3.fromRGB(150, 235, 160), 22)
 	end

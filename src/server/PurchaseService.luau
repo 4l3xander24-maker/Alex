@@ -6,6 +6,7 @@
 --     terminan (os.time), así siguen corriendo entre sesiones.
 --   * Bonos de los pases: Monedas x2, VIP (+XP) y lo del Pack Inicial
 --     (se entrega una sola vez, aunque lo hayan comprado en el Lobby).
+--   * Premium del pase de temporada (SeasonService.grantPremium).
 --   * Conecta las monedas del perfil a la tienda de skins.
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
@@ -19,6 +20,7 @@ local PlayerService = require(script.Parent.PlayerService)
 local GameState = require(script.Parent.GameState)
 local StoreService = require(script.Parent.StoreService)
 local Progression = require(Shared.Progression)
+local SeasonService = require(script.Parent.SeasonService)
 
 local monetization = Config.Monetization
 local MAX_RECEIPTS = 40
@@ -78,6 +80,9 @@ local function grant(player: Player, key: string)
 			DataService.addCoins(player, monetization.ReviveRefund)
 			Remotes.Notify:FireClient(player, `💖 Ya no se podía continuar: te damos {monetization.ReviveRefund} monedas`)
 		end
+	elseif product.Season then
+		-- Premium del pase de temporada (si ya lo tenía, da potenciadores: ver SeasonService)
+		SeasonService.grantPremium(player)
 	elseif product.Pet then
 		local data = DataService.get(player)
 		if data then
