@@ -1073,3 +1073,187 @@ export const Thumbnail: React.FC = () => {
     </AbsoluteFill>
   );
 };
+
+// ───────────── reemplazos de los videos viejos (cosas que ya están en el juego) ─────────────
+
+// Combo: cinco peleas seguidas sin cortar el combo
+export const ShortCombo2: React.FC = () => {
+  const s = scenes.combo;
+  let before = 0;
+  const total = s.fights.reduce((sum, f) => sum + f.zombies.length, 0);
+  const captions = ["Mi *récord de combo…", "sin *parar", "*más *rápido…", "¡NO *FALLES!", "¡último *golpe!"];
+  return (
+    <AbsoluteFill style={{ background: NIGHT }}>
+      <Audio src={staticFile("update/audio_combo.wav")} />
+      {s.fights.map((fight, i) => {
+        const start = before;
+        before += fight.zombies.length;
+        return (
+          <Sequence key={i} from={fight.from} durationInFrames={fight.len}>
+            <Fight spec={fight} comboStart={start}>
+              <Caption text={captions[i]} y={1360} size={92} every={3} />
+            </Fight>
+          </Sequence>
+        );
+      })}
+      <Sequence name="Reto" from={330} durationInFrames={45}>
+        <AbsoluteFill style={{ filter: "grayscale(0.6) brightness(0.6)", transform: "scale(1.1)" }}>
+          <Freeze frame={74}>
+            <Fight spec={s.fights[4]} comboStart={total - s.fights[4].zombies.length} />
+          </Freeze>
+        </AbsoluteFill>
+        <Stamp text={`x${total}`} y={560} size={330} color="#ff8a2b" glow={BLOOD} />
+        <Caption text="¿lo *superas? 👇" y={980} size={110} delay={10} every={4} />
+      </Sequence>
+      <Sequence name="Cierre" from={375}>
+        <EndCard news="¿Cuál es tu récord de combo?" />
+      </Sequence>
+      {[60, 120, 180, 255, 330].map((f) => (
+        <Sequence key={f} from={f} durationInFrames={6}><Flash peak={0.4} /></Sequence>
+      ))}
+      <Sequence from={375} durationInFrames={10}><Flash color={GOLD} peak={0.45} /></Sequence>
+      <Progress />
+    </AbsoluteFill>
+  );
+};
+
+// Elige tu arma: tres armas peleando y la pregunta para comentar
+const GunPick: React.FC<{ n: number; name: string; bg: string; x: number; delay: number; color: string }> = ({ n, name, bg, x, delay, color }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const s = spring({ frame: frame - delay, fps, config: { damping: 10, stiffness: 200 } });
+  const pulse = 1 + Math.sin((frame + n * 10) / 5) * 0.03;
+  return (
+    <div style={{ position: "absolute", left: x, top: 620, width: 320, height: 560, borderRadius: 30, overflow: "hidden", border: `7px solid ${color}`, boxShadow: `0 0 40px ${color}`, transform: `translateY(${(1 - s) * 900}px) scale(${pulse})` }}>
+      <Img src={staticFile(bg)} style={{ position: "absolute", width: "100%", height: "100%", objectFit: "cover", objectPosition: "62% 55%", transform: "scale(1.6)", transformOrigin: "62% 58%" }} />
+      <div style={{ position: "absolute", left: 0, right: 0, top: 10, textAlign: "center", fontFamily: IMPACT, fontSize: 130, color: "#fff", WebkitTextStroke: "6px #000", paintOrder: "stroke" }}>{n}</div>
+      <div style={{ position: "absolute", left: 0, right: 0, bottom: 14, textAlign: "center", fontFamily: IMPACT, fontSize: 46, color: CREAM, WebkitTextStroke: "4px #000", paintOrder: "stroke" }}>{name}</div>
+    </div>
+  );
+};
+
+export const ShortArms2: React.FC = () => {
+  const s = scenes.arms;
+  const labels = [
+    { n: 1, name: "BALLESTA", color: "#ffd36b" },
+    { n: 2, name: "ESCOPETA", color: "#7fd4ff" },
+    { n: 3, name: "LANZALLAMAS", color: "#ff7a3a" },
+  ];
+  return (
+    <AbsoluteFill style={{ background: NIGHT }}>
+      <Audio src={staticFile("update/audio_arms.wav")} />
+      <Sequence name="Gancho" durationInFrames={30}>
+        <Bg src="update/fps-escopeta.jpg" grade="brightness(0.4) saturate(0.8)" zoom={0.3} />
+        <Vignette />
+        <Caption text="Solo puedes *ELEGIR *UNA…" y={760} size={110} delay={2} every={4} />
+      </Sequence>
+      {s.fights.map((fight, i) => (
+        <Sequence key={i} from={fight.from} durationInFrames={fight.len}>
+          <Fight spec={fight} comboStart={i * 3}>
+            <Ribbon n={labels[i].n} text={labels[i].name} color={["#9a6a10", "#1f6aa0", "#b3400c"][i]} />
+          </Fight>
+        </Sequence>
+      ))}
+      <Sequence name="Elige" from={270} durationInFrames={105}>
+        <Bg src="update/bg-horda.jpg" grade="brightness(0.25) saturate(0.7) blur(5px)" zoom={0.1} />
+        <Vignette />
+        <Stamp text="¿CUÁL ELIGES?" y={300} size={150} color={GOLD} glow="#ff7a2a" delay={4} />
+        <GunPick n={1} name="BALLESTA" bg="update/fps-ballesta.jpg" x={30} delay={8} color="#ffd36b" />
+        <GunPick n={2} name="ESCOPETA" bg="update/fps-escopeta.jpg" x={380} delay={14} color="#7fd4ff" />
+        <GunPick n={3} name="LANZALLAMAS" bg="update/fps-lanzallamas.jpg" x={730} delay={20} color="#ff7a3a" />
+        <Caption text="comenta *1, *2 o *3 👇" y={1300} size={100} delay={30} every={4} />
+      </Sequence>
+      <Sequence name="Cierre" from={375}>
+        <EndCard news="8 armas para mejorar" />
+      </Sequence>
+      {[30, 110, 190, 270].map((f) => (
+        <Sequence key={f} from={f} durationInFrames={6}><Flash peak={0.45} /></Sequence>
+      ))}
+      <Sequence from={375} durationInFrames={10}><Flash color={GOLD} peak={0.45} /></Sequence>
+      <Progress />
+    </AbsoluteFill>
+  );
+};
+
+// El Segador: llega en su semana, gigante, con su barra de vida
+const ReaperFight: React.FC<{ spec: typeof scenes.reaper.boss }> = ({ spec }) => {
+  const frame = useCurrentFrame();
+  const gun = gunOf(spec.gun);
+  const last = spec.hits[spec.hits.length - 1];
+  const alive = frame < last;
+  const p = Math.min(1, frame / last);
+  const h = 900 + p * 500;
+  const cx = 540 + Math.sin(frame / 14) * 60;
+  const cy = 820 + p * 120;
+  const hitsDone = spec.hits.filter((f) => frame >= f).length;
+  const health = Math.max(0, 1 - hitsDone / spec.hits.length);
+  const r = recoilAt(frame, spec.hits);
+  const shots = spec.hits.map((f, i) => ({ f, x: 540 + (hash(i) - 0.5) * 300, y: 700 + (hash(i + 4) - 0.5) * 400, dmg: i === spec.hits.length - 1 ? "¡ELIMINADO!" : i % 6 === 5 ? `CRÍTICO -${18 + i}` : `-${4 + Math.floor(hash(i) * 6)}`, crit: i % 6 === 5 || i === spec.hits.length - 1 }));
+  const swing = [40, 90, 140].map((f) => frame - f).find((f) => f >= 0 && f < 14);
+  const k = swing !== undefined ? shake(swing, 30, 14) : { x: 0, y: 0 };
+  return (
+    <AbsoluteFill style={{ overflow: "hidden", transform: `translate(${k.x}px, ${k.y}px)` }}>
+      <AbsoluteFill style={{ transform: `translateY(${r * 14}px) scale(${1.04 + r * 0.015})` }}>
+        <Img src={staticFile(gun.bg)} style={{ width: "100%", height: "100%", filter: "brightness(0.42) saturate(0.6) hue-rotate(160deg) sepia(0.2)" }} />
+        {alive ? (
+          <Img src={staticFile("update/Reaper.png")} style={{ position: "absolute", left: cx - h * 0.5, top: cy - h * 0.55, height: h, width: h, objectFit: "contain", transform: `rotate(${Math.sin(frame / 4) * 3}deg)`, filter: spec.hits.some((f) => frame >= f && frame < f + 2) ? "brightness(3) saturate(0)" : "drop-shadow(0 0 40px rgba(140,200,255,0.5))" }} />
+        ) : null}
+        <Shots shots={shots} muzzle={gun.muzzle} />
+        <Sequence from={last} durationInFrames={32} layout="none">
+          <Burst x={540} y={800} colors={PALETTE.Reaper} count={40} size={60} seed={9} />
+          <Popup text="+70 🪙" x={540} y={600} size={120} />
+        </Sequence>
+      </AbsoluteFill>
+      {swing !== undefined ? <AbsoluteFill style={{ background: "rgba(255,0,0,0.25)" }} /> : null}
+      <Crosshair x={540} y={700} />
+      <Vignette color="rgba(0,10,30,0.85)" inner={40} />
+      <div style={{ position: "absolute", left: 60, right: 60, top: 70 }}>
+        <div style={{ fontFamily: IMPACT, fontSize: 52, color: CREAM, textAlign: "center", textShadow: "0 3px 0 #000, 0 0 18px #7fc0ff" }}>💀 SEGADOR</div>
+        <div style={{ marginTop: 10, height: 44, borderRadius: 10, background: "rgba(0,0,0,0.75)", border: "4px solid #0a1a2b", overflow: "hidden" }}>
+          <div style={{ width: `${health * 100}%`, height: "100%", background: "linear-gradient(180deg,#9fd8ff,#2a6ab0)" }} />
+        </div>
+      </div>
+    </AbsoluteFill>
+  );
+};
+
+export const ShortReaper: React.FC = () => {
+  const s = scenes.reaper;
+  return (
+    <AbsoluteFill style={{ background: NIGHT }}>
+      <Audio src={staticFile("update/audio_reaper.wav")} />
+      <Sequence name="Normal" durationInFrames={45}>
+        <Fight spec={s.fights[0]}>
+          <Caption text="una partida *normal…" y={1360} delay={2} every={3} />
+        </Fight>
+      </Sequence>
+      <Sequence name="Llega" from={45} durationInFrames={65}>
+        <Bg src="update/fps-ballesta.jpg" grade="brightness(0.25) saturate(0.3) hue-rotate(160deg)" zoom={0.3} />
+        <Img src={staticFile("update/Reaper.png")} style={{ position: "absolute", left: 140, top: 340, width: 800, height: 800, objectFit: "contain", filter: "brightness(0) drop-shadow(0 0 30px rgba(140,200,255,0.8))" }} />
+        <Vignette />
+        <Caption text="hasta que llega *SU *SEMANA 💀" y={1250} size={96} delay={6} every={4} />
+        <Sequence from={41}>
+          <Stamp text="EL SEGADOR" y={180} size={170} color="#cfe8ff" glow="#3a8aff" />
+        </Sequence>
+      </Sequence>
+      <Sequence name="Pelea" from={s.boss.from} durationInFrames={s.boss.len}>
+        <ReaperFight spec={s.boss} />
+        <Caption text="¿solo o con *amigos?" y={1420} size={88} delay={20} every={4} />
+      </Sequence>
+      <Sequence name="Reto" from={310} durationInFrames={65}>
+        <Bg src="update/bg-horda.jpg" grade="brightness(0.3) saturate(0.6) hue-rotate(160deg)" zoom={0.2} />
+        <Vignette />
+        <Stamp text="¿LO VENCES?" y={640} size={170} color="#cfe8ff" glow="#3a8aff" delay={20} />
+        <Caption text="sale cada *3 *oleadas en su semana" y={900} size={76} delay={30} every={3} />
+      </Sequence>
+      <Sequence name="Cierre" from={375}>
+        <EndCard news="Jefes semanales y ranking" />
+      </Sequence>
+      {[45, 110, 310].map((f) => (
+        <Sequence key={f} from={f} durationInFrames={8}><Flash peak={0.6} /></Sequence>
+      ))}
+      <Sequence from={375} durationInFrames={10}><Flash color={GOLD} peak={0.45} /></Sequence>
+      <Progress />
+    </AbsoluteFill>
+  );
+};

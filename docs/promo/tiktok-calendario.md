@@ -16,9 +16,12 @@ https://www.roblox.com/games/107080967531379/Campana-Maldita
 | Dom 9 nov 19:00 | La noche | 06-noche.mp4 | Programado |
 | Lun 10 nov 19:00 | Así es el lobby | 07-lobby.mp4 | Programado |
 | Mar 11 nov 19:00 | Elige tu arma | 08-elige-arma.mp4 | Programado |
-| Mié 18 nov 19:00 | Jefe final | actualizacion/ShortFinalBoss.mp4 | Por programar (después de publicar la versión nueva) |
-| Jue 19 nov 19:00 | Bestiario coleccionable | actualizacion/ShortBestiary.mp4 | Por programar |
-| Vie 20 nov 19:00 | Actualización + código | actualizacion/ShortUpdate.mp4 | Por programar |
+| Mar 17 nov 19:00 | Combo (reemplazo) | reemplazos/ShortCombo2.mp4 | Por subir |
+| Mié 18 nov 19:00 | Elige tu arma (reemplazo) | reemplazos/ShortArms2.mp4 | Por subir |
+| Jue 19 nov 19:00 | El Segador (reemplazo) | reemplazos/ShortReaper.mp4 | Por subir |
+| Día 1 después de publicar la versión nueva | Jefe final | actualizacion/ShortFinalBoss.mp4 | Esperando publicación |
+| Día 2 | Bestiario coleccionable | actualizacion/ShortBestiary.mp4 | Esperando publicación |
+| Día 3 | Actualización + código | actualizacion/ShortUpdate.mp4 | Esperando publicación |
 
 ## Descripciones
 
@@ -36,7 +39,7 @@ https://www.roblox.com/games/107080967531379/Campana-Maldita
 
 **08-elige-arma** — `¿Fusil, minigun, ballesta o lanzallamas? 🔫🏹🔥 Elige tu arma y defiende la campana. Gratis en Roblox: "Campana Maldita" 👇 #roblox #robloxgame #zombies #armas #juegosroblox #campanamaldita #fyp`
 
-Descripciones de los videos de la actualización: `actualizacion/README.md`.
+Descripciones: `reemplazos/README.md` y `actualizacion/README.md`.
 
 ## Reglas
 - Responder comentarios en la primera hora.

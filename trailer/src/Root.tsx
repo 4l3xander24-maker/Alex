@@ -1,6 +1,6 @@
 import { Composition } from "remotion";
 import { Trailer } from "./Composition";
-import { ShortBestiary, ShortFinalBoss, ShortUpdate, Thumbnail } from "./Update";
+import { ShortBestiary, ShortFinalBoss, ShortUpdate, Thumbnail, ShortCombo2, ShortArms2, ShortReaper } from "./Update";
 import { ShortArms, ShortBoss, ShortCombo, ShortHow, ShortLobby, ShortNight, ShortPick, TrailerMotion, TrailerShort } from "./Motion";
 
 export const RemotionRoot: React.FC = () => {
@@ -111,6 +111,9 @@ export const RemotionRoot: React.FC = () => {
         height={1920}
       />
       <Composition id="Thumbnail" component={Thumbnail} durationInFrames={1} fps={30} width={1920} height={1080} />
+      <Composition id="ShortCombo2" component={ShortCombo2} durationInFrames={450} fps={30} width={1080} height={1920} />
+      <Composition id="ShortArms2" component={ShortArms2} durationInFrames={450} fps={30} width={1080} height={1920} />
+      <Composition id="ShortReaper" component={ShortReaper} durationInFrames={450} fps={30} width={1080} height={1920} />
     </>
   );
 };

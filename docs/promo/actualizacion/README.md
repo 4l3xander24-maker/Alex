@@ -18,11 +18,11 @@ npx remotion render src/index.ts ShortFinalBoss ../docs/promo/actualizacion/Shor
 > Publica estos videos **después** de volver a publicar el juego en Roblox:
 > el jefe final, el bestiario y el código BIENVENIDO solo existen en la versión nueva.
 
-| Día (19:00 Lima) | Archivo | Descripción para pegar |
+| Orden (19:00 Lima, después de publicar) | Archivo | Descripción para pegar |
 |---|---|---|
-| Mié 18 nov | `ShortFinalBoss.mp4` | `Llegas a la última oleada y la campana suena… 🔔💀 El CAMPANERO MALDITO te espera. ¿Lo derrotas? Gratis en Roblox: busca "Campana Maldita" 👇 #roblox #robloxgame #zombies #jefefinal #juegosroblox #campanamaldita #fyp` |
-| Jue 19 nov | `ShortBestiary.mp4` | `¿Cuántos zombis conoces? 📖 Colecciona a todos y gana medallas 🥉🥈🥇 El último solo aparece en la oleada final… Gratis en Roblox: "Campana Maldita" 👇 #roblox #robloxgame #zombies #coleccion #juegosroblox #campanamaldita #fyp` |
-| Vie 20 nov | `ShortUpdate.mp4` | `¡Nueva actualización! 🔔 Jefe final, bestiario, racha diaria y skins de invierno ❄️ Código: BIENVENIDO = 200 monedas 🪙 Gratis en Roblox: "Campana Maldita" 👇 #roblox #robloxgame #codigos #robloxcodes #zombies #campanamaldita #fyp` |
+| Día 1 | `ShortFinalBoss.mp4` | `Llegas a la última oleada y la campana suena… 🔔💀 El CAMPANERO MALDITO te espera. ¿Lo derrotas? Gratis en Roblox: busca "Campana Maldita" 👇 #roblox #robloxgame #zombies #jefefinal #juegosroblox #campanamaldita #fyp` |
+| Día 2 | `ShortBestiary.mp4` | `¿Cuántos zombis conoces? 📖 Colecciona a todos y gana medallas 🥉🥈🥇 El último solo aparece en la oleada final… Gratis en Roblox: "Campana Maldita" 👇 #roblox #robloxgame #zombies #coleccion #juegosroblox #campanamaldita #fyp` |
+| Día 3 | `ShortUpdate.mp4` | `¡Nueva actualización! 🔔 Jefe final, bestiario, racha diaria y skins de invierno ❄️ Código: BIENVENIDO = 200 monedas 🪙 Gratis en Roblox: "Campana Maldita" 👇 #roblox #robloxgame #codigos #robloxcodes #zombies #campanamaldita #fyp` |
 
 Comentario fijado en todos: `Juégalo aquí 👉 https://www.roblox.com/games/107080967531379/Campana-Maldita`
 

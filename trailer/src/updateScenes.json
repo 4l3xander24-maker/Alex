@@ -1,49 +1,1183 @@
 {
-  "guns": {
-    "ballesta": { "bg": "update/fps-ballesta.jpg", "muzzle": [660, 990], "sound": "bow" },
-    "escopeta": { "bg": "update/fps-escopeta.jpg", "muzzle": [690, 1070], "sound": "shotgun" },
-    "lanzallamas": { "bg": "update/fps-lanzallamas.jpg", "muzzle": [625, 1010], "sound": "shotgun" },
-    "escopeta2": { "bg": "update/fps-escopeta2.jpg", "muzzle": [660, 1080], "sound": "shotgun" },
-    "pistola": { "bg": "update/fps-pistola.jpg", "muzzle": [720, 1150], "sound": "pistol" }
+ "guns": {
+  "ballesta": {
+   "bg": "update/fps-ballesta.jpg",
+   "muzzle": [
+    660,
+    990
+   ],
+   "sound": "bow"
   },
-  "boss": {
-    "fights": [
-      { "from": 0, "len": 50, "gun": "ballesta", "zombies": [
-        { "type": "Cone", "x": 520, "y": 760, "appear": 0, "hits": [9, 19], "s0": 0.55, "s1": 0.95 },
-        { "type": "Spitter", "x": 330, "y": 800, "appear": 10, "hits": [30, 40], "s0": 0.5, "s1": 0.9 }
-      ] },
-      { "from": 50, "len": 45, "gun": "escopeta", "zombies": [
-        { "type": "Mutant", "x": 560, "y": 760, "appear": 0, "hits": [6, 14], "s0": 0.6, "s1": 1.0 },
-        { "type": "Colossus", "x": 380, "y": 780, "appear": 4, "hits": [20, 26], "s0": 0.55, "s1": 0.95 },
-        { "type": "King", "x": 720, "y": 760, "appear": 10, "hits": [32, 38], "s0": 0.5, "s1": 0.9 }
-      ] }
-    ],
-    "boss": { "from": 240, "len": 90, "gun": "lanzallamas", "hits": [4, 9, 14, 19, 24, 34, 39, 44, 49, 54, 59, 70, 75, 80, 85], "phase1": 22, "phase2": 56 },
-    "sfx": [["silence", 95], ["bell", 100], ["bell", 122], ["heart", 104], ["heart", 116], ["riser", 135, 30], ["impact", 165], ["growl", 166], ["impact", 182], ["stamp", 192], ["impact", 262], ["shock", 264], ["impact", 296], ["growl", 297], ["shock", 298], ["whoosh", 325], ["impact", 330], ["stamp", 336], ["end", 375]],
-    "music": [[0, 95, 150], [165, 330, 150]]
+  "escopeta": {
+   "bg": "update/fps-escopeta.jpg",
+   "muzzle": [
+    690,
+    1070
+   ],
+   "sound": "shotgun"
   },
-  "bestiary": {
-    "fights": [
-      { "from": 45, "len": 35, "gun": "ballesta", "zombies": [{ "type": "Cone", "x": 540, "y": 760, "appear": 0, "hits": [10, 18], "s0": 0.6, "s1": 1.0, "toast": "Zombi con cono" }] },
-      { "from": 80, "len": 35, "gun": "escopeta", "zombies": [{ "type": "Parasite", "x": 540, "y": 760, "appear": 0, "hits": [10, 18], "s0": 0.6, "s1": 1.0, "toast": "Parásito" }] },
-      { "from": 115, "len": 35, "gun": "lanzallamas", "zombies": [{ "type": "Colossus", "x": 540, "y": 760, "appear": 0, "hits": [8, 13, 18], "s0": 0.6, "s1": 1.05, "toast": "Coloso" }] },
-      { "from": 150, "len": 35, "gun": "escopeta2", "zombies": [{ "type": "King", "x": 540, "y": 760, "appear": 0, "hits": [8, 13, 18], "s0": 0.6, "s1": 1.05, "toast": "Rey Zombi" }] },
-      { "from": 185, "len": 35, "gun": "pistola", "zombies": [{ "type": "Queen", "x": 520, "y": 760, "appear": 0, "hits": [8, 13, 18], "s0": 0.6, "s1": 1.05, "toast": "Reina" }] },
-      { "from": 220, "len": 40, "gun": "ballesta", "zombies": [{ "type": "Reaper", "x": 540, "y": 720, "appear": 0, "hits": [6, 11, 16, 21], "s0": 0.5, "s1": 0.75, "toast": "Segador" }] }
-    ],
-    "sfx": [["whoosh", 0], ["impact", 4], ["impact", 45], ["swell", 260], ["impact", 320], ["bell", 322], ["growl", 330], ["end", 375]],
-    "music": [[0, 318, 140]],
-    "flips": [262, 268, 274, 280, 286]
+  "lanzallamas": {
+   "bg": "update/fps-lanzallamas.jpg",
+   "muzzle": [
+    625,
+    1010
+   ],
+   "sound": "shotgun"
   },
-  "update": {
-    "fights": [
-      { "from": 0, "len": 40, "gun": "escopeta", "zombies": [
-        { "type": "Mutant", "x": 450, "y": 760, "appear": 0, "hits": [6, 12], "s0": 0.6, "s1": 0.95 },
-        { "type": "Fatso", "x": 660, "y": 780, "appear": 2, "hits": [20, 28], "s0": 0.55, "s1": 0.9 }
-      ] }
-    ],
-    "sfx": [["impact", 40], ["growl", 42], ["impact", 120], ["impact", 190], ["impact", 260], ["impact", 320], ["coins", 330], ["end", 385]],
-    "music": [[0, 385, 140]],
-    "chests": [200, 206, 212, 218, 224, 230, 238]
+  "escopeta2": {
+   "bg": "update/fps-escopeta2.jpg",
+   "muzzle": [
+    660,
+    1080
+   ],
+   "sound": "shotgun"
+  },
+  "pistola": {
+   "bg": "update/fps-pistola.jpg",
+   "muzzle": [
+    720,
+    1150
+   ],
+   "sound": "pistol"
   }
+ },
+ "boss": {
+  "fights": [
+   {
+    "from": 0,
+    "len": 50,
+    "gun": "ballesta",
+    "zombies": [
+     {
+      "type": "Cone",
+      "x": 520,
+      "y": 760,
+      "appear": 0,
+      "hits": [
+       9,
+       19
+      ],
+      "s0": 0.55,
+      "s1": 0.95
+     },
+     {
+      "type": "Spitter",
+      "x": 330,
+      "y": 800,
+      "appear": 10,
+      "hits": [
+       30,
+       40
+      ],
+      "s0": 0.5,
+      "s1": 0.9
+     }
+    ]
+   },
+   {
+    "from": 50,
+    "len": 45,
+    "gun": "escopeta",
+    "zombies": [
+     {
+      "type": "Mutant",
+      "x": 560,
+      "y": 760,
+      "appear": 0,
+      "hits": [
+       6,
+       14
+      ],
+      "s0": 0.6,
+      "s1": 1.0
+     },
+     {
+      "type": "Colossus",
+      "x": 380,
+      "y": 780,
+      "appear": 4,
+      "hits": [
+       20,
+       26
+      ],
+      "s0": 0.55,
+      "s1": 0.95
+     },
+     {
+      "type": "King",
+      "x": 720,
+      "y": 760,
+      "appear": 10,
+      "hits": [
+       32,
+       38
+      ],
+      "s0": 0.5,
+      "s1": 0.9
+     }
+    ]
+   }
+  ],
+  "boss": {
+   "from": 240,
+   "len": 90,
+   "gun": "lanzallamas",
+   "hits": [
+    4,
+    9,
+    14,
+    19,
+    24,
+    34,
+    39,
+    44,
+    49,
+    54,
+    59,
+    70,
+    75,
+    80,
+    85
+   ],
+   "phase1": 22,
+   "phase2": 56
+  },
+  "sfx": [
+   [
+    "silence",
+    95
+   ],
+   [
+    "bell",
+    100
+   ],
+   [
+    "bell",
+    122
+   ],
+   [
+    "heart",
+    104
+   ],
+   [
+    "heart",
+    116
+   ],
+   [
+    "riser",
+    135,
+    30
+   ],
+   [
+    "impact",
+    165
+   ],
+   [
+    "growl",
+    166
+   ],
+   [
+    "impact",
+    182
+   ],
+   [
+    "stamp",
+    192
+   ],
+   [
+    "impact",
+    262
+   ],
+   [
+    "shock",
+    264
+   ],
+   [
+    "impact",
+    296
+   ],
+   [
+    "growl",
+    297
+   ],
+   [
+    "shock",
+    298
+   ],
+   [
+    "whoosh",
+    325
+   ],
+   [
+    "impact",
+    330
+   ],
+   [
+    "stamp",
+    336
+   ],
+   [
+    "end",
+    375
+   ]
+  ],
+  "music": [
+   [
+    0,
+    95,
+    150
+   ],
+   [
+    165,
+    330,
+    150
+   ]
+  ]
+ },
+ "bestiary": {
+  "fights": [
+   {
+    "from": 45,
+    "len": 35,
+    "gun": "ballesta",
+    "zombies": [
+     {
+      "type": "Cone",
+      "x": 540,
+      "y": 760,
+      "appear": 0,
+      "hits": [
+       10,
+       18
+      ],
+      "s0": 0.6,
+      "s1": 1.0,
+      "toast": "Zombi con cono"
+     }
+    ]
+   },
+   {
+    "from": 80,
+    "len": 35,
+    "gun": "escopeta",
+    "zombies": [
+     {
+      "type": "Parasite",
+      "x": 540,
+      "y": 760,
+      "appear": 0,
+      "hits": [
+       10,
+       18
+      ],
+      "s0": 0.6,
+      "s1": 1.0,
+      "toast": "Parásito"
+     }
+    ]
+   },
+   {
+    "from": 115,
+    "len": 35,
+    "gun": "lanzallamas",
+    "zombies": [
+     {
+      "type": "Colossus",
+      "x": 540,
+      "y": 760,
+      "appear": 0,
+      "hits": [
+       8,
+       13,
+       18
+      ],
+      "s0": 0.6,
+      "s1": 1.05,
+      "toast": "Coloso"
+     }
+    ]
+   },
+   {
+    "from": 150,
+    "len": 35,
+    "gun": "escopeta2",
+    "zombies": [
+     {
+      "type": "King",
+      "x": 540,
+      "y": 760,
+      "appear": 0,
+      "hits": [
+       8,
+       13,
+       18
+      ],
+      "s0": 0.6,
+      "s1": 1.05,
+      "toast": "Rey Zombi"
+     }
+    ]
+   },
+   {
+    "from": 185,
+    "len": 35,
+    "gun": "pistola",
+    "zombies": [
+     {
+      "type": "Queen",
+      "x": 520,
+      "y": 760,
+      "appear": 0,
+      "hits": [
+       8,
+       13,
+       18
+      ],
+      "s0": 0.6,
+      "s1": 1.05,
+      "toast": "Reina"
+     }
+    ]
+   },
+   {
+    "from": 220,
+    "len": 40,
+    "gun": "ballesta",
+    "zombies": [
+     {
+      "type": "Reaper",
+      "x": 540,
+      "y": 720,
+      "appear": 0,
+      "hits": [
+       6,
+       11,
+       16,
+       21
+      ],
+      "s0": 0.5,
+      "s1": 0.75,
+      "toast": "Segador"
+     }
+    ]
+   }
+  ],
+  "sfx": [
+   [
+    "whoosh",
+    0
+   ],
+   [
+    "impact",
+    4
+   ],
+   [
+    "impact",
+    45
+   ],
+   [
+    "swell",
+    260
+   ],
+   [
+    "impact",
+    320
+   ],
+   [
+    "bell",
+    322
+   ],
+   [
+    "growl",
+    330
+   ],
+   [
+    "end",
+    375
+   ]
+  ],
+  "music": [
+   [
+    0,
+    318,
+    140
+   ]
+  ],
+  "flips": [
+   262,
+   268,
+   274,
+   280,
+   286
+  ]
+ },
+ "update": {
+  "fights": [
+   {
+    "from": 0,
+    "len": 40,
+    "gun": "escopeta",
+    "zombies": [
+     {
+      "type": "Mutant",
+      "x": 450,
+      "y": 760,
+      "appear": 0,
+      "hits": [
+       6,
+       12
+      ],
+      "s0": 0.6,
+      "s1": 0.95
+     },
+     {
+      "type": "Fatso",
+      "x": 660,
+      "y": 780,
+      "appear": 2,
+      "hits": [
+       20,
+       28
+      ],
+      "s0": 0.55,
+      "s1": 0.9
+     }
+    ]
+   }
+  ],
+  "sfx": [
+   [
+    "impact",
+    40
+   ],
+   [
+    "growl",
+    42
+   ],
+   [
+    "impact",
+    120
+   ],
+   [
+    "impact",
+    190
+   ],
+   [
+    "impact",
+    260
+   ],
+   [
+    "impact",
+    320
+   ],
+   [
+    "coins",
+    330
+   ],
+   [
+    "end",
+    385
+   ]
+  ],
+  "music": [
+   [
+    0,
+    385,
+    140
+   ]
+  ],
+  "chests": [
+   200,
+   206,
+   212,
+   218,
+   224,
+   230,
+   238
+  ]
+ },
+ "combo": {
+  "fights": [
+   {
+    "from": 0,
+    "len": 60,
+    "gun": "ballesta",
+    "zombies": [
+     {
+      "type": "Cone",
+      "x": 520,
+      "y": 760,
+      "appear": 0,
+      "hits": [
+       8,
+       14
+      ],
+      "s0": 0.55,
+      "s1": 0.95
+     },
+     {
+      "type": "Spitter",
+      "x": 320,
+      "y": 800,
+      "appear": 4,
+      "hits": [
+       22,
+       28
+      ],
+      "s0": 0.55,
+      "s1": 0.95
+     },
+     {
+      "type": "Mutant",
+      "x": 740,
+      "y": 780,
+      "appear": 10,
+      "hits": [
+       36,
+       42
+      ],
+      "s0": 0.55,
+      "s1": 0.95
+     },
+     {
+      "type": "Fatso",
+      "x": 540,
+      "y": 820,
+      "appear": 20,
+      "hits": [
+       50,
+       56
+      ],
+      "s0": 0.55,
+      "s1": 0.95
+     }
+    ]
+   },
+   {
+    "from": 60,
+    "len": 60,
+    "gun": "escopeta",
+    "zombies": [
+     {
+      "type": "Knight",
+      "x": 450,
+      "y": 760,
+      "appear": 0,
+      "hits": [
+       6,
+       12
+      ],
+      "s0": 0.55,
+      "s1": 0.95
+     },
+     {
+      "type": "Parasite",
+      "x": 680,
+      "y": 780,
+      "appear": 2,
+      "hits": [
+       18,
+       24
+      ],
+      "s0": 0.55,
+      "s1": 0.95
+     },
+     {
+      "type": "Colossus",
+      "x": 330,
+      "y": 800,
+      "appear": 8,
+      "hits": [
+       30,
+       36
+      ],
+      "s0": 0.55,
+      "s1": 0.95
+     },
+     {
+      "type": "Cone",
+      "x": 600,
+      "y": 760,
+      "appear": 14,
+      "hits": [
+       44,
+       52
+      ],
+      "s0": 0.55,
+      "s1": 0.95
+     }
+    ]
+   },
+   {
+    "from": 120,
+    "len": 60,
+    "gun": "lanzallamas",
+    "zombies": [
+     {
+      "type": "Mutant",
+      "x": 540,
+      "y": 760,
+      "appear": 0,
+      "hits": [
+       5,
+       10
+      ],
+      "s0": 0.55,
+      "s1": 0.95
+     },
+     {
+      "type": "Spitter",
+      "x": 340,
+      "y": 780,
+      "appear": 2,
+      "hits": [
+       15,
+       20
+      ],
+      "s0": 0.55,
+      "s1": 0.95
+     },
+     {
+      "type": "King",
+      "x": 720,
+      "y": 760,
+      "appear": 6,
+      "hits": [
+       25,
+       30
+      ],
+      "s0": 0.55,
+      "s1": 0.95
+     },
+     {
+      "type": "Fatso",
+      "x": 460,
+      "y": 800,
+      "appear": 12,
+      "hits": [
+       35,
+       40
+      ],
+      "s0": 0.55,
+      "s1": 0.95
+     },
+     {
+      "type": "Queen",
+      "x": 640,
+      "y": 780,
+      "appear": 18,
+      "hits": [
+       45,
+       52
+      ],
+      "s0": 0.55,
+      "s1": 0.95
+     }
+    ]
+   },
+   {
+    "from": 180,
+    "len": 75,
+    "gun": "escopeta2",
+    "zombies": [
+     {
+      "type": "Cone",
+      "x": 420,
+      "y": 760,
+      "appear": 0,
+      "hits": [
+       5,
+       10
+      ],
+      "s0": 0.55,
+      "s1": 0.95
+     },
+     {
+      "type": "Knight",
+      "x": 660,
+      "y": 760,
+      "appear": 2,
+      "hits": [
+       14,
+       19
+      ],
+      "s0": 0.55,
+      "s1": 0.95
+     },
+     {
+      "type": "Parasite",
+      "x": 540,
+      "y": 800,
+      "appear": 6,
+      "hits": [
+       23,
+       28
+      ],
+      "s0": 0.55,
+      "s1": 0.95
+     },
+     {
+      "type": "Colossus",
+      "x": 360,
+      "y": 780,
+      "appear": 10,
+      "hits": [
+       32,
+       37
+      ],
+      "s0": 0.55,
+      "s1": 0.95
+     },
+     {
+      "type": "Mutant",
+      "x": 720,
+      "y": 790,
+      "appear": 16,
+      "hits": [
+       41,
+       46
+      ],
+      "s0": 0.55,
+      "s1": 0.95
+     },
+     {
+      "type": "King",
+      "x": 540,
+      "y": 760,
+      "appear": 24,
+      "hits": [
+       52,
+       58
+      ],
+      "s0": 0.55,
+      "s1": 0.95
+     },
+     {
+      "type": "Spitter",
+      "x": 450,
+      "y": 800,
+      "appear": 30,
+      "hits": [
+       62,
+       68
+      ],
+      "s0": 0.55,
+      "s1": 0.95
+     }
+    ]
+   },
+   {
+    "from": 255,
+    "len": 75,
+    "gun": "pistola",
+    "zombies": [
+     {
+      "type": "Fatso",
+      "x": 540,
+      "y": 780,
+      "appear": 0,
+      "hits": [
+       5,
+       9
+      ],
+      "s0": 0.55,
+      "s1": 0.95
+     },
+     {
+      "type": "Queen",
+      "x": 380,
+      "y": 760,
+      "appear": 2,
+      "hits": [
+       13,
+       17
+      ],
+      "s0": 0.55,
+      "s1": 0.95
+     },
+     {
+      "type": "Cone",
+      "x": 700,
+      "y": 770,
+      "appear": 4,
+      "hits": [
+       21,
+       25
+      ],
+      "s0": 0.55,
+      "s1": 0.95
+     },
+     {
+      "type": "Mutant",
+      "x": 460,
+      "y": 800,
+      "appear": 8,
+      "hits": [
+       29,
+       33
+      ],
+      "s0": 0.55,
+      "s1": 0.95
+     },
+     {
+      "type": "Knight",
+      "x": 620,
+      "y": 760,
+      "appear": 12,
+      "hits": [
+       37,
+       41
+      ],
+      "s0": 0.55,
+      "s1": 0.95
+     },
+     {
+      "type": "Parasite",
+      "x": 540,
+      "y": 790,
+      "appear": 18,
+      "hits": [
+       48,
+       53
+      ],
+      "s0": 0.55,
+      "s1": 0.95
+     },
+     {
+      "type": "Colossus",
+      "x": 540,
+      "y": 780,
+      "appear": 26,
+      "hits": [
+       60,
+       68
+      ],
+      "s0": 0.6,
+      "s1": 1.1
+     }
+    ]
+   }
+  ],
+  "sfx": [
+   [
+    "impact",
+    0
+   ],
+   [
+    "impact",
+    330
+   ],
+   [
+    "stamp",
+    334
+   ],
+   [
+    "end",
+    375
+   ]
+  ],
+  "music": [
+   [
+    0,
+    330,
+    150
+   ]
+  ]
+ },
+ "arms": {
+  "fights": [
+   {
+    "from": 30,
+    "len": 80,
+    "gun": "ballesta",
+    "zombies": [
+     {
+      "type": "Cone",
+      "x": 500,
+      "y": 760,
+      "appear": 0,
+      "hits": [
+       14,
+       26
+      ],
+      "s0": 0.55,
+      "s1": 0.95
+     },
+     {
+      "type": "Mutant",
+      "x": 680,
+      "y": 780,
+      "appear": 20,
+      "hits": [
+       44,
+       56
+      ],
+      "s0": 0.55,
+      "s1": 0.95
+     },
+     {
+      "type": "King",
+      "x": 420,
+      "y": 780,
+      "appear": 40,
+      "hits": [
+       62,
+       74
+      ],
+      "s0": 0.55,
+      "s1": 0.95
+     }
+    ]
+   },
+   {
+    "from": 110,
+    "len": 80,
+    "gun": "escopeta",
+    "zombies": [
+     {
+      "type": "Colossus",
+      "x": 540,
+      "y": 780,
+      "appear": 0,
+      "hits": [
+       14,
+       24
+      ],
+      "s0": 0.55,
+      "s1": 0.95
+     },
+     {
+      "type": "Spitter",
+      "x": 360,
+      "y": 790,
+      "appear": 16,
+      "hits": [
+       36,
+       44
+      ],
+      "s0": 0.55,
+      "s1": 0.95
+     },
+     {
+      "type": "Fatso",
+      "x": 700,
+      "y": 800,
+      "appear": 30,
+      "hits": [
+       56,
+       66
+      ],
+      "s0": 0.55,
+      "s1": 0.95
+     }
+    ]
+   },
+   {
+    "from": 190,
+    "len": 80,
+    "gun": "lanzallamas",
+    "zombies": [
+     {
+      "type": "Parasite",
+      "x": 540,
+      "y": 760,
+      "appear": 0,
+      "hits": [
+       10,
+       15,
+       20
+      ],
+      "s0": 0.55,
+      "s1": 0.95
+     },
+     {
+      "type": "Knight",
+      "x": 380,
+      "y": 790,
+      "appear": 14,
+      "hits": [
+       30,
+       35,
+       40
+      ],
+      "s0": 0.55,
+      "s1": 0.95
+     },
+     {
+      "type": "Queen",
+      "x": 680,
+      "y": 770,
+      "appear": 30,
+      "hits": [
+       52,
+       58,
+       64
+      ],
+      "s0": 0.55,
+      "s1": 0.95
+     }
+    ]
+   }
+  ],
+  "sfx": [
+   [
+    "impact",
+    0
+   ],
+   [
+    "stamp",
+    4
+   ],
+   [
+    "impact",
+    270
+   ],
+   [
+    "stamp",
+    274
+   ],
+   [
+    "end",
+    375
+   ]
+  ],
+  "music": [
+   [
+    0,
+    370,
+    140
+   ]
+  ]
+ },
+ "reaper": {
+  "fights": [
+   {
+    "from": 0,
+    "len": 45,
+    "gun": "escopeta",
+    "zombies": [
+     {
+      "type": "Cone",
+      "x": 460,
+      "y": 760,
+      "appear": 0,
+      "hits": [
+       8,
+       16
+      ],
+      "s0": 0.55,
+      "s1": 0.95
+     },
+     {
+      "type": "Mutant",
+      "x": 660,
+      "y": 780,
+      "appear": 6,
+      "hits": [
+       26,
+       34
+      ],
+      "s0": 0.55,
+      "s1": 0.95
+     }
+    ]
+   }
+  ],
+  "boss": {
+   "from": 110,
+   "len": 200,
+   "gun": "ballesta",
+   "hits": [
+    10,
+    16,
+    22,
+    28,
+    34,
+    40,
+    52,
+    58,
+    64,
+    70,
+    76,
+    82,
+    94,
+    100,
+    106,
+    112,
+    118,
+    124,
+    136,
+    142,
+    148,
+    154,
+    160,
+    166,
+    178,
+    184,
+    190
+   ]
+  },
+  "sfx": [
+   [
+    "silence",
+    45
+   ],
+   [
+    "bell",
+    48
+   ],
+   [
+    "heart",
+    52
+   ],
+   [
+    "heart",
+    64
+   ],
+   [
+    "impact",
+    80
+   ],
+   [
+    "growl",
+    82
+   ],
+   [
+    "stamp",
+    86
+   ],
+   [
+    "impact",
+    110
+   ],
+   [
+    "impact",
+    310
+   ],
+   [
+    "growl",
+    312
+   ],
+   [
+    "stamp",
+    330
+   ],
+   [
+    "end",
+    375
+   ]
+  ],
+  "music": [
+   [
+    0,
+    45,
+    150
+   ],
+   [
+    110,
+    310,
+    160
+   ]
+  ]
+ }
 }
