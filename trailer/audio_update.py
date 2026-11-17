@@ -1,5 +1,6 @@
 """Audio sintetizado (sin muestras) de los 3 videos de la actualización: drones,
 campanadas, golpes, latidos y zumbidos. Uso: python3 audio_update.py"""
+import json
 import wave
 import numpy as np
 
@@ -120,54 +121,128 @@ def save(b, path):
         w.setnchannels(2); w.setsampwidth(2); w.setframerate(SR); w.writeframes(data.tobytes())
 
 
-# 1 · Jefe final
-b = buf()
-drone(b, 49, 0.2, 0, fr(370))
-add(b, bell(147, 5), fr(4), 0.9)
-add(b, impact(), fr(0), 0.6)
-for i in range(4):
-    add(b, heartbeat(), fr(62) + i * 0.36, 0.7)
-add(b, whoosh(), fr(95), 0.5)
-add(b, impact(), fr(105), 1.0)
-add(b, growl(), fr(150), 0.9)
-add(b, impact(), fr(150), 0.8)
-add(b, bell(110, 3), fr(220), 0.7)
-add(b, impact(), fr(220), 0.8, pan=-0.2)
-add(b, impact(), fr(245), 0.9, pan=0.2)
-add(b, growl(1.5), fr(245), 0.6)
-pulse(b, fr(185), fr(365), 140, 0.45)
-add(b, whoosh(), fr(265), 0.5)
-add(b, impact(), fr(275), 0.9)
-end_card(b, fr(370))
-save(b, "public/update/audio_boss.wav")
 
-# 2 · Bestiario
-b = buf()
-drone(b, 65, 0.16, 0, fr(370))
-add(b, impact(), 0.0, 0.7)
-pulse(b, fr(60), fr(298), 128, 0.4)
-scale = [523, 587, 659, 784, 880, 988, 1046, 1175, 1318, 1568, 1760]
-for i, f in enumerate(scale):
-    t = fr(70 + i * 17)
-    add(b, whoosh(0.25), t - 0.18, 0.25, pan=(-0.5 + (i % 3) * 0.5))
-    add(b, chime(f), t, 0.35, pan=(-0.5 + (i % 3) * 0.5))
-add(b, whoosh(), fr(285), 0.5)
-add(b, impact(), fr(300), 1.0)
-add(b, growl(), fr(300), 0.8)
-add(b, bell(110, 3), fr(302), 0.6)
-end_card(b, fr(370))
-save(b, "public/update/audio_bestiary.wav")
+def gunshot(kind):
+    n = int(SR * 0.45); t = np.arange(n) / SR
+    if kind == "bow":
+        f = 220 * np.exp(-t / 0.05) + 90
+        s = np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-t / 0.06) * 0.8 + whoosh(0.45)[:n] * 0.6
+    elif kind == "pistol":
+        s = lp_fast(noise(n), 2) * np.exp(-t / 0.03) + kick()[:n] * 0.5 if n <= len(kick()) else lp_fast(noise(n), 2) * np.exp(-t / 0.03)
+    else:
+        s = lp_fast(noise(n), 5) * np.exp(-t / 0.09)
+        k = kick(); s[:len(k)] += k * 0.9
+    return s / np.abs(s).max()
 
-# 3 · Actualización
-b = buf()
-drone(b, 55, 0.14, 0, fr(380))
-pulse(b, 0.0, fr(375), 120, 0.5)
-for f in [0, 60, 120, 180, 240, 300]:
-    add(b, whoosh(), fr(f) - 0.35, 0.5)
-    add(b, impact(), fr(f), 0.85)
-add(b, bell(196, 3), fr(60), 0.5)
-for i in range(6):
-    add(b, chime(1318 + i * 120, 0.5), fr(314) + i * 0.06, 0.18, pan=(-0.5 + i * 0.2))
-end_card(b, fr(380))
-save(b, "public/update/audio_update.wav")
+
+def tick():
+    n = int(SR * 0.06); t = np.arange(n) / SR
+    return np.sin(2 * np.pi * 2400 * t) * np.exp(-t / 0.012)
+
+
+def crunch():
+    n = int(SR * 0.35); t = np.arange(n) / SR
+    s = np.zeros(n)
+    for j in range(6):
+        i = int(SR * 0.04 * j * (0.6 + 0.8 * rng.random()))
+        m = min(n - i, int(SR * 0.05))
+        if m > 0:
+            s[i:i + m] += lp_fast(noise(m), 3) * np.exp(-np.arange(m) / SR / 0.012) * (1 - j * 0.12)
+    return s / np.abs(s).max()
+
+
+def coin():
+    return np.concatenate([chime(1568, 0.12)[: int(SR * 0.07)], chime(2093, 0.5)])
+
+
+def music(b, start, end, bpm, gain=0.55):
+    step = 60 / bpm; t = start; i = 0
+    notes = [55, 55, 65.4, 49, 55, 55, 73.4, 65.4]
+    while t < end - 0.05:
+        add(b, kick(), t, gain)
+        hat = lp_fast(noise(int(SR * 0.05)), 1) - lp_fast(noise(int(SR * 0.05)), 8)
+        hat *= np.exp(-np.arange(len(hat)) / SR / 0.015)
+        add(b, hat, t + step / 2, gain * 0.35, pan=0.3)
+        if i % 2 == 1:
+            add(b, hat, t, gain * 0.25, pan=-0.3)
+        n = int(SR * step); tt = np.arange(n) / SR; f = notes[(i // 2) % len(notes)]
+        bass = np.sign(np.sin(2 * np.pi * f * tt)) * 0.5 + np.sin(2 * np.pi * f * tt)
+        add(b, lp_fast(bass, 30) * np.exp(-tt / 0.25), t, gain * 0.35)
+        t += step; i += 1
+
+
+def stinger(b, name, t, arg=None):
+    if name == "bell":
+        add(b, bell(147, 4), t, 0.9); add(b, impact(), t, 0.5)
+    elif name == "heart":
+        add(b, heartbeat(), t, 0.8)
+    elif name == "riser":
+        n = int(SR * (arg or 30) / 30); tt = np.linspace(0, 1, n)
+        x = (lp_fast(noise(n), 4) - lp_fast(noise(n), 30)) * tt ** 2
+        add(b, x * 0.8, t, 0.6)
+    elif name == "impact":
+        add(b, impact(), t, 1.0)
+    elif name == "growl":
+        add(b, growl(), t, 0.9)
+    elif name == "stamp":
+        add(b, impact(0.8), t, 0.7); add(b, whoosh(0.3), t - 0.25, 0.4)
+    elif name == "shock":
+        add(b, bell(98, 3), t, 0.8); add(b, impact(), t, 0.9); add(b, whoosh(0.8), t, 0.6)
+    elif name == "whoosh":
+        add(b, whoosh(), t, 0.6)
+    elif name == "swell":
+        for i, f in enumerate([523, 659, 784]):
+            add(b, chime(f, 1.2), t + i * 0.05, 0.2)
+    elif name == "coins":
+        for i in range(10):
+            add(b, coin(), t + i * 0.07, 0.18, pan=(-0.6 + (i % 5) * 0.3))
+    elif name == "end":
+        end_card(b, t)
+        for i in range(15):
+            add(b, tick(), t + 1.0 + i / 30 * 1.6, 0.25)
+
+
+def fights(b, fights_list, guns):
+    for fight in fights_list:
+        kind = guns[fight["gun"]]["sound"]
+        add(b, whoosh(0.35), fr(fight["from"]) - 0.2, 0.45)
+        for z in fight["zombies"]:
+            last = z["hits"][-1]
+            for h in z["hits"]:
+                t = fr(fight["from"] + h)
+                add(b, gunshot(kind), t, 0.75, pan=0.15)
+                add(b, tick(), t + 0.02, 0.35)
+            t = fr(fight["from"] + last)
+            add(b, crunch(), t + 0.02, 0.8, pan=(z["x"] - 540) / 900)
+            add(b, coin(), t + 0.12, 0.3)
+            if "toast" in z:
+                for i, f in enumerate([784, 988, 1175]):
+                    add(b, chime(f, 0.7), t + 0.15 + i * 0.07, 0.22)
+
+
+S = json.load(open("src/updateScenes.json"))
+G = S["guns"]
+
+for key, out in [("boss", "audio_boss.wav"), ("bestiary", "audio_bestiary.wav"), ("update", "audio_update.wav")]:
+    v = S[key]; b = buf()
+    for seg in v["music"]:
+        music(b, fr(seg[0]), fr(seg[1]), seg[2])
+    drone(b, 49, 0.12, 0, fr(375))
+    fights(b, v["fights"], G)
+    if key == "boss":
+        bf = v["boss"]
+        for h in bf["hits"]:
+            t = fr(bf["from"] + h)
+            add(b, gunshot(G[bf["gun"]]["sound"]), t, 0.6); add(b, tick(), t + 0.02, 0.3)
+    if key == "bestiary":
+        for i, f in enumerate(v["flips"]):
+            add(b, whoosh(0.2), fr(f) - 0.12, 0.3); add(b, chime(880 + i * 110, 0.6), fr(f), 0.3)
+    if key == "update":
+        for i, f in enumerate(v["chests"]):
+            add(b, coin(), fr(f), 0.35 if i < 6 else 0.6)
+        for f in [40, 120, 190, 260, 320]:
+            add(b, whoosh(), fr(f) - 0.3, 0.5)
+    for ev in v["sfx"]:
+        stinger(b, ev[0], fr(ev[1]), ev[2] if len(ev) > 2 else None)
+    save(b, "public/update/" + out)
 print("ok")

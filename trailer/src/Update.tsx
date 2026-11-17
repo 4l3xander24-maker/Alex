@@ -667,7 +667,7 @@ export const ShortFinalBoss: React.FC = () => {
       </Sequence>
       <Sequence name="Reto" from={330} durationInFrames={45}>
         <AbsoluteFill style={{ filter: "grayscale(0.85) contrast(1.2)", transform: `scale(1.12)` }}>
-          <Freeze frame={s.boss.len + 6}>
+          <Freeze frame={s.boss.len + 30}>
             <BossFight spec={s.boss} />
           </Freeze>
         </AbsoluteFill>
@@ -834,7 +834,7 @@ export const ShortBestiary: React.FC = () => {
         );
       })}
       <Sequence name="Colección" from={260} durationInFrames={115}>
-        <AbsoluteFill style={{ transform: `scale(${zoom}) translate(${(lastX * (zoom - 1)) / zoom}px, ${(lastY * (zoom - 1)) / zoom}px)` }}>
+        <AbsoluteFill style={{ transform: `scale(${zoom}) translate(${(lastX * (zoom - 1)) / 1.4}px, ${(lastY * (zoom - 1)) / 1.4}px)` }}>
           <Grid reveals={reveals} enterBase={-20} count={gridCount} />
         </AbsoluteFill>
         <Sequence from={4} durationInFrames={56} layout="none">
