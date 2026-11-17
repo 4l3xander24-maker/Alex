@@ -132,6 +132,15 @@ el círculo de runas y el cuchillo), [`docs/capturas/pixel/`](docs/capturas/pixe
 - **Nivel de cuenta**: al terminar la partida ganas XP. Cada nivel da 1 punto de mejora (daño, vida, velocidad,
   recarga, cadencia, munición, crítico, botín, poder) y cada 5 niveles un **talento** (apuntar, correr,
   regeneración, vampiro, doble salto, esquivar, último aliento, balas explosivas, codicia, reparador).
+- **Renacer** (con Don Ramiro, el Veterano, solo en la preparación): desde el **nivel 25** puedes volver al nivel 1;
+  cada renacer siguiente pide 5 niveles más (30, 35, ...) y hay **10 como máximo** (`Config.Rebirth`).
+  - **Se reinicia:** nivel, XP, puntos de mejora (y lo invertido en mejoras) y puntos de talento sin usar.
+  - **Se queda:** los talentos aprendidos y todo lo demás (monedas, armas y mejoras, poderes, mascotas, skins,
+    dificultades, logros, bestiario, conquistas, títulos, códigos, racha...).
+  - **Premio para siempre por cada renacer:** +10% de XP de cuenta y +3% de monedas (se suman: 3 renaceres = +30% XP
+    y +9% monedas; tope +100% / +30%). No paga monedas. Se ve como ⭐ en la tabla de jugadores ("Renacer"), en el
+    Veterano, en el resumen de la partida y en el perfil del lobby; el primero da la insignia «Renacido».
+  - Pide confirmar en un panel que dice qué se pierde y qué se queda; el servidor revisa todo y guarda al instante.
 - **Todo se guarda** (monedas, nivel, armas, poderes, talentos) con DataStore.
 - **Guía para nuevos**: en la preparación hay flechas doradas sobre los vendedores y la campana, y la primera vez
   sale un tutorial de 4 pasos (vendedor, reconstruir la campana, disparar, poderes) que se puede saltar.

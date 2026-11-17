@@ -58,6 +58,12 @@ Si todas las partidas se completaran, el núcleo saldría en ~29 partidas (~19 c
 Maestría por enemigo (`Config.Collection`, una sola vez por cuenta): comunes 5 / 15 / 40 monedas (bronce / plata / oro, a 10 / 100 / 500 bajas) y jefes 15 / 40 / 100 (a 1 / 5 / 20 bajas). Completar un nivel con todos los enemigos paga 100 / 300 / 800 y el oro da el título «Maestro del Bestiario».
 Con 10 comunes y 6 jefes (incluye el Campanero Maldito, jefe final): 600 + 930 + 1.200 = **2.730 monedas** en total (~5% del núcleo). Cada enemigo nuevo suma 60 (común) o 155 (jefe). El oro de los comunes pide cientos de bajas y el del Segador, que solo sale en su semana, es de largo plazo.
 
+## Renacer
+- **Reglas** (`Config.Rebirth`): el primero pide nivel 25 y cada uno siguiente 5 más (30, 35, ... hasta 70); máximo 10. Solo en la preparación, con el Veterano.
+- **Se reinicia:** nivel (a 1), XP, puntos de mejora y lo invertido en mejoras, y puntos de talento sin usar. **Se queda** todo lo demás: talentos aprendidos, monedas, armas y sus mejoras, poderes, mascotas, skins, dificultades, logros, bestiario, conquistas, títulos, códigos y racha.
+- **Premio para siempre:** +10% de XP de cuenta por renacer (se suman: 3 = +30%) y +3% de monedas dentro del multiplicador de monedas por zombi (tope +30% con 10). **No paga monedas**: el ingreso sigue bajo.
+- **Sin premios dobles:** los logros, las insignias y los niveles del bestiario son de una sola vez y no se borran. La misión diaria «Sube un nivel» sigue contando lo ya subido ese día y no se puede cobrar dos veces. Los puntos de talento que se vuelven a ganar sirven para aprender talentos nuevos; con todos aprendidos no hacen nada.
+
 ## Cosas que NO toqué (y por qué)
 - **Puntos de estadística:** salen del nivel de cuenta, que crece exponencialmente (~9 partidas al nivel 20, cientos al 50). Ya frena solo.
 - **Precios de Robux y skins:** los fija Creator Hub.
