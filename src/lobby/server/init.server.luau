@@ -886,6 +886,7 @@ profileRemote.OnServerInvoke = function(player: Player)
 	end
 	return {
 		Level = data.Level or 1,
+		Rebirths = if type(data.Rebirths) == "number" then data.Rebirths else 0,
 		BestWave = data.BestWave or 0,
 		TotalKills = data.TotalKills or 0,
 		Achievements = achievements,

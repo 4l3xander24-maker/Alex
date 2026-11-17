@@ -996,6 +996,7 @@ Config.Badges = {
 	{ Key = "ClearExpert", Id = 0, Name = "Experto en zombis", Description = "Supera la dificultad Experto." },
 	{ Key = "HallOfFame", Id = 0, Name = "Salón de la fama", Description = "Sé el primer jugador del mundo en superar una dificultad y entra al Salón de la fama." },
 	{ Key = "Streak7", Id = 0, Name = "Una semana fiel", Description = "Juega 7 días seguidos y llega a la racha de 7 días." },
+	{ Key = "Rebirth1", Id = 0, Name = "Renacido", Description = "Renace por primera vez con Don Ramiro, el Veterano." },
 }
 
 -- Bestiario (se ve en la tienda del Veterano): orden y descripción de cada enemigo

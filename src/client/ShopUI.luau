@@ -664,7 +664,10 @@ function ShopUI.render()
 	local titles = TITLES[currentShop]
 	title.Text = titles[1]
 	local xpText = `Nivel {data.Level} · {data.Xp}/{Progression.xpNeeded(data.Level)} XP`
-	subtitle.Text = `{titles[2]}   ·   💰 {coins}   ·   {xpText}`
+	-- El Veterano muestra también cuántas veces renaciste
+	local rebirths = Progression.rebirths(data)
+	local rebirthText = if currentShop == "Trainer" and rebirths > 0 then `   ·   ⭐ {rebirths}` else ""
+	subtitle.Text = `{titles[2]}   ·   💰 {coins}   ·   {xpText}{rebirthText}`
 
 	closedBanner.Visible = not isOpen() and currentShop ~= "Trainer"
 	if currentShop == "Armory" then

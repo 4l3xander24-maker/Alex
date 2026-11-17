@@ -56,6 +56,7 @@ local function updateLeaderstats(player: Player, data: Progression.Profile)
 		stats.Monedas.Value = data.Coins
 		stats.Nivel.Value = data.Level
 		stats["Récord"].Value = data.BestWave
+		stats.Renacer.Value = `⭐ {Progression.rebirths(data)}`
 	end
 end
 
@@ -223,6 +224,11 @@ function DataService.init(onLoaded: (Player) -> ())
 		local best = Instance.new("IntValue")
 		best.Name = "Récord"
 		best.Parent = stats
+		-- Veces que renació (texto con estrella, por eso no es IntValue)
+		local rebirths = Instance.new("StringValue")
+		rebirths.Name = "Renacer"
+		rebirths.Value = "⭐ 0"
+		rebirths.Parent = stats
 		stats.Parent = player
 
 		load(player)
