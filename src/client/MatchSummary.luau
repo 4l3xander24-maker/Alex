@@ -136,13 +136,16 @@ local function showVictoryVote(state: Instance)
 	end)
 end
 
--- Texto de la primera columna: el nombre y, si tiene, su título (Salón de la fama) en dorado
+-- Texto de la primera columna: el nombre, sus renaceres (⭐) y, si tiene, su título (Salón de la fama) en dorado
 local function escapeRich(text: string): string
 	return (string.gsub(string.gsub(string.gsub(text, "&", "&amp;"), "<", "&lt;"), ">", "&gt;"))
 end
 
 local function nameWithTitle(row, medal: string): string
 	local text = escapeRich(medal .. row.Name)
+	if (row.Rebirths or 0) > 0 then
+		text ..= ` <font color="#ffd764">⭐{row.Rebirths}</font>`
+	end
 	if row.Title and row.Title ~= "" then
 		text ..= ` <font color="#ffd764">«{escapeRich(row.Title)}»</font>`
 	end

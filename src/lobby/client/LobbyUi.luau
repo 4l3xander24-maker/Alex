@@ -260,7 +260,7 @@ local function buildProfile()
 			return remote:InvokeServer()
 		end)
 		if ok and data then
-			panel.Text = `\n{player.DisplayName}\n\nNivel {data.Level}\nMejor oleada: {data.BestWave}\nZombis eliminados: {data.TotalKills}\nLogros: {data.Achievements}\nMascotas y compañeros: {data.Pets}\nDificultad abierta: {data.Difficulty}`
+			panel.Text = `\n{player.DisplayName}\n\nNivel {data.Level}{if (data.Rebirths or 0) > 0 then `  ·  ⭐ Renacer {data.Rebirths}` else ""}\nMejor oleada: {data.BestWave}\nZombis eliminados: {data.TotalKills}\nLogros: {data.Achievements}\nMascotas y compañeros: {data.Pets}\nDificultad abierta: {data.Difficulty}`
 		else
 			panel.Text = "\nAún no hay perfil guardado.\nJuega una partida primero."
 		end

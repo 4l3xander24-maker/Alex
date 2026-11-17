@@ -51,6 +51,10 @@ local title: TextLabel
 local subtitle: TextLabel
 local list: ScrollingFrame
 local closedBanner: TextLabel
+local rebirthConfirm: Frame
+local rebirthBody: TextLabel
+local rebirthYes: TextButton
+local rebirthBusy = false
 local gameState: Instance
 local currentShop: string? = nil
 local currentPrompt: ProximityPrompt? = nil
@@ -648,6 +652,55 @@ local function renderTrainer(data: Progression.Profile)
 	end
 end
 
+-- Renacer: qué pide, qué da y el botón que abre la confirmación
+local function percent(value: number): number
+	return math.floor(value * 100 + 0.5)
+end
+
+local function openRebirthConfirm()
+	local data = Profile.get()
+	local rules = Config.Rebirth
+	local upcoming = Progression.rebirths(data) + 1
+	rebirthBody.Text = table.concat({
+		`Renacer {upcoming} de {rules.Max}. Vuelves al nivel 1.`,
+		"",
+		"SE REINICIA:",
+		"• Nivel y XP (vuelves al nivel 1)",
+		"• Puntos de mejora y todo lo invertido en mejoras",
+		"• Puntos de talento sin usar",
+		"",
+		"TE QUEDAS CON:",
+		"• Los talentos que ya aprendiste",
+		"• Monedas, armas y sus mejoras, poderes, mascotas y skins",
+		"• Dificultades, logros, bestiario, conquistas, títulos y racha",
+		"",
+		"GANAS PARA SIEMPRE:",
+		`• +{percent(upcoming * rules.XpBonus)}% de XP de cuenta (antes +{percent((upcoming - 1) * rules.XpBonus)}%)`,
+		`• +{percent(upcoming * rules.CoinBonus)}% de monedas (antes +{percent((upcoming - 1) * rules.CoinBonus)}%)`,
+		`• ⭐ {upcoming} junto a tu nombre`,
+	}, "\n")
+	rebirthConfirm.Visible = true
+end
+
+local function renderRebirth(data: Progression.Profile)
+	local rules = Config.Rebirth
+	local count = Progression.rebirths(data)
+	local needed = Progression.rebirthLevel(data)
+	sectionHeader(`⭐ Renacer  ·  {count}/{rules.Max}`)
+	local description: string
+	local buttons: { ButtonSpec } = {}
+	if not needed then
+		description = `Renaciste el máximo de veces. Tienes +{percent(count * rules.XpBonus)}% de XP y +{percent(count * rules.CoinBonus)}% de monedas para siempre.`
+	else
+		local allowed = Progression.canRebirth(data)
+		description = `Pide nivel {needed} (tienes {data.Level}). Vuelves al nivel 1 sin mejoras; te quedas con talentos, armas, monedas y todo lo demás. Cada renacer da +{percent(rules.XpBonus)}% de XP y +{percent(rules.CoinBonus)}% de monedas para siempre.`
+		-- En plena partida no se puede: las mejoras cambian la vida y el daño
+		local text = if not allowed then `Nivel {needed}` elseif isOpen() then "Renacer ⭐" else "🔒 Preparación"
+		buttons = { { Text = text, Enabled = allowed, OnClick = openRebirthConfirm } }
+	end
+	row("⭐", if count > 0 then `Renacer  ·  ⭐ {count}` else "Renacer", description, buttons, GOLD)
+end
+
 function ShopUI.render()
 	if not currentShop then
 		return
@@ -664,9 +717,16 @@ function ShopUI.render()
 	local titles = TITLES[currentShop]
 	title.Text = titles[1]
 	local xpText = `Nivel {data.Level} · {data.Xp}/{Progression.xpNeeded(data.Level)} XP`
-	subtitle.Text = `{titles[2]}   ·   💰 {coins}   ·   {xpText}`
+	-- El Veterano muestra también cuántas veces renaciste
+	local rebirths = Progression.rebirths(data)
+	local rebirthText = if currentShop == "Trainer" and rebirths > 0 then `   ·   ⭐ {rebirths}` else ""
+	subtitle.Text = `{titles[2]}   ·   💰 {coins}   ·   {xpText}{rebirthText}`
 
 	closedBanner.Visible = not isOpen() and currentShop ~= "Trainer"
+	-- La confirmación de renacer solo vale con el Veterano y en la preparación
+	if currentShop ~= "Trainer" or not isOpen() then
+		rebirthConfirm.Visible = false
+	end
 	if currentShop == "Armory" then
 		renderArmory(data, coins)
 	elseif currentShop == "Mystic" then
@@ -679,6 +739,7 @@ function ShopUI.render()
 		renderTailor(data, coins)
 	else
 		renderTrainer(data)
+		renderRebirth(data)
 		renderBestiary(data)
 	end
 end
@@ -694,6 +755,7 @@ function ShopUI.open(shop: string, prompt: ProximityPrompt?)
 end
 
 function ShopUI.close()
+	rebirthConfirm.Visible = false
 	currentShop = nil
 	currentPrompt = nil
 	gui.Enabled = false
@@ -778,6 +840,77 @@ function ShopUI.init()
 	layout.Padding = UDim.new(0, 8)
 	layout.SortOrder = Enum.SortOrder.LayoutOrder
 	layout.Parent = list
+
+	-- Confirmación de renacer: encima de la ventana, del tamaño de un celular
+	rebirthConfirm = Instance.new("Frame")
+	rebirthConfirm.AnchorPoint = Vector2.new(0.5, 0.5)
+	rebirthConfirm.Position = UDim2.fromScale(0.5, 0.5)
+	rebirthConfirm.Size = UDim2.fromScale(0.92, 0.9)
+	rebirthConfirm.BackgroundColor3 = Color3.fromRGB(16, 18, 26)
+	rebirthConfirm.Visible = false
+	rebirthConfirm.Parent = gui
+	round(rebirthConfirm, 14)
+	local confirmSize = Instance.new("UISizeConstraint")
+	confirmSize.MaxSize = Vector2.new(440, 420)
+	confirmSize.Parent = rebirthConfirm
+	local confirmStroke = Instance.new("UIStroke")
+	confirmStroke.Color = GOLD
+	confirmStroke.Thickness = 3
+	confirmStroke.Parent = rebirthConfirm
+	label(rebirthConfirm, { Position = UDim2.fromOffset(16, 10), Size = UDim2.new(1, -32, 0, 32), Text = "⭐ ¿RENACER?", TextSize = 24, Font = Enum.Font.GothamBlack, TextColor3 = GOLD, TextXAlignment = Enum.TextXAlignment.Center })
+	-- El texto va en una lista que se desliza: en celulares chicos no entra entero
+	local confirmScroll = Instance.new("ScrollingFrame")
+	confirmScroll.Position = UDim2.fromOffset(16, 46)
+	confirmScroll.Size = UDim2.new(1, -32, 1, -112)
+	confirmScroll.BackgroundTransparency = 1
+	confirmScroll.BorderSizePixel = 0
+	confirmScroll.ScrollBarThickness = 6
+	confirmScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+	confirmScroll.CanvasSize = UDim2.new()
+	confirmScroll.Parent = rebirthConfirm
+	rebirthBody = label(confirmScroll, { Size = UDim2.new(1, -10, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, TextSize = 15, TextColor3 = Color3.new(1, 1, 1), TextYAlignment = Enum.TextYAlignment.Top })
+	local function confirmButton(text: string, color: Color3, anchorX: number, positionX: UDim): TextButton
+		local button = Instance.new("TextButton")
+		button.AnchorPoint = Vector2.new(anchorX, 1)
+		button.Position = UDim2.new(positionX, UDim.new(1, -12))
+		button.Size = UDim2.new(0.5, -22, 0, 48)
+		button.BackgroundColor3 = color
+		button.Font = Enum.Font.GothamBlack
+		button.TextSize = 18
+		button.TextColor3 = Color3.fromRGB(20, 16, 8)
+		button.Text = text
+		button.Parent = rebirthConfirm
+		round(button, 10)
+		return button
+	end
+	local rebirthNo = confirmButton("Cancelar", Color3.fromRGB(150, 155, 160), 0, UDim.new(0, 16))
+	rebirthYes = confirmButton("Confirmar ⭐", GOLD, 1, UDim.new(1, -16))
+	rebirthNo.Activated:Connect(function()
+		Sfx.play("UiClick")
+		rebirthConfirm.Visible = false
+	end)
+	rebirthYes.Activated:Connect(function()
+		-- Un pedido a la vez (el servidor también lo bloquea)
+		if rebirthBusy then
+			return
+		end
+		rebirthBusy = true
+		rebirthYes.Text = "..."
+		Sfx.play("UiClick")
+		task.spawn(function()
+			local ok, done, message = pcall(function()
+				return Remotes.Rebirth:InvokeServer()
+			end)
+			rebirthBusy = false
+			rebirthYes.Text = "Confirmar ⭐"
+			rebirthConfirm.Visible = false
+			if ok then
+				Notify.show(message, if done then GOLD else RED)
+			else
+				Notify.show("No se pudo renacer. Inténtalo de nuevo", RED)
+			end
+		end)
+	end)
 
 	gui.Parent = player:WaitForChild("PlayerGui")
 

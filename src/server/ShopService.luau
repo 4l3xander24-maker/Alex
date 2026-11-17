@@ -13,6 +13,7 @@ local DataService = require(script.Parent.DataService)
 local GameState = require(script.Parent.GameState)
 local CampBuilder = require(script.Parent.CampBuilder)
 local CodeService = require(script.Parent.CodeService)
+local Insignias = require(script.Parent.Insignias)
 
 local NOT_ENOUGH = "No tienes suficientes monedas"
 local CLOSED = "🔒 Las tiendas solo abren antes de la partida"
@@ -319,6 +320,50 @@ function actions.EquipObjectSkin(player, data, id)
 	return true, `{skin.Icon} {skin.Name} puesta`
 end
 
+-- Renacer con el Veterano (Config.Rebirth). El cliente solo pide: el servidor
+-- revisa el nivel, que sea la preparación y que no haya otro renacer en curso.
+-- Se guarda al instante para que una caída no lo pierda ni lo repita.
+local rebirthing: { [Player]: boolean } = {}
+
+local function rebirth(player: Player): (boolean, string)
+	local data = DataService.get(player)
+	if not data then
+		return false, "Tu perfil aún está cargando"
+	end
+	-- Las mejoras cambian la vida y el daño: nunca en plena oleada
+	if not ShopService.isOpen() then
+		return false, "🔒 Solo puedes renacer en la preparación, antes de la partida"
+	end
+	-- Sin poder guardar, el renacer se perdería al salir
+	if not DataService.canSave(player) then
+		return false, "⚠️ Tu progreso no se está guardando en esta sesión: no puedes renacer"
+	end
+	local allowed, reason = Progression.canRebirth(data)
+	if not allowed then
+		return false, reason
+	end
+	Progression.rebirth(data)
+	local count = Progression.rebirths(data)
+	-- "Shop" vuelve a aplicar vida y velocidad (PlayerService) y llena la munición
+	-- con el cargador nuevo (CombatService), como al gastar puntos en la preparación
+	DataService.changed(player, "Shop")
+	Insignias.award(player, "Rebirth1")
+	if not DataService.saveNow(player) then
+		-- El renacer ya está en el perfil: el guardado automático lo vuelve a intentar
+		warn(`Renacer de {player.Name}: no se pudo guardar al instante`)
+	end
+	local rules = Config.Rebirth
+	return true, `⭐ ¡Renaciste! (x{count})  +{math.floor(count * rules.XpBonus * 100 + 0.5)}% de XP y +{math.floor(count * rules.CoinBonus * 100 + 0.5)}% de monedas para siempre`
+end
+
+-- Al cargar el perfil: quien renació antes de encender la insignia también la recibe
+function ShopService.onPlayerReady(player: Player)
+	local data = DataService.get(player)
+	if data and Progression.rebirths(data) >= 1 then
+		Insignias.award(player, "Rebirth1")
+	end
+end
+
 -- Para avisos fuera de las ventanas de tienda (como el letrero del puente)
 function ShopService.run(player: Player, action: string, id: string): (boolean, string)
 	local data = DataService.get(player)
@@ -356,6 +401,21 @@ function ShopService.init()
 			DataService.changed(player, reason)
 		end
 		return ok, message
+	end
+
+	Remotes.Rebirth.OnServerInvoke = function(player: Player)
+		-- Uno a la vez por jugador (el guardado espera a Roblox)
+		if rebirthing[player] then
+			return false, "Tu renacer ya se está procesando"
+		end
+		rebirthing[player] = true
+		local ok, done, message = pcall(rebirth, player)
+		rebirthing[player] = nil
+		if not ok then
+			warn(`Renacer de {player.Name}: {done}`)
+			return false, "No se pudo renacer. Inténtalo de nuevo"
+		end
+		return done, message
 	end
 
 	-- Cambio rápido de arma con las teclas 1-5 (no pasa por la tienda)

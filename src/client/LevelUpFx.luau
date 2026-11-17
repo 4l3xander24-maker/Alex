@@ -19,6 +19,7 @@ local OUTLINE = Color3.fromRGB(16, 26, 60)
 
 local gui: ScreenGui
 local lastLevel: number? = nil
+local lastRebirths: number? = nil
 local showing = 0
 
 local function sparkle(parent: Frame)
@@ -53,7 +54,8 @@ local function sparkle(parent: Frame)
 	end)
 end
 
-function LevelUpFx.show(level: number, gained: number)
+-- rebirths: si viene, es el cartel de "¡RENACISTE!" (Config.Rebirth) en vez del de nivel
+function LevelUpFx.show(level: number, gained: number, rebirths: number?)
 	Sfx.play("LevelUp")
 	showing += 1
 	local token = showing
@@ -75,7 +77,7 @@ function LevelUpFx.show(level: number, gained: number)
 	title.Size = UDim2.new(1, 0, 0, 96)
 	title.Font = Config.PixelFont
 	title.TextScaled = true
-	title.Text = if gained > 1 then `¡SUBISTE {gained} NIVELES!` else "¡SUBISTE DE NIVEL!"
+	title.Text = if rebirths then "¡RENACISTE!" elseif gained > 1 then `¡SUBISTE {gained} NIVELES!` else "¡SUBISTE DE NIVEL!"
 	title.TextColor3 = Color3.new(1, 1, 1)
 	title.Parent = frame
 	local gradient = Instance.new("UIGradient")
@@ -99,6 +101,10 @@ function LevelUpFx.show(level: number, gained: number)
 	detail.TextColor3 = Color3.fromRGB(255, 215, 100)
 	detail.TextStrokeTransparency = 0
 	detail.Text = `Nivel {level}  ·  {data.StatPoints} punto(s) de mejora{talents}`
+	if rebirths then
+		local rules = Config.Rebirth
+		detail.Text = `⭐ {rebirths}  ·  +{math.floor(rebirths * rules.XpBonus * 100 + 0.5)}% XP  ·  +{math.floor(rebirths * rules.CoinBonus * 100 + 0.5)}% monedas`
+	end
 	detail.Parent = frame
 
 	-- Entra grande y rebota a su tamaño
@@ -141,11 +147,16 @@ function LevelUpFx.init()
 			return
 		end
 		local level = Profile.get().Level
+		local rebirths = Profile.get().Rebirths or 0
 		-- La primera vez solo se anota (no es subir de nivel, es cargar el perfil)
-		if lastLevel and level > lastLevel then
+		if lastRebirths and rebirths > lastRebirths then
+			-- Renacer: el nivel baja a 1, sale el cartel de renacer
+			LevelUpFx.show(level, 0, rebirths)
+		elseif lastLevel and level > lastLevel then
 			LevelUpFx.show(level, level - lastLevel)
 		end
 		lastLevel = level
+		lastRebirths = rebirths
 	end)
 end
 

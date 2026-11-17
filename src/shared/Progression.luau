@@ -45,6 +45,7 @@ export type Profile = {
 	BestiaryKills: { [string]: number }, -- bajas por tipo de enemigo (colección del bestiario)
 	BestiaryClaimed: { [string]: boolean }, -- premios de maestría ya cobrados ("Tipo:Nivel" y "Set:Nivel")
 	Boosts: { Coins: number, Xp: number }, -- potenciadores de Robux: hora (os.time) en que termina cada uno
+	Rebirths: number, -- veces que renació con el Veterano (Config.Rebirth)
 }
 
 local Progression = {}
@@ -107,6 +108,7 @@ function Progression.defaultProfile(): Profile
 		BestiaryKills = {},
 		BestiaryClaimed = {},
 		Boosts = { Coins = 0, Xp = 0 },
+		Rebirths = 0,
 	}
 end
 
@@ -218,6 +220,56 @@ function Progression.addXp(profile: Profile, amount: number): number
 	return gained
 end
 
+-- Renacer: cuántas veces renació (siempre un número entre 0 y Config.Rebirth.Max)
+function Progression.rebirths(profile: Profile): number
+	local count = profile.Rebirths
+	return if type(count) == "number" then math.clamp(math.floor(count), 0, Config.Rebirth.Max) else 0
+end
+
+-- Nivel que pide el próximo renacer (nil si ya renació el máximo de veces)
+function Progression.rebirthLevel(profile: Profile): number?
+	local count = Progression.rebirths(profile)
+	if count >= Config.Rebirth.Max then
+		return nil
+	end
+	return Config.Rebirth.FirstLevel + count * Config.Rebirth.LevelStep
+end
+
+-- ¿Cumple lo que pide el próximo renacer? Si no, el motivo para mostrar
+function Progression.canRebirth(profile: Profile): (boolean, string)
+	local needed = Progression.rebirthLevel(profile)
+	if not needed then
+		return false, `Ya renaciste {Config.Rebirth.Max} veces: el máximo`
+	end
+	if profile.Level < needed then
+		return false, `Necesitas nivel {needed} para renacer`
+	end
+	return true, ""
+end
+
+-- Multiplicador de XP de cuenta por renacer (+10% cada uno, se suman: 3 = x1.3)
+function Progression.rebirthXpMultiplier(profile: Profile): number
+	return 1 + Progression.rebirths(profile) * Config.Rebirth.XpBonus
+end
+
+-- Aplica un renacer al perfil (el servidor ya revisó canRebirth). Vuelve al
+-- nivel 1 sin XP, sin puntos de mejora (ni lo invertido) y sin puntos de
+-- talento sin usar. Los talentos aprendidos y todo lo demás se quedan.
+function Progression.rebirth(profile: Profile)
+	-- Misión diaria de niveles: se cuenta desde StartLevel. Se corre para que lo
+	-- ya subido hoy siga contando y no quede trabada hasta mañana
+	local missions = profile.Missions
+	if type(missions) == "table" and type(missions.StartLevel) == "number" then
+		missions.StartLevel = 1 - math.max(0, profile.Level - missions.StartLevel)
+	end
+	profile.Rebirths = Progression.rebirths(profile) + 1
+	profile.Level = 1
+	profile.Xp = 0
+	profile.StatPoints = 0
+	profile.TalentPoints = 0
+	profile.Stats = {}
+end
+
 -- Bonus de la skin de arma puesta (Config.WeaponSkins[*].Bonus), vacío si no hay
 local NO_BONUS = {}
 local function skinBonus(profile: Profile): { [string]: number }
@@ -251,7 +303,8 @@ function Progression.getPlayerStats(profile: Profile)
 	return {
 		MaxHealth = Config.Player.MaxHealth + Progression.statValue(profile, "Health"),
 		WalkSpeed = Config.Player.WalkSpeed * (1 + Progression.statValue(profile, "Speed")),
-		CoinMultiplier = (1 + Progression.statValue(profile, "Loot")) * greed,
+		-- Cada renacer suma +3% de monedas (Config.Rebirth.CoinBonus)
+		CoinMultiplier = (1 + Progression.statValue(profile, "Loot")) * greed * (1 + Progression.rebirths(profile) * Config.Rebirth.CoinBonus),
 		PowerDamage = 1 + power,
 		PowerCooldown = 1 - power * 0.6,
 	}

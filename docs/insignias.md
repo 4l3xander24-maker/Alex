@@ -18,6 +18,7 @@ Hay que volver a publicar la Partida (las insignias se dan solo desde la Partida
 | ClearExpert | Experto en zombis | Supera la dificultad Experto. | Al superar la meta de Experto |
 | HallOfFame | Salón de la fama | Sé el primer jugador del mundo en superar una dificultad y entra al Salón de la fama. | Al entrar al Salón de la fama |
 | Streak7 | Una semana fiel | Juega 7 días seguidos y llega a la racha de 7 días. | Al llegar al día 7 de racha |
+| Rebirth1 | Renacido | Renace por primera vez con Don Ramiro, el Veterano. | Al renacer por primera vez (y al entrar a una partida, si ya había renacido antes de encenderla) |
 
 ## Cómo crearlas
 1. Entra a create.roblox.com y abre **Creations**.

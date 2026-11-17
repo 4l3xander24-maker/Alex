@@ -996,6 +996,7 @@ Config.Badges = {
 	{ Key = "ClearExpert", Id = 0, Name = "Experto en zombis", Description = "Supera la dificultad Experto." },
 	{ Key = "HallOfFame", Id = 0, Name = "Salón de la fama", Description = "Sé el primer jugador del mundo en superar una dificultad y entra al Salón de la fama." },
 	{ Key = "Streak7", Id = 0, Name = "Una semana fiel", Description = "Juega 7 días seguidos y llega a la racha de 7 días." },
+	{ Key = "Rebirth1", Id = 0, Name = "Renacido", Description = "Renace por primera vez con Don Ramiro, el Veterano." },
 }
 
 -- Bestiario (se ve en la tienda del Veterano): orden y descripción de cada enemigo
@@ -1635,6 +1636,17 @@ Config.Progression = {
 	XpPerWave = 25,
 	XpPerKill = 2,
 	XpPerBossKill = 40,
+}
+
+-- Renacer (lo ofrece el Veterano): vuelves al nivel 1 a cambio de bonos para
+-- siempre. Se pierden nivel, XP, puntos de mejora (y lo invertido) y puntos de
+-- talento sin usar; los talentos aprendidos y todo lo demás se quedan.
+Config.Rebirth = {
+	FirstLevel = 25, -- nivel que pide el primer renacer
+	LevelStep = 5, -- cada renacer siguiente pide 5 niveles más (30, 35, ...)
+	Max = 10, -- renaceres como máximo
+	XpBonus = 0.10, -- +10% de XP de cuenta por cada renacer (se suman)
+	CoinBonus = 0.03, -- +3% de monedas por cada renacer (va dentro de CoinMultiplier)
 }
 
 -- Un punto por nivel. PerPoint es lo que suma cada punto.

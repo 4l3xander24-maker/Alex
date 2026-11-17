@@ -58,6 +58,7 @@ DataService.init(function(player)
 	WeeklyService.onPlayerReady(player)
 	DailyService.onPlayerReady(player)
 	WhatsNewService.onPlayerReady(player)
+	ShopService.onPlayerReady(player)
 end)
 
 local repairPrompt = map:FindFirstChild("RepairPrompt", true)

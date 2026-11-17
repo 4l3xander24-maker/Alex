@@ -29,7 +29,7 @@ type MatchStats = {
 }
 
 -- Una fila de la tabla del equipo al final
-export type TeamRow = { Name: string, UserId: number, Kills: number, BossKills: number, Coins: number, Xp: number, Waves: number, Title: string }
+export type TeamRow = { Name: string, UserId: number, Kills: number, BossKills: number, Coins: number, Xp: number, Waves: number, Title: string, Rebirths: number }
 
 local MatchService = {}
 
@@ -66,6 +66,10 @@ local function grantXp(player: Player, entry: MatchStats, amount: number)
 	local boost = Config.Monetization.Products.BoostXp
 	if data and Progression.boostLeft(data, boost.Boost) > 0 then
 		amount *= boost.Multiplier
+	end
+	-- Renacer: +10% por cada vez que renació
+	if data then
+		amount *= Progression.rebirthXpMultiplier(data)
 	end
 	entry.XpExact += amount
 	local whole = math.floor(entry.XpExact) - entry.Xp
@@ -112,7 +116,7 @@ local function teamRows(): { TeamRow }
 	local rows: { TeamRow } = {}
 	for player, entry in stats do
 		local data = DataService.get(player)
-		table.insert(rows, { Name = player.DisplayName, UserId = player.UserId, Kills = entry.Kills, BossKills = entry.BossKills, Coins = entry.Coins, Xp = entry.Xp, Waves = entry.Waves, Title = if data then data.Title else "" })
+		table.insert(rows, { Name = player.DisplayName, UserId = player.UserId, Kills = entry.Kills, BossKills = entry.BossKills, Coins = entry.Coins, Xp = entry.Xp, Waves = entry.Waves, Title = if data then data.Title else "", Rebirths = if data then Progression.rebirths(data) else 0 })
 	end
 	table.sort(rows, function(a, b)
 		return if a.Kills ~= b.Kills then a.Kills > b.Kills else a.Xp > b.Xp

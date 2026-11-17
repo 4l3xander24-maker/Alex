@@ -30,7 +30,7 @@ local EVENTS = {
 	"ContinueCancel",
 	"LeaveToLobby",
 }
-local FUNCTIONS = { "GetSnapshot", "ShopAction" }
+local FUNCTIONS = { "GetSnapshot", "ShopAction", "Rebirth" }
 
 local Remotes = {}
 
