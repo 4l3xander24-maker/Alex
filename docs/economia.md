@@ -78,3 +78,27 @@ Con 10 comunes y 6 jefes (incluye el Campanero Maldito, jefe final): 600 + 930 +
 ## Jefe final
 
 Al caer el Campanero Maldito (oleada meta) cada jugador presente cobra `Config.FinalBoss.KillCoins` según la dificultad: 30 / 45 / 65 / 90 / 120, además de las monedas normales por baja. Se paga una vez por partida (en el modo sin fin no vuelve a salir).
+
+## Pase de temporada
+
+`Config.SeasonPass` (temporada S1 «Invierno Maldito», termina el 2027-01-07 como las skins de invierno). 30 escalones,
+**500 XP de temporada** cada uno (15.000 en total). La XP de temporada no lleva multiplicadores (renacer, VIP, amigos,
+potenciadores ni dificultad).
+
+**Cuánta XP se gana** (`SeasonPass.Xp`): 10 por oleada superada (vivo y con al menos una baja en esa oleada), 0,1 por
+baja, 15 por jefe, con tope de **200 por partida** para esas tres; 40 por misión diaria y 60 por cumplir las 3.
+- Partida típica de Normal (~6 oleadas jugadas, ~120 bajas, medio jefe): 60 + 12 + 7 ≈ **80 XP**.
+- Jugador activo, 4 partidas al día: ~320, más misiones (2 de 3 de media y el extra día por medio: 80 + 30) ≈ **430 al día**.
+- 15.000 / 430 ≈ **35 días ≈ 5 semanas** para terminar la fila gratis. Quien juega 2 partidas y hace las misiones (~270
+  al día) llega a ~el escalón 25 al cierre si empezó al lanzarse.
+- Quedarse quieto no sirve: sin bajas en la oleada no cuenta, y caído tampoco.
+
+**Totales por fila** (monedas bajas a propósito):
+| Fila | Monedas | Potenciadores (30 min c/u) | Cosméticos |
+|---|---|---|---|
+| Gratis | **580** (16 escalones de 30–50) | 10 (5 de Monedas x2, 5 de XP x2) = 5 h | Rastro de escarcha, Ventisca, skin de arma Escarcha, Fogata helada (escalón 30) |
+| Premium | **670** (10 escalones de 50–100) | 12 (6 y 6) = 6 h | Mina de hielo eterno, Compañero glacial, Reja congelada, Rastro de aurora, Campana de hielo, Fogata de aurora, Aurora boreal; escalón 30: título «Leyenda del Invierno Maldito» + skin de arma Hielo Maldito |
+
+580 monedas en ~5 semanas es menos que una semana de racha (625) y menos que ganar Normal una vez. Los cosméticos del
+pase no tienen precio ni producto: no se venden en ningún otro lado (en el Sastre salen como «Pase ❄️»). Las skins de
+arma del pase no dan bonus (solo color).

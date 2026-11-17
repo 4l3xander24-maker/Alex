@@ -49,3 +49,14 @@ potenciadores de la partida y solo se venden dentro de la partida (como las bols
 ## Skins de objetos (Premium)
 Mina galáctica 79, Mina de oro 129, Reja de fuego 99, Reja de cristal 149, Campana dorada 149 y Campana infernal 199 R$: creadas y conectadas.
 Compañero solar 129, Compañero del vacío 149, Rastro de tormenta 79 y Rastro de oro 99 R$: creadas y conectadas.
+
+## Pase de temporada Premium — `Config.Monetization.Products.SeasonPass`
+Crear en Creator Hub → Monetización → **Developer Products** (no Game Pass: cada temporada se vuelve a comprar):
+nombre «Pase de temporada Premium», descripción «Abre la fila Premium del pase de temporada actual», precio
+sugerido **249 R$** (rango 199–299). Pegar el id en `SeasonPass.Id` y volver a publicar la Partida.
+- Con `Id = 0` el botón del pase dice «Próximamente» y no se puede comprar.
+- La entrega va por ProcessReceipt como los demás: se anota el recibo, se guarda y recién ahí `PurchaseGranted`.
+- Si ya es Premium (o terminó la temporada) el botón no se ofrece. Si igual llega una compra (dos ventanas abiertas,
+  reintento tardío), no se rechaza: se entrega **2 horas de Monedas x2 y XP x2** (`SeasonPass.DuplicateBoostHours`) y
+  se avisa al jugador.
+- Al cambiar `Config.SeasonPass.Id` (temporada nueva) el Premium vuelve a cero y se vende otra vez con el mismo producto.
