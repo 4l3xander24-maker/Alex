@@ -1174,6 +1174,8 @@ Config.Monetization = {
 		BoostCoins = { Id = 0, Name = "Monedas x2 (30 min)", Icon = "⏱️", Description = "Doble de monedas por zombi durante 30 minutos. Comprar otra vez suma tiempo.", Short = "Monedas x2", Boost = "Coins", Duration = 1800, Multiplier = 2 },
 		BoostXp = { Id = 0, Name = "XP x2 (1 hora)", Icon = "⚡", Description = "Doble de XP durante 1 hora. Comprar otra vez suma tiempo.", Short = "XP x2", Boost = "Xp", Duration = 3600, Multiplier = 2 },
 		CoinsBig = { Id = 3719236344, Name = "Cofre de monedas", Icon = "💎", Description = "+2000 monedas.", Coins = 2000 },
+		-- Premium del pase de temporada (Config.SeasonPass): se vende solo desde el botón "Pase"
+		SeasonPass = { Id = 0, Name = "Pase de temporada Premium", Icon = "❄️", Description = "Abre la fila Premium del pase de esta temporada.", Season = true },
 	},
 	ReviveWindow = 10, -- segundos para comprar Revivir después de caer
 	ContinueWindow = 10, -- cuenta cuando caen todos, para comprar Continuar
@@ -1550,6 +1552,18 @@ Config.ObjectSkins = {
 	{ Id = "BellSilver", Kind = "Bell", Name = "Campana de plata", Icon = "🥈", CoinPrice = 2500, Main = Color3.fromRGB(176, 182, 196), Accent = Color3.fromRGB(235, 240, 250) },
 	{ Id = "BellGold", Kind = "Bell", Name = "Campana dorada", Icon = "🔔", Product = "ObjBellGold", Premium = true, Main = Color3.fromRGB(220, 170, 50), Accent = Color3.fromRGB(255, 240, 150) },
 	{ Id = "BellFire", Kind = "Bell", Name = "Campana infernal", Icon = "🌋", Product = "ObjBellFire", Premium = true, Fire = true, Main = Color3.fromRGB(120, 30, 22), Accent = Color3.fromRGB(255, 130, 40) },
+	-- Pase de temporada S1 (Config.SeasonPass): sin precio ni producto, solo se ganan en el pase.
+	-- Season = temporada en que salieron; quien las gana las conserva para siempre.
+	{ Id = "TracerFrost", Kind = "Tracer", Name = "Rastro de escarcha", Icon = "❄️", Season = "S1", Main = Color3.fromRGB(170, 225, 255), Accent = Color3.fromRGB(245, 252, 255) },
+	{ Id = "DfSnow", Kind = "DeathFx", Name = "Ventisca", Icon = "🌨️", Season = "S1", Colors = { Color3.fromRGB(245, 250, 255), Color3.fromRGB(190, 225, 250), Color3.fromRGB(140, 190, 235) }, Main = Color3.fromRGB(220, 240, 255), Accent = Color3.fromRGB(255, 255, 255), Rise = 8, Big = true },
+	{ Id = "FireFrost", Kind = "Campfire", Name = "Fogata helada", Icon = "🧊", Season = "S1", Main = Color3.fromRGB(150, 220, 255), Accent = Color3.fromRGB(240, 250, 255) },
+	{ Id = "MineFrost", Kind = "Mine", Name = "Mina de hielo eterno", Icon = "💠", Season = "S1", Premium = true, Main = Color3.fromRGB(60, 110, 170), Accent = Color3.fromRGB(200, 240, 255), Light = Color3.fromRGB(140, 230, 255) },
+	{ Id = "PetGlacier", Kind = "Pet", Name = "Compañero glacial", Icon = "🐧", Season = "S1", Premium = true, Main = Color3.fromRGB(110, 170, 230), Accent = Color3.fromRGB(235, 250, 255) },
+	{ Id = "GateFrost", Kind = "Gate", Name = "Reja congelada", Icon = "🧊", Season = "S1", Premium = true, Main = Color3.fromRGB(170, 215, 240), Accent = Color3.fromRGB(90, 170, 230) },
+	{ Id = "TracerAurora", Kind = "Tracer", Name = "Rastro de aurora", Icon = "🌌", Season = "S1", Premium = true, Main = Color3.fromRGB(90, 255, 190), Accent = Color3.fromRGB(190, 140, 255) },
+	{ Id = "BellFrost", Kind = "Bell", Name = "Campana de hielo", Icon = "🔔", Season = "S1", Premium = true, Main = Color3.fromRGB(150, 205, 240), Accent = Color3.fromRGB(240, 250, 255) },
+	{ Id = "FireAurora", Kind = "Campfire", Name = "Fogata de aurora", Icon = "🌠", Season = "S1", Premium = true, Main = Color3.fromRGB(90, 255, 180), Accent = Color3.fromRGB(200, 160, 255) },
+	{ Id = "DfAurora", Kind = "DeathFx", Name = "Aurora boreal", Icon = "🌌", Season = "S1", Premium = true, Colors = { Color3.fromRGB(90, 255, 180), Color3.fromRGB(80, 200, 255), Color3.fromRGB(190, 120, 255), Color3.fromRGB(255, 255, 255) }, Main = Color3.fromRGB(90, 255, 180), Accent = Color3.fromRGB(255, 255, 255), Rise = 18, Column = true },
 }
 
 -- Skins de armas (las vende el Sastre): cambian el color del arma que llevas.
@@ -1561,6 +1575,75 @@ Config.WeaponSkins = {
 	{ Id = "Blood", Name = "Sangrienta", Icon = "🟥", Product = "SkinBlood", Main = Color3.fromRGB(110, 14, 20), Accent = Color3.fromRGB(255, 50, 60), Glow = true, Bonus = { Damage = 0.06, Crit = 0.04 } },
 	{ Id = "Galaxy", Name = "Galaxia", Icon = "🟪", Product = "SkinGalaxy", Main = Color3.fromRGB(40, 24, 90), Accent = Color3.fromRGB(170, 120, 255), Glow = true, Bonus = { FireRate = 0.08, Magazine = 0.10 } },
 	{ Id = "Gold", Name = "Oro Macizo", Icon = "🟨", CoinPrice = 9000, Product = "SkinGold", Main = Color3.fromRGB(200, 150, 30), Accent = Color3.fromRGB(255, 230, 120), Glow = true, Bonus = { Damage = 0.12, Magazine = 0.12, Crit = 0.03 } },
+	-- Pase de temporada S1: solo se ganan en el pase (sin bonus: son solo de color)
+	{ Id = "Frost", Name = "Escarcha", Icon = "🧊", Season = "S1", Main = Color3.fromRGB(190, 225, 245), Accent = Color3.fromRGB(110, 170, 220) },
+	{ Id = "CursedIce", Name = "Hielo Maldito", Icon = "💎", Season = "S1", Main = Color3.fromRGB(30, 60, 120), Accent = Color3.fromRGB(120, 230, 255), Glow = true },
+}
+
+-- Pase de temporada: 30 escalones con dos filas de premios, Gratis (todos) y
+-- Premium (producto de Robux Monetization.Products.SeasonPass). La XP de
+-- temporada es aparte de la XP de cuenta y la da solo el servidor (sin bonos de
+-- renacer, VIP, amigos ni potenciadores). Al cambiar Id empieza una temporada
+-- nueva: se reinician la XP, lo cobrado y el Premium (los cosméticos ganados se
+-- quedan para siempre). Ends = hora UTC (os.time) en que deja de dar XP y de
+-- venderse; lo ya alcanzado se puede cobrar hasta que cambie Id.
+-- Cuenta de XpPerTier (ver docs/economia.md): una partida típica de Normal
+-- (~6 oleadas jugadas, ~120 bajas, medio jefe) da ~80 XP; 4 partidas = ~320 al
+-- día, más ~110 de misiones (2 de 3 cumplidas y el extra día por medio) ≈ 430
+-- al día. 30 × 500 = 15.000 XP ≈ 35 días: unas 5 semanas para la fila gratis.
+-- Premios: Coins = monedas; Boost = "Coins" o "Xp" (BoostMinutes con los mismos
+-- relojes de los potenciadores de Robux); ObjectSkin / WeaponSkin = id de la skin
+-- (se gana y se pone); Title = título. Un premio puede llevar varias cosas.
+Config.SeasonPass = {
+	Id = "S1",
+	Name = "Invierno Maldito",
+	Icon = "❄️",
+	Ends = 1799280000, -- 2027-01-07 00:00 UTC, igual que las skins de invierno
+	XpPerTier = 500,
+	Xp = {
+		Wave = 10, -- por oleada superada estando vivo y con al menos una baja en ella
+		Kill = 0.1, -- por baja (1 XP cada 10 bajas)
+		Boss = 15, -- por jefe eliminado
+		Mission = 40, -- por misión diaria cumplida
+		AllMissions = 60, -- por cumplir las misiones del día
+		MatchCap = 200, -- tope de XP por partida de oleadas, bajas y jefes (no cuenta misiones)
+	},
+	BoostMinutes = 30,
+	-- Si llega una compra del Premium y ya lo tenía (o la temporada terminó): horas de los dos potenciadores
+	DuplicateBoostHours = 2,
+	Rewards = {
+		{ Free = { Coins = 30 }, Premium = { Boost = "Xp" } },
+		{ Free = { Boost = "Coins" }, Premium = { Coins = 50 } },
+		{ Free = { Coins = 30 }, Premium = { ObjectSkin = "MineFrost" } },
+		{ Free = { Boost = "Xp" }, Premium = { Boost = "Coins" } },
+		{ Free = { Coins = 40 }, Premium = { Coins = 60 } },
+		{ Free = { Coins = 30 }, Premium = { ObjectSkin = "PetGlacier" } },
+		{ Free = { Boost = "Coins" }, Premium = { Boost = "Xp" } },
+		{ Free = { ObjectSkin = "TracerFrost" }, Premium = { Coins = 60 } },
+		{ Free = { Coins = 30 }, Premium = { Boost = "Coins" } },
+		{ Free = { Coins = 50 }, Premium = { ObjectSkin = "GateFrost" } },
+		{ Free = { Boost = "Xp" }, Premium = { Coins = 60 } },
+		{ Free = { Coins = 30 }, Premium = { Boost = "Xp" } },
+		{ Free = { Boost = "Coins" }, Premium = { ObjectSkin = "TracerAurora" } },
+		{ Free = { Coins = 30 }, Premium = { Boost = "Coins" } },
+		{ Free = { Coins = 50 }, Premium = { Coins = 80 } },
+		{ Free = { Boost = "Xp" }, Premium = { ObjectSkin = "BellFrost" } },
+		{ Free = { Coins = 30 }, Premium = { Boost = "Xp" } },
+		{ Free = { ObjectSkin = "DfSnow" }, Premium = { Coins = 60 } },
+		{ Free = { Boost = "Coins" }, Premium = { Boost = "Coins" } },
+		{ Free = { Coins = 50 }, Premium = { ObjectSkin = "FireAurora" } },
+		{ Free = { Coins = 30 }, Premium = { Boost = "Xp" } },
+		{ Free = { Boost = "Xp" }, Premium = { Coins = 60 } },
+		{ Free = { Coins = 30 }, Premium = { Boost = "Coins" } },
+		{ Free = { WeaponSkin = "Frost" }, Premium = { ObjectSkin = "DfAurora" } },
+		{ Free = { Coins = 50 }, Premium = { Coins = 80 } },
+		{ Free = { Boost = "Coins" }, Premium = { Boost = "Xp" } },
+		{ Free = { Coins = 30 }, Premium = { Coins = 60 } },
+		{ Free = { Boost = "Xp" }, Premium = { Boost = "Coins" } },
+		{ Free = { Coins = 40 }, Premium = { Coins = 100 } },
+		-- Último escalón: lo más vistoso (el título y la skin de arma Hielo Maldito)
+		{ Free = { ObjectSkin = "FireFrost" }, Premium = { Title = "Leyenda del Invierno Maldito", WeaponSkin = "CursedIce" } },
+	},
 }
 
 Config.CritMultiplier = 2

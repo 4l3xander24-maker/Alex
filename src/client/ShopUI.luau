@@ -411,6 +411,8 @@ local function renderObjectSkins(data: Progression.Profile, coins: number)
 					end })
 				elseif skin.Exclusive then
 					table.insert(buttons, { Text = "Exclusiva 👑", Enabled = false, OnClick = function() end })
+				elseif skin.Season then
+					table.insert(buttons, { Text = "Pase ❄️", Enabled = false, OnClick = function() end })
 				elseif skin.Product then
 					table.insert(buttons, { Text = "Robux 💎", Enabled = true, OnClick = function()
 						buyProduct(skin.Product)
@@ -420,7 +422,7 @@ local function renderObjectSkins(data: Progression.Profile, coins: number)
 						runAction("BuyObjectSkin", skin.Id)
 					end })
 				end
-				local description = if skin.Exclusive then "👑 EXCLUSIVA: solo la gana el primer jugador del mundo en superar Experto." elseif skin.Premium then "★ PREMIUM: brilla y suelta chispas. Solo con Robux." else "Cambia el color. Se compra con monedas."
+				local description = if skin.Exclusive then "👑 EXCLUSIVA: solo la gana el primer jugador del mundo en superar Experto." elseif skin.Season then "❄️ DE TEMPORADA: solo se gana en el Pase de temporada." elseif skin.Premium then "★ PREMIUM: brilla y suelta chispas. Solo con Robux." else "Cambia el color. Se compra con monedas."
 				row(skin.Icon, (if skin.Premium then "★ " else "") .. skin.Name, description, buttons, if skin.Premium then Color3.fromRGB(235, 190, 255) elseif equipped == skin.Id then GREEN else nil, skin.Premium, { Title = skin.Name, Builder = function()
 					return objectSkinModel(skin, data)
 				end })
@@ -457,8 +459,15 @@ local function renderTailor(data: Progression.Profile, coins: number)
 					buyProduct(skin.Product)
 				end })
 			end
+			if skin.Season then
+				table.insert(buttons, { Text = "Pase ❄️", Enabled = false, OnClick = function() end })
+			end
 		end
-		row(skin.Icon, `Skin {skin.Name}`, `{Progression.describeSkinBonus(skin)}{if skin.Glow then ".  Brilla con luz propia." else "."}`, buttons, if data.WeaponSkin == skin.Id then GREEN else nil, nil, { Title = `Skin {skin.Name}`, Builder = function()
+		local bonusText = Progression.describeSkinBonus(skin)
+		if skin.Season then
+			bonusText = "❄️ De temporada: solo se gana en el Pase" .. (if bonusText ~= "" then `  ·  {bonusText}` else "")
+		end
+		row(skin.Icon, `Skin {skin.Name}`, `{bonusText}{if skin.Glow then ".  Brilla con luz propia." else "."}`, buttons, if data.WeaponSkin == skin.Id then GREEN else nil, nil, { Title = `Skin {skin.Name}`, Builder = function()
 			local weaponId = if data.Equipped ~= "Machete" then data.Equipped else "Rifle"
 			return weaponPreview(weaponId, skin)
 		end })
