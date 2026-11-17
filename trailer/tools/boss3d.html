@@ -1,0 +1,129 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>html,body{margin:0;background:transparent}canvas{display:block}</style></head>
+<body>
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js"}}</script>
+<script type="module">
+import * as THREE from "three";
+const q = new URLSearchParams(location.search);
+const W = +(q.get("w") || 1200), H = +(q.get("h") || 1600);
+const yaw = +(q.get("yaw") || -18) * Math.PI / 180;
+const pose = q.get("pose") || "walk";
+const sil = q.get("sil") === "1";
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+renderer.setSize(W, H); renderer.setPixelRatio(1);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.shadowMap.enabled = true;
+document.body.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(30, W / H, 0.1, 200);
+camera.position.set(0, 3.2, 26); camera.lookAt(0, 6.3, 0);
+
+let seed = 7;
+const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+function tex(base, grime = 0.25, knit = false, size = 32) {
+  const c = document.createElement("canvas"); c.width = c.height = size;
+  const g = c.getContext("2d"); const col = new THREE.Color(base);
+  for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+    let k = 1 + (rnd() - 0.5) * grime;
+    if (knit) k *= ((x + (y >> 1)) % 4 < 2) ? 0.85 : 1.1;
+    g.fillStyle = `rgb(${Math.min(255, col.r * 255 * k)},${Math.min(255, col.g * 255 * k)},${Math.min(255, col.b * 255 * k)})`;
+    g.fillRect(x, y, 1, 1);
+  }
+  // manchas de sangre seca
+  for (let i = 0; i < 3; i++) { g.fillStyle = "rgba(90,10,14,0.55)"; g.fillRect(rnd() * size | 0, rnd() * size | 0, 2 + rnd() * 5 | 0, 2 + rnd() * 5 | 0); }
+  const t = new THREE.CanvasTexture(c); t.magFilter = THREE.NearestFilter; t.minFilter = THREE.NearestFilter; t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+const mat = (color, opts = {}) => sil
+  ? new THREE.MeshBasicMaterial({ color: 0x050307 })
+  : new THREE.MeshStandardMaterial({ map: tex(color, opts.grime ?? 0.22, opts.knit), roughness: opts.rough ?? 0.85, metalness: opts.metal ?? 0 });
+const SKIN = mat("#6e8a72"), SHIRT = mat("#2e242c", { knit: true }), PANTS = mat("#1e1a20", { knit: true }), CAPE = mat("#46141c", { knit: true });
+const BRONZE = sil ? mat() : new THREE.MeshStandardMaterial({ map: tex("#b07a34", 0.3), roughness: 0.38, metalness: 0.85 });
+const PATINA = sil ? mat() : new THREE.MeshStandardMaterial({ map: tex("#3f8c74", 0.35), roughness: 0.7, metalness: 0.3 });
+const IRON = sil ? mat() : new THREE.MeshStandardMaterial({ color: 0x55585e, roughness: 0.5, metalness: 0.9 });
+const GLOW = new THREE.MeshBasicMaterial({ color: 0xffa040 });
+const EYE = new THREE.MeshBasicMaterial({ color: 0xff6a20 });
+const BELT = mat("#2a1c10"), GOLDM = sil ? mat() : new THREE.MeshStandardMaterial({ color: 0xd4a83a, metalness: 0.9, roughness: 0.3 });
+
+function box(w, h, d, m, x = 0, y = 0, z = 0, parent) {
+  const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m);
+  b.position.set(x, y, z); b.castShadow = b.receiveShadow = true; (parent || root).add(b); return b;
+}
+const root = new THREE.Group(); scene.add(root); root.rotation.y = yaw;
+
+// piernas
+box(1.25, 3.6, 1.3, PANTS, -0.75, 1.8, 0); box(1.25, 3.6, 1.3, PANTS, 0.75, 1.8, 0);
+box(1.35, 0.6, 1.5, mat("#2a2224"), -0.75, 0.3, 0.1); box(1.35, 0.6, 1.5, mat("#2a2224"), 0.75, 0.3, 0.1);
+// torso (fornido)
+const torso = new THREE.Group(); torso.position.set(0, 3.6, 0); root.add(torso);
+box(3.6, 3.4, 1.8, SHIRT, 0, 1.7, 0, torso);
+box(3.7, 0.5, 1.9, BELT, 0, 0.3, 0, torso); box(0.6, 0.6, 0.15, GOLDM, 0, 0.3, 0.98, torso);
+box(2.2, 1.0, 0.12, SKIN, -0.5, 2.5, 0.92, torso); // carne asomando por el hábito roto
+// capa
+const cape = box(3.4, 4.6, 0.25, CAPE, 0, 1.2, -1.05, torso); cape.rotation.x = 0.08;
+// cadenas en diagonal sobre el pecho
+for (let i = 0; i < 9; i++) {
+  const t = i / 8; const x = -1.5 + 3.0 * t, y = 3.0 - 2.4 * t;
+  const l = box(i % 2 ? 0.42 : 0.42, i % 2 ? 0.14 : 0.22, i % 2 ? 0.22 : 0.12, IRON, x, y, 0.98, torso); l.rotation.z = -0.68;
+}
+// brazos
+function arm(side) {
+  const sh = new THREE.Group(); sh.position.set(side * 2.45, 3.0, 0); torso.add(sh);
+  box(1.6, 1.2, 1.7, SKIN, 0, 0, 0, sh); // hombro
+  const a = box(1.4, 3.4, 1.4, SKIN, 0, -1.7, 0, sh);
+  box(1.6, 0.6, 1.6, IRON, 0, -2.6, 0, sh); // grillete
+  for (let i = 0; i < 3; i++) box(0.25, 0.7, 0.25, mat("#c8c0a0"), (i - 1) * 0.42, -3.7, 0.45, sh); // garras
+  if (pose === "roar") { sh.rotation.x = -2.5; sh.rotation.z = side * 0.55; }
+  else { sh.rotation.x = -1.35 + side * 0.08; sh.rotation.z = side * 0.06; }
+  return a;
+}
+arm(-1); arm(1);
+// cabeza
+const head = new THREE.Group(); head.position.set(0, 3.4, 0.15); torso.add(head);
+if (pose === "roar") head.rotation.x = -0.32;
+box(1.9, 1.8, 1.8, SKIN, 0, 0.9, 0, head);
+box(1.2, 0.3, 0.1, mat("#3a0a0c"), 0, 0.35, 0.92, head); // boca
+for (let i = 0; i < 4; i++) box(0.16, 0.18, 0.1, mat("#e8e0c0"), -0.36 + i * 0.24, 0.45, 0.95, head);
+const eyeL = box(0.42, 0.22, 0.08, EYE, -0.45, 1.05, 0.93, head), eyeR = box(0.42, 0.22, 0.08, EYE, 0.45, 1.05, 0.93, head);
+// la campana de casco
+function cyl(r1, r2, h, m, y) { const c = new THREE.Mesh(new THREE.CylinderGeometry(r1, r2, h, 40, 1, false), m); c.position.y = y; c.castShadow = true; head.add(c); return c; }
+const by = 1.3;
+cyl(1.75, 1.85, 0.32, BRONZE, by);
+cyl(1.35, 1.62, 1.5, BRONZE, by + 0.9);
+cyl(1.6, 1.64, 0.18, PATINA, by + 0.45);
+cyl(1.47, 1.5, 0.15, PATINA, by + 1.2);
+cyl(0.9, 1.3, 0.5, BRONZE, by + 1.85);
+cyl(0.62, 0.8, 0.4, BRONZE, by + 2.25);
+const loop = new THREE.Mesh(new THREE.TorusGeometry(0.32, 0.1, 10, 20), IRON); loop.position.y = by + 2.7; head.add(loop);
+// grieta brillante por delante
+const crackPts = [[0.1, 0.25], [-0.05, 0.6], [0.15, 0.95], [0.0, 1.3], [0.12, 1.75], [0.02, 2.1]];
+for (let i = 0; i < crackPts.length - 1; i++) {
+  const [x1, y1] = crackPts[i], [x2, y2] = crackPts[i + 1];
+  const len = Math.hypot(x2 - x1, y2 - y1);
+  const c = new THREE.Mesh(new THREE.BoxGeometry(0.11, len, 0.06), GLOW);
+  const r = 1.62 - (y1 + y2) / 2 * 0.17;
+  c.position.set((x1 + x2) / 2, by + (y1 + y2) / 2 - 0.1, r);
+  c.rotation.z = Math.atan2(x2 - x1, y2 - y1) * -1; c.rotation.x = -0.12; head.add(c);
+}
+// brillos (sprites) en ojos y grieta
+function glowSprite(color, size) {
+  const c = document.createElement("canvas"); c.width = c.height = 64; const g = c.getContext("2d");
+  const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, color); gr.addColorStop(1, "rgba(0,0,0,0)");
+  g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthWrite: false, transparent: true }));
+  s.scale.set(size, size, 1); return s;
+}
+for (const e of [eyeL, eyeR]) { const s = glowSprite("rgba(255,110,30,0.9)", 1.4); s.position.copy(e.position); s.position.z += 0.2; head.add(s); }
+const cg = glowSprite("rgba(255,170,60,0.55)", 2.2); cg.position.set(0.05, by + 1.0, 1.7); head.add(cg);
+
+// luces: dramáticas, rojo por detrás
+scene.add(new THREE.HemisphereLight(0x8a90a8, 0x1a1008, 1.4));
+const key = new THREE.DirectionalLight(0xfff0dc, 3.2); key.position.set(-8, 14, 14); key.castShadow = true; scene.add(key);
+const rim = new THREE.DirectionalLight(0xff3020, 3.5); rim.position.set(6, 8, -12); scene.add(rim);
+const rim2 = new THREE.DirectionalLight(0xff6a30, 2.2); rim2.position.set(-9, 4, -8); scene.add(rim2);
+const under = new THREE.PointLight(0xff7a30, 10, 10); under.position.set(0, 6.5, 4); scene.add(under);
+
+renderer.render(scene, camera);
+window.DONE = true;
+</script></body></html>

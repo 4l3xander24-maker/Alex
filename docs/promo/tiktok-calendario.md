@@ -16,6 +16,9 @@ https://www.roblox.com/games/107080967531379/Campana-Maldita
 | Dom 9 nov 19:00 | La noche | 06-noche.mp4 | Programado |
 | Lun 10 nov 19:00 | Así es el lobby | 07-lobby.mp4 | Programado |
 | Mar 11 nov 19:00 | Elige tu arma | 08-elige-arma.mp4 | Programado |
+| Mié 18 nov 19:00 | Jefe final | actualizacion/ShortFinalBoss.mp4 | Por programar (después de publicar la versión nueva) |
+| Jue 19 nov 19:00 | Bestiario coleccionable | actualizacion/ShortBestiary.mp4 | Por programar |
+| Vie 20 nov 19:00 | Actualización + código | actualizacion/ShortUpdate.mp4 | Por programar |
 
 ## Descripciones
 
@@ -32,6 +35,8 @@ https://www.roblox.com/games/107080967531379/Campana-Maldita
 **07-lobby** — `Así es el lobby de Campana Maldita 🔔 10 salas: solo o con hasta 5 amigos. Gratis en Roblox 👇 #roblox #robloxgame #zombies #juegosroblox #campanamaldita #fyp`
 
 **08-elige-arma** — `¿Fusil, minigun, ballesta o lanzallamas? 🔫🏹🔥 Elige tu arma y defiende la campana. Gratis en Roblox: "Campana Maldita" 👇 #roblox #robloxgame #zombies #armas #juegosroblox #campanamaldita #fyp`
+
+Descripciones de los videos de la actualización: `actualizacion/README.md`.
 
 ## Reglas
 - Responder comentarios en la primera hora.

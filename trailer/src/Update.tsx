@@ -418,39 +418,10 @@ const Fight: React.FC<{ spec: FightSpec; comboStart?: number; showCombo?: boolea
 
 // ───────────── el jefe ─────────────
 
-const BellringerShape: React.FC<{ eyes: number; rim: number; width?: number }> = ({ eyes, rim, width = 900 }) => (
-  <svg viewBox="-80 0 760 900" width={width} height={(width * 900) / 760} style={{ overflow: "visible" }}>
-    <defs>
-      <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-        <feGaussianBlur stdDeviation="8" result="b" />
-        <feMerge>
-          <feMergeNode in="b" />
-          <feMergeNode in="SourceGraphic" />
-        </feMerge>
-      </filter>
-    </defs>
-    <g fill="#050307" stroke={`rgba(255,140,60,${rim})`} strokeWidth={4}>
-      <rect x={175} y={600} width={110} height={300} />
-      <rect x={315} y={600} width={110} height={300} />
-      <rect x={130} y={330} width={340} height={300} />
-      <rect x={20} y={340} width={120} height={120} />
-      <rect x={-60} y={360} width={110} height={90} />
-      <rect x={460} y={340} width={120} height={120} />
-      <rect x={550} y={360} width={110} height={90} />
-      <rect x={215} y={200} width={170} height={150} />
-      <path d="M180 250 Q180 60 300 40 Q420 60 420 250 L445 275 L155 275 Z" />
-      <rect x={285} y={10} width={30} height={34} />
-    </g>
-    <g stroke={`rgba(200,170,120,${rim * 0.8})`} strokeWidth={10} fill="none" strokeDasharray="22 12">
-      <path d="M140 350 L460 600" />
-      <path d="M460 350 L140 600" />
-    </g>
-    <path d="M300 45 L285 110 L310 150 L292 210 L305 262" stroke={`rgba(255,180,60,${rim})`} strokeWidth={7} fill="none" filter="url(#glow)" />
-    <g fill="#ff2a1a" opacity={eyes} filter="url(#glow)">
-      <rect x={240} y={290} width={40} height={24} />
-      <rect x={320} y={290} width={40} height={24} />
-    </g>
-  </svg>
+// El Campanero Maldito en 3D (bloques como en el juego), hecho con
+// tools/boss3d.html: de frente caminando, rugiendo y como silueta
+const BossImg: React.FC<{ kind: "walk" | "roar" | "sil"; width: number }> = ({ kind, width }) => (
+  <Img src={staticFile(`update/boss-${kind}.png`)} style={{ width, display: "block" }} />
 );
 
 const BossBar: React.FC<{ health: number; tag: string; show: number }> = ({ health, tag, show }) => (
@@ -467,29 +438,43 @@ const BossBar: React.FC<{ health: number; tag: string; show: number }> = ({ heal
   </div>
 );
 
-// El jefe sale detrás de la campana, se le encienden los ojos y aparece su barra
-const BossReveal: React.FC<{ eyesAt?: number; barAt?: number; stampAt?: number; fast?: boolean }> = ({ eyesAt = 30, barAt = 47, stampAt = 57, fast = false }) => {
+// El jefe sale detrás de la campana como silueta entre relámpagos, se le
+// encienden los ojos y al final ruge a todo color con su barra de vida
+const BossReveal: React.FC<{ eyesAt?: number; barAt?: number; stampAt?: number; fast?: boolean; stampText?: string }> = ({
+  eyesAt = 30,
+  barAt = 47,
+  stampAt = 57,
+  fast = false,
+  stampText = "JEFE FINAL",
+}) => {
   const frame = useCurrentFrame();
-  const rise = interpolate(frame, [0, fast ? 25 : 60], [800, 0], { ...CLAMP, easing: OUT });
-  const eyes = interpolate(frame, [eyesAt, eyesAt + 4], [0, 1], CLAMP);
-  const rim = interpolate(frame, [0, 50], [0.15, 0.95], CLAMP);
-  const moon = interpolate(frame, [0, 100], [0.4, 1], CLAMP);
+  const rise = interpolate(frame, [0, fast ? 22 : 50], [900, 0], { ...CLAMP, easing: OUT });
+  const moon = interpolate(frame, [0, 60], [0.5, 1], CLAMP);
   const k = shake(frame - eyesAt, 30, 16);
-  const k2 = shake(frame - stampAt, 20, 10);
+  const k2 = shake(frame - stampAt, 34, 16);
   const breathe = 1 + Math.sin(frame / 8) * 0.012;
+  const color = frame >= stampAt;
+  const push = color ? interpolate(frame - stampAt, [0, 50], [1.12, 1.0], { ...CLAMP, easing: OUT }) : 1;
+  const bolt = [8, 20, eyesAt].some((f) => frame >= f && frame < f + 3);
   return (
     <AbsoluteFill style={{ transform: `translate(${k.x + k2.x}px, ${k.y + k2.y}px)` }}>
-      <Bg src="update/bg-asedio.jpg" grade="brightness(0.3) saturate(0.6) sepia(0.4) hue-rotate(-25deg)" zoom={0.15} />
-      <div style={{ position: "absolute", left: 540 - 380, top: 260, width: 760, height: 760, borderRadius: 760, background: `radial-gradient(circle, rgba(255,70,40,${moon}) 0%, rgba(160,20,10,${moon * 0.8}) 55%, transparent 72%)` }} />
-      <div style={{ position: "absolute", left: 540 - 470, top: 420 + rise, transform: `scale(${breathe})`, transformOrigin: "50% 100%" }}>
-        <BellringerShape eyes={eyes} rim={rim} width={940} />
-      </div>
-      <Embers count={60} />
+      <Bg src="update/bg-asedio.jpg" grade={bolt ? "brightness(1.1) saturate(0.3) contrast(1.3)" : "brightness(0.42) saturate(0.7) sepia(0.35) hue-rotate(-25deg)"} zoom={0.15} />
+      <div style={{ position: "absolute", left: 540 - 430, top: 240, width: 860, height: 860, borderRadius: 860, background: `radial-gradient(circle, rgba(255,90,40,${moon}) 0%, rgba(170,20,10,${moon * 0.8}) 50%, transparent 70%)` }} />
+      {color ? (
+        <div style={{ position: "absolute", left: 0, top: 470, transform: `scale(${push * breathe})`, transformOrigin: "50% 100%" }}>
+          <BossImg kind="roar" width={1080} />
+        </div>
+      ) : (
+        <div style={{ position: "absolute", left: 540 - 470, top: 360 + rise, transform: `scale(${breathe})`, transformOrigin: "50% 100%", opacity: frame >= eyesAt ? 1 : 0.92 }}>
+          <BossImg kind="sil" width={940} />
+        </div>
+      )}
+      <Embers count={70} />
       <Vignette />
       <BossBar health={1} tag="" show={interpolate(frame, [barAt, barAt + 8], [0, 1], CLAMP)} />
-      <Stamp text="JEFE FINAL" y={1480} size={210} color={CREAM} glow={BLOOD} delay={stampAt} />
-      <Sequence from={eyesAt} durationInFrames={10} layout="none"><Flash color="#ff4020" peak={0.55} /></Sequence>
-      <Sequence from={stampAt} durationInFrames={8} layout="none"><Flash peak={0.4} /></Sequence>
+      {stampText ? <Stamp text={stampText} y={1560} size={210} color={CREAM} glow={BLOOD} delay={stampAt} /> : null}
+      <Sequence from={eyesAt} durationInFrames={10} layout="none"><Flash color="#ff4020" peak={0.5} /></Sequence>
+      <Sequence from={stampAt} durationInFrames={10} layout="none"><Flash peak={0.85} /></Sequence>
     </AbsoluteFill>
   );
 };
@@ -539,9 +524,9 @@ const BossFight: React.FC<{ spec: typeof scenes.boss.boss }> = ({ spec }) => {
     <AbsoluteFill style={{ overflow: "hidden", transform: `translate(${k1.x + k2.x}px, ${k1.y + k2.y}px)` }}>
       <AbsoluteFill style={{ transform: `translateY(${r * 14}px) scale(${1.04 + r * 0.015})` }}>
         <Img src={staticFile(gun.bg)} style={{ width: "100%", height: "100%", filter: "brightness(0.45) saturate(0.8) sepia(0.35) hue-rotate(-20deg)" }} />
-        <div style={{ position: "absolute", left: 540 - 430 + rage.x, top: 250 + rage.y }}>
-          <div style={{ filter: spec.hits.some((f) => frame >= f && frame < f + 2) ? "brightness(4)" : "none" }}>
-            <BellringerShape eyes={1} rim={0.95} width={860} />
+        <div style={{ position: "absolute", left: 540 - 400 + rage.x, top: 190 + rage.y }}>
+          <div style={{ filter: spec.hits.some((f) => frame >= f && frame < f + 2) ? "brightness(2.6) saturate(0.4)" : "drop-shadow(0 0 30px rgba(255,60,20,0.6))" }}>
+            <BossImg kind="walk" width={800} />
           </div>
         </div>
         {/* zombis que llama en la furia */}
@@ -598,8 +583,8 @@ const EndCard: React.FC<{ news: string }> = ({ news }) => {
         <Img src={staticFile("icono.png")} style={{ width: 400, height: 400, borderRadius: 70, transform: `scale(${s}) rotate(${(1 - s) * -20}deg)`, boxShadow: "0 0 90px rgba(255,120,40,0.7)", border: `6px solid ${GOLD}` }} />
       </div>
       <Stamp text="CAMPANA MALDITA" y={650} size={124} color={GOLD} glow="#ff7a2a" delay={4} tilt={0} />
-      <Sub text={news} y={800} size={62} delay={10} />
-      <div style={{ position: "absolute", left: 0, right: 0, top: 920, display: "flex", justifyContent: "center", opacity: interpolate(frame, [16, 22], [0, 1], CLAMP) }}>
+      <Sub text={news} y={790} size={50} delay={10} />
+      <div style={{ position: "absolute", left: 0, right: 0, top: 940, display: "flex", justifyContent: "center", opacity: interpolate(frame, [16, 22], [0, 1], CLAMP) }}>
         <div style={{ padding: "18px 46px", borderRadius: 60, background: "linear-gradient(180deg,#3ccf5a,#1e8a35)", fontFamily: IMPACT, fontSize: 64, color: "#fff", WebkitTextStroke: "3px #0a3a14", paintOrder: "stroke", transform: `scale(${pill})`, boxShadow: "0 10px 0 #0d4a1c, 0 0 40px rgba(60,220,90,0.5)" }}>
           GRATIS · HASTA 5 AMIGOS
         </div>
@@ -683,7 +668,7 @@ export const ShortFinalBoss: React.FC = () => {
       <Sequence from={135} durationInFrames={8}><Flash color="#000" peak={1} /></Sequence>
       <Sequence from={240} durationInFrames={6}><Flash peak={0.7} /></Sequence>
       <Sequence from={330} durationInFrames={8}><Flash peak={0.8} /></Sequence>
-      <Sequence from={375} durationInFrames={10}><Flash color={GOLD} peak={0.7} /></Sequence>
+      <Sequence from={375} durationInFrames={10}><Flash color={GOLD} peak={0.45} /></Sequence>
       <Progress />
     </AbsoluteFill>
   );
@@ -722,8 +707,8 @@ const Card: React.FC<{ type: string; x: number; y: number; w: number; h: number;
       }}
     >
       {last ? (
-        <div style={{ position: "absolute", left: w / 2 - 110, top: 18 }}>
-          <BellringerShape eyes={1} rim={0.5} width={220} />
+        <div style={{ position: "absolute", left: w / 2 - 90, top: 14 }}>
+          <BossImg kind="sil" width={180} />
         </div>
       ) : (
         <Img
@@ -850,11 +835,11 @@ export const ShortBestiary: React.FC = () => {
         <EndCard news="NUEVO: Bestiario coleccionable" />
       </Sequence>
       {s.fights.map((fight) => (
-        <Sequence key={fight.from} from={fight.from} durationInFrames={6}><Flash peak={0.55} /></Sequence>
+        <Sequence key={fight.from} from={fight.from} durationInFrames={6}><Flash peak={0.3} /></Sequence>
       ))}
       <Sequence from={260} durationInFrames={8}><Flash peak={0.6} /></Sequence>
       <Sequence from={320} durationInFrames={10}><Flash color="#ff3020" peak={0.6} /></Sequence>
-      <Sequence from={375} durationInFrames={10}><Flash color={GOLD} peak={0.7} /></Sequence>
+      <Sequence from={375} durationInFrames={10}><Flash color={GOLD} peak={0.45} /></Sequence>
       <Progress />
     </AbsoluteFill>
   );
@@ -883,7 +868,7 @@ const MiniBoss: React.FC = () => {
   const k2 = shake(frame - 55, 30, 12);
   return (
     <AbsoluteFill style={{ transform: `translate(${k.x + k2.x}px, ${k.y + k2.y}px)` }}>
-      <BossReveal eyesAt={14} barAt={200} stampAt={200} fast />
+      <BossReveal eyesAt={12} barAt={200} stampAt={24} fast stampText="" />
       <BossBar health={health} tag={tag} show={interpolate(frame, [24, 30], [0, 1], CLAMP)} />
       {frame >= 55 ? <AbsoluteFill style={{ background: "rgba(255,30,10,0.18)" }} /> : null}
     </AbsoluteFill>
@@ -961,7 +946,7 @@ const Gifts: React.FC = () => {
           </div>
         );
       })}
-      <Sub text="Solo hasta el 7 de enero" y={1420} size={58} delay={40} color="#bfe6ff" />
+      <Sub text="Solo hasta el 7 de enero" y={1335} size={58} delay={40} color="#bfe6ff" />
     </AbsoluteFill>
   );
 };
@@ -1047,7 +1032,7 @@ export const ShortUpdate: React.FC = () => {
       {[40, 120, 190, 260, 320].map((f) => (
         <Sequence key={f} from={f} durationInFrames={8}><Flash peak={0.65} /></Sequence>
       ))}
-      <Sequence from={385} durationInFrames={10}><Flash color={GOLD} peak={0.7} /></Sequence>
+      <Sequence from={385} durationInFrames={10}><Flash color={GOLD} peak={0.45} /></Sequence>
       <Progress />
     </AbsoluteFill>
   );
