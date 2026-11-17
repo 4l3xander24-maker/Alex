@@ -90,7 +90,7 @@ baja, 15 por jefe, con tope de **200 por partida** para esas tres; 40 por misió
 - Partida típica de Normal (~6 oleadas jugadas, ~120 bajas, medio jefe): 60 + 12 + 7 ≈ **80 XP**.
 - Jugador activo, 4 partidas al día: ~320, más misiones (2 de 3 de media y el extra día por medio: 80 + 30) ≈ **430 al día**.
 - 15.000 / 430 ≈ **35 días ≈ 5 semanas** para terminar la fila gratis. Quien juega 2 partidas y hace las misiones (~270
-  al día) llega a ~el escalón 25 al cierre si empezó al lanzarse.
+  al día) llega a ~el escalón 27 al cierre si empezó al lanzarse.
 - Quedarse quieto no sirve: sin bajas en la oleada no cuenta, y caído tampoco.
 
 **Totales por fila** (monedas bajas a propósito):
