@@ -3,6 +3,10 @@
 --     oleada, así quedarse quieto no sirve), bajas, jefes, misiones diarias y el
 --     extra de las misiones. Sin bonos de renacer, VIP, amigos ni potenciadores,
 --     y con tope por partida (Xp.MatchCap) para las oleadas, bajas y jefes.
+--   * Premium: producto de Robux Monetization.Products.SeasonPass, lo entrega
+--     PurchaseService (recibo anotado y guardado antes de confirmar). Si llega
+--     una compra y ya era Premium (o la temporada terminó), no se pierde: da
+--     DuplicateBoostHours horas de Monedas x2 y XP x2.
 --   * La XP se publica en el atributo SeasonXp para que el botón se actualice
 --     en plena partida (el perfil completo llega al subir de escalón).
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -77,6 +81,13 @@ local function addXp(player: Player, amount: number, fromMatch: boolean): number
 	return whole
 end
 
+-- Suma tiempo a un potenciador ("Coins" o "Xp") con los mismos relojes que los
+-- de Robux: si ya corre, desde donde termina
+local function addBoost(player: Player, data, kind: string, seconds: number)
+	data.Boosts[kind] = math.max(data.Boosts[kind] or 0, os.time()) + seconds
+	player:SetAttribute(`Boost{kind}Until`, data.Boosts[kind])
+end
+
 -- Cada baja (desde el manejador de bajas de init)
 function SeasonService.onKill(player: Player, isBoss: boolean)
 	local entry = matchOf(player)
@@ -105,6 +116,29 @@ function SeasonService.finishMatch(player: Player): number
 	local entry = matches[player]
 	matches[player] = nil
 	return if entry then entry.Gained else 0
+end
+
+-- Compra del Premium (la llama PurchaseService dentro de ProcessReceipt). Si
+-- falla lanza error y el recibo queda sin confirmar para que Roblox reintente.
+function SeasonService.grantPremium(player: Player)
+	local data = DataService.get(player)
+	if not data then
+		error("Perfil sin cargar")
+	end
+	local season = Progression.season(data)
+	if season.Premium or not Progression.seasonOpen(os.time()) then
+		-- El botón no se ofrece en estos casos; si igual llega una compra (dos
+		-- ventanas, reintento tardío), se compensa con potenciadores
+		local seconds = pass.DuplicateBoostHours * 3600
+		addBoost(player, data, "Coins", seconds)
+		addBoost(player, data, "Xp", seconds)
+		local reason = if season.Premium then "Ya tenías el Premium" else "La temporada ya terminó"
+		Remotes.Notify:FireClient(player, `{pass.Icon} {reason}: te damos {pass.DuplicateBoostHours} h de Monedas x2 y XP x2`)
+		return
+	end
+	season.Premium = true
+	local ready = Progression.seasonClaimable(data)
+	Remotes.Notify:FireClient(player, `{pass.Icon} ¡Pase Premium de {pass.Name} activado!{if ready > 0 then ` Tienes {ready} premios para cobrar` else ""}`)
 end
 
 function SeasonService.onPlayerReady(player: Player)
