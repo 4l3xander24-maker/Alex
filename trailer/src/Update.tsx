@@ -1037,3 +1037,39 @@ export const ShortUpdate: React.FC = () => {
     </AbsoluteFill>
   );
 };
+
+// ───────────── miniatura del juego (1920×1080) ─────────────
+
+export const Thumbnail: React.FC = () => {
+  const horde: { type: string; x: number; y: number; h: number; dark: number }[] = [
+    { type: "Colossus", x: 60, y: 560, h: 420, dark: 0.55 },
+    { type: "Mutant", x: 330, y: 600, h: 380, dark: 0.5 },
+    { type: "King", x: 560, y: 560, h: 420, dark: 0.55 },
+    { type: "Cone", x: -60, y: 700, h: 470, dark: 0.85 },
+    { type: "Parasite", x: 220, y: 720, h: 480, dark: 0.9 },
+    { type: "Spitter", x: 470, y: 700, h: 500, dark: 0.85 },
+    { type: "Queen", x: 720, y: 690, h: 470, dark: 0.8 },
+  ];
+  return (
+    <AbsoluteFill style={{ background: NIGHT, overflow: "hidden" }}>
+      <Img src={staticFile("update/thumb-bg.png")} style={{ position: "absolute", width: "100%", height: "100%", objectFit: "cover", filter: "brightness(0.42) saturate(0.75) sepia(0.35) hue-rotate(-25deg) contrast(1.1)" }} />
+      <div style={{ position: "absolute", left: 1000, top: -160, width: 1100, height: 1100, borderRadius: 1100, background: "radial-gradient(circle, rgba(255,90,40,0.95) 0%, rgba(180,20,10,0.75) 45%, transparent 70%)" }} />
+      <AbsoluteFill style={{ background: "linear-gradient(90deg, rgba(5,2,8,0.9) 0%, rgba(5,2,8,0.75) 40%, rgba(5,2,8,0.2) 58%, transparent 70%)" }} />
+      <Img src={staticFile("update/boss-roar-hd.png")} style={{ position: "absolute", left: 930, top: -20, height: 1180, filter: "drop-shadow(0 0 40px rgba(255,70,20,0.75)) contrast(1.08) saturate(1.1)" }} />
+      {horde.map((z) => (
+        <Img key={z.type} src={staticFile(`update/${z.type}.png`)} style={{ position: "absolute", left: z.x, top: z.y, height: z.h, filter: `brightness(${z.dark}) drop-shadow(0 10px 14px rgba(0,0,0,0.8))` }} />
+      ))}
+      <AbsoluteFill style={{ background: "linear-gradient(0deg, rgba(5,2,8,0.8) 0%, transparent 22%)" }} />
+      <Embers count={60} />
+      <div style={{ position: "absolute", left: 60, top: 50, padding: "10px 34px", background: "linear-gradient(180deg,#3ccf5a,#1e8a35)", borderRadius: 18, fontFamily: IMPACT, fontSize: 64, color: "#fff", WebkitTextStroke: "4px #0a3a14", paintOrder: "stroke", transform: "rotate(-4deg)", boxShadow: "0 8px 0 #0d4a1c" }}>¡NUEVO!</div>
+      <div style={{ position: "absolute", left: 50, top: 150, width: 980, fontFamily: IMPACT, fontSize: 168, lineHeight: 0.95, color: GOLD, WebkitTextStroke: "10px #1a0800", paintOrder: "stroke", textShadow: "0 0 40px #ff7a2a, 0 12px 0 #000" }}>
+        CAMPANA
+        <br />
+        MALDITA
+      </div>
+      <div style={{ position: "absolute", left: 70, top: 500, padding: "12px 40px", background: "linear-gradient(180deg,#e0261a,#8a0c06)", fontFamily: IMPACT, fontSize: 96, color: "#fff", WebkitTextStroke: "5px #2a0000", paintOrder: "stroke", transform: "rotate(-3deg)", boxShadow: "0 10px 0 rgba(0,0,0,0.7), 0 0 40px rgba(255,40,20,0.6)" }}>
+        🔔 ¡JEFE FINAL!
+      </div>
+    </AbsoluteFill>
+  );
+};
