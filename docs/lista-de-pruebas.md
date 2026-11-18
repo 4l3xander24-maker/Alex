@@ -68,6 +68,35 @@ Datos al reportar:
 - [ ] Música: suena un golpe al empezar y cambia a una pista más intensa desde la oleada 6.
 - [ ] Dificultad Experto en adelante: ¿se puede superar? ¿Hasta qué oleada llegaste?
 
+## 8c. Actualización de invierno (lo más nuevo: revisar todo)
+**Celular y combate**
+- [ ] Disparo automático y ayuda de puntería (Opciones) funcionan en el celular y se pueden apagar.
+- [ ] La zona de disparo no se queda "pegada" al soltar el dedo ni al abrir un menú.
+- [ ] Con muchos zombis el juego no se pone lento (los lejanos se ven más simples).
+
+**Primera partida y victoria**
+- [ ] Si vienes en grupo, la partida espera a que lleguen todos.
+- [ ] Al superar la oleada meta sale ¡VICTORIA! y la votación Seguir / Terminar.
+
+**Jefe final: el Campanero Maldito**
+- [ ] Sale al final de la oleada meta, más grande que todos los jefes, con campana de casco y cadenas.
+- [ ] Al 66% llama corredores y da un campanazo (anillo de aviso, empuja y quita vida). Al 33% se enfurece y llama caballeros.
+- [ ] La victoria NO llega hasta que muere. Al morir: cámara lenta, temblor y premio de monedas para todos.
+- [ ] Si siguen en modo sin fin, no vuelve a salir.
+
+**Progreso**
+- [ ] Racha diaria y 3 misiones que cambian cada día (se ven en Logros).
+- [ ] Bestiario: los enemigos que no mataste salen como "???"; al matarlos aparecen con su medalla 🥉🥈🥇 y pagan una vez.
+- [ ] Renacer (Don Ramiro, desde nivel 25): pantalla de confirmación, vuelves a nivel 1, conservas armas, monedas y talentos, y sale ⭐ en la tabla.
+- [ ] Pase de temporada (botón "Pase"): sube jugando, se cobran los premios gratis, el Premium dice "Próximamente" hasta poner el id.
+- [ ] Códigos en Opciones: BIENVENIDO da 200 monedas una sola vez.
+
+**Invierno**
+- [ ] Skins de invierno en la tienda (Gorro navideño, Muñeco de nieve, Reina del hielo) se compran y se ven.
+
+**Compras con Robux (con la cuenta de prueba)**
+- [ ] Cada compra entrega lo que dice una sola vez, aunque se cierre el juego justo después.
+
 ## 9. Para opinar (corto)
 1. Lo que más te gustó: ______
 2. Lo que menos te gustó: ______
