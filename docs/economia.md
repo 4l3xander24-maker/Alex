@@ -75,6 +75,14 @@ Con 10 comunes y 6 jefes (incluye el Campanero Maldito, jefe final): 600 + 930 +
 - ¿Qué porcentaje completa Normal? Meta: 50–70% en los primeros 5 intentos.
 - ¿Sigue jugando quien perdió 3 veces seguidas? Si no, subir el consuelo.
 
+## Invitar amigos
+
+`Config.Referral`: cuando un amigo nuevo que invitaste termina su **primera** partida, él cobra **50** monedas y tú
+**100**, con tope de **10 amigos por cuenta para siempre** (máximo 1.000 monedas por invitar, ~2% del núcleo; 50 para
+el invitado, menos que el código `BIENVENIDO`). No se repite: el invitado solo puede tener un invitador y solo antes de
+terminar su primera partida, cada invitado cuenta una vez por invitador y tienen que ser amigos en Roblox. En las
+analíticas sale como fuente `Referido`.
+
 ## Jefe final
 
 Al caer el Campanero Maldito (oleada meta) cada jugador presente cobra `Config.FinalBoss.KillCoins` según la dificultad: 30 / 45 / 65 / 90 / 120, además de las monedas normales por baja. Se paga una vez por partida (en el modo sin fin no vuelve a salir).
