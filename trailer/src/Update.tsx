@@ -34,7 +34,7 @@ const CLAMP = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
 
 type GunKey = keyof typeof scenes.guns;
 type ZombieSpec = { type: string; x: number; y: number; appear: number; hits: number[]; s0: number; s1: number; toast?: string };
-type FightSpec = { from: number; len: number; gun: string; zombies: ZombieSpec[] };
+type FightSpec = { from: number; len: number; gun: string; zombies: ZombieSpec[]; misses?: number[]; hurt?: number[] };
 
 const hash = (n: number) => {
   const a = Math.sin(n * 12.9898) * 43758.5453;
@@ -312,7 +312,7 @@ const Zombie: React.FC<{ spec: ZombieSpec; index: number }> = ({ spec, index }) 
   );
 };
 
-const Shots: React.FC<{ shots: { f: number; x: number; y: number; dmg: string; crit?: boolean }[]; muzzle: number[]; color?: string }> = ({ shots, muzzle, color = "#ffe27a" }) => {
+const Shots: React.FC<{ shots: { f: number; x: number; y: number; dmg: string; crit?: boolean; miss?: boolean }[]; muzzle: number[]; color?: string }> = ({ shots, muzzle, color = "#ffe27a" }) => {
   const frame = useCurrentFrame();
   return (
     <>
@@ -329,7 +329,7 @@ const Shots: React.FC<{ shots: { f: number; x: number; y: number; dmg: string; c
                 </svg>
               </>
             ) : null}
-            {f >= 0 && f < 5 ? (
+            {f >= 0 && f < 5 && !shot.miss ? (
               <svg width={120} height={120} style={{ position: "absolute", left: shot.x - 60, top: shot.y - 60 }}>
                 <g stroke={shot.crit ? GOLD : "#fff"} strokeWidth={9} strokeLinecap="round">
                   <line x1={18} y1={18} x2={42} y2={42} />
@@ -381,6 +381,10 @@ const Fight: React.FC<{ spec: FightSpec; comboStart?: number; showCombo?: boolea
       return { f, x: z.x, y: z.y - 60 * scale, dmg: crit ? `CRÍTICO -${60 + Math.floor(hash(zi * 9 + hi) * 40)}` : `-${20 + Math.floor(hash(zi * 5 + hi) * 30)}`, crit };
     }),
   );
+  (spec.misses ?? []).forEach((f, i) => {
+    shots.push({ f, x: 540 + (hash(i + 31) - 0.5) * 700, y: 520 + hash(i + 7) * 300, dmg: "¡FALLÓ!", crit: false, miss: true } as (typeof shots)[number]);
+  });
+  const hurt = (spec.hurt ?? []).filter((f) => frame >= f && frame < f + 10).pop();
   const shotFrames = shots.map((s) => s.f);
   const kills = spec.zombies.map((z) => z.hits[z.hits.length - 1]).sort((a, b) => a - b);
   const killed = kills.filter((f) => frame >= f).length;
@@ -410,6 +414,12 @@ const Fight: React.FC<{ spec: FightSpec; comboStart?: number; showCombo?: boolea
       </AbsoluteFill>
       <Crosshair x={aim.x} y={aim.y} />
       <Vignette color="rgba(0,0,0,0.65)" inner={45} />
+      {hurt !== undefined ? <AbsoluteFill style={{ background: "radial-gradient(ellipse at 50% 50%, transparent 30%, rgba(220,0,0,0.75) 100%)", opacity: interpolate(frame - hurt, [0, 10], [1, 0]) }} /> : null}
+      {(spec.hurt ?? []).map((f) => (
+        <Sequence key={f} from={f} durationInFrames={26} layout="none">
+          <Popup text="-25 ❤️" x={540} y={1150} color={BLOOD} size={110} />
+        </Sequence>
+      ))}
       {showCombo ? <Combo count={comboStart + killed} at={lastKill} /> : null}
       {children}
     </AbsoluteFill>
@@ -1252,6 +1262,173 @@ export const ShortReaper: React.FC = () => {
       {[45, 110, 310].map((f) => (
         <Sequence key={f} from={f} durationInFrames={8}><Flash peak={0.6} /></Sequence>
       ))}
+      <Sequence from={375} durationInFrames={10}><Flash color={GOLD} peak={0.45} /></Sequence>
+      <Progress />
+    </AbsoluteFill>
+  );
+};
+
+// ───────────── contenido nuevo: clasificación, noob vs pro y oleadas ─────────────
+
+const TIERS = [
+  { id: "S", color: "#ff4d4d" },
+  { id: "A", color: "#ff9a3a" },
+  { id: "B", color: "#ffd84a" },
+  { id: "C", color: "#7fe07f" },
+  { id: "D", color: "#6ab0ff" },
+];
+
+// Clasifico a TODOS los zombis: cada uno sale grande y vuela a su fila
+export const ShortTier: React.FC = () => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const items = scenes.tier.items;
+  const rowY = (i: number) => 330 + i * 230;
+  const placed: Record<string, number> = {};
+  return (
+    <AbsoluteFill style={{ background: NIGHT }}>
+      <Audio src={staticFile("update/audio_tier.wav")} />
+      <Bg src="update/bg-horda.jpg" grade="brightness(0.22) saturate(0.6) blur(6px)" zoom={0.1} />
+      <Stamp text="CLASIFICO A TODOS" y={70} size={110} color={GOLD} glow="#ff7a2a" tilt={0} />
+      <Stamp text="LOS ZOMBIS" y={185} size={90} color={CREAM} glow={BLOOD} delay={6} tilt={0} />
+      {TIERS.map((tier, i) => (
+        <div key={tier.id} style={{ position: "absolute", left: 30, right: 30, top: rowY(i), height: 210, borderRadius: 18, background: "rgba(10,8,16,0.75)", border: `4px solid ${tier.color}`, overflow: "hidden" }}>
+          <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 150, background: tier.color, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: IMPACT, fontSize: 120, color: "#1a0a0a" }}>{tier.id}</div>
+        </div>
+      ))}
+      {items.map((item) => {
+        const tierIndex = TIERS.findIndex((t) => t.id === item.tier);
+        const slot = placed[item.tier] ?? 0;
+        placed[item.tier] = slot + 1;
+        const f = frame - item.at;
+        if (f < -14) return null;
+        // entra al centro grande (-14..0) y vuela a su fila (0..12)
+        const fly = interpolate(f, [0, 12], [0, 1], { ...CLAMP, easing: OUT });
+        const pop = spring({ frame: f + 14, fps, config: { damping: 10, stiffness: 220 } });
+        const big = 620;
+        const small = 190;
+        const tx = interpolate(fly, [0, 1], [540, 280 + slot * 210]);
+        const ty = interpolate(fly, [0, 1], [1000, rowY(tierIndex) + 105]);
+        const size = interpolate(fly, [0, 1], [big, small]) * (f < 0 ? pop : 1);
+        return (
+          <div key={item.type}>
+            {f < 6 ? (
+              <div style={{ position: "absolute", left: 0, right: 0, top: 1360, textAlign: "center", fontFamily: IMPACT, fontSize: 96, color: "#fff", WebkitTextStroke: "6px #000", paintOrder: "stroke", opacity: interpolate(f, [0, 6], [1, 0], CLAMP) }}>{NAMES[item.type]}</div>
+            ) : null}
+            <Img src={staticFile(`update/${item.type}.png`)} style={{ position: "absolute", left: tx - size / 2, top: ty - size / 2, width: size, height: size, objectFit: "contain", filter: "drop-shadow(0 8px 12px rgba(0,0,0,0.8))" }} />
+            <Sequence from={item.at + 12} durationInFrames={20} layout="none">
+              <Burst x={280 + slot * 210} y={rowY(tierIndex) + 105} colors={[TIERS[tierIndex].color, "#fff"]} count={10} size={18} seed={tierIndex + slot} />
+            </Sequence>
+          </div>
+        );
+      })}
+      <Sequence name="Pregunta" from={330} durationInFrames={45}>
+        <AbsoluteFill style={{ background: "rgba(0,0,0,0.7)" }} />
+        <Stamp text="¿ESTÁS DE ACUERDO?" y={760} size={100} color={GOLD} glow={BLOOD} />
+        <Caption text="dime cuál *cambiarías 👇" y={1010} size={90} delay={8} every={3} />
+      </Sequence>
+      <Sequence name="Cierre" from={375}>
+        <EndCard news="11 zombis y jefes para cazar" />
+      </Sequence>
+      <Sequence from={375} durationInFrames={10}><Flash color={GOLD} peak={0.45} /></Sequence>
+      <Progress />
+    </AbsoluteFill>
+  );
+};
+
+// Noob vs Pro: las dos peleas lado a lado (cada una a media escala)
+const Half: React.FC<{ x: number; label: string; color: string; children: React.ReactNode }> = ({ x, label, color, children }) => (
+  <>
+    <div style={{ position: "absolute", left: x, top: 470, width: 540, height: 960, overflow: "hidden", borderLeft: x > 0 ? "6px solid #000" : "none" }}>
+      <div style={{ position: "absolute", left: -108, top: -192, width: 1080, height: 1920, transform: "scale(0.7)", transformOrigin: "0 0" }}>{children}</div>
+    </div>
+    <div style={{ position: "absolute", left: x, width: 540, top: 330, textAlign: "center", fontFamily: IMPACT, fontSize: 120, color, WebkitTextStroke: "6px #000", paintOrder: "stroke", textShadow: `0 0 30px ${color}` }}>{label}</div>
+  </>
+);
+
+export const ShortNoobPro: React.FC = () => {
+  const s = scenes.noobpro;
+  const noob = s.noob as FightSpec;
+  const pro = s.pro as FightSpec;
+  return (
+    <AbsoluteFill style={{ background: "#0b0710" }}>
+      <Audio src={staticFile("update/audio_noobpro.wav")} />
+      <Stamp text="NOOB vs PRO" y={90} size={150} color={GOLD} glow="#ff7a2a" tilt={0} />
+      <Sequence from={s.noob.from} durationInFrames={s.noob.len} layout="none">
+        <Half x={0} label="NOOB 🤡" color="#9fd8ff">
+          <Fight spec={noob} />
+        </Half>
+      </Sequence>
+      <Sequence from={s.pro.from} durationInFrames={s.pro.len} layout="none">
+        <Half x={540} label="PRO 😎" color="#ffd36b">
+          <Fight spec={pro} />
+        </Half>
+      </Sequence>
+      <Sequence from={30} durationInFrames={300} layout="none">
+        <Caption text="mismo juego… *distinto *nivel" y={1470} size={80} delay={10} every={4} />
+      </Sequence>
+      <Sequence name="Pregunta" from={330} durationInFrames={45}>
+        <AbsoluteFill style={{ background: "rgba(0,0,0,0.6)" }} />
+        <Stamp text="¿CUÁL ERES TÚ?" y={760} size={140} color={GOLD} glow={BLOOD} />
+        <Caption text="sé *sincero 👇" y={960} size={100} delay={8} every={3} />
+      </Sequence>
+      <Sequence name="Cierre" from={375}>
+        <EndCard news="De noob a pro: mejora tus armas" />
+      </Sequence>
+      <Sequence from={30} durationInFrames={8}><Flash peak={0.5} /></Sequence>
+      <Sequence from={375} durationInFrames={10}><Flash color={GOLD} peak={0.45} /></Sequence>
+      <Progress />
+    </AbsoluteFill>
+  );
+};
+
+// ¿Cuántas oleadas aguantas?: cada vez más zombis y la campana bajando
+const WaveTag: React.FC<{ wave: number; bell: number }> = ({ wave, bell }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const s = spring({ frame, fps, config: { damping: 9, stiffness: 240 } });
+  return (
+    <>
+      <div style={{ position: "absolute", left: 0, right: 0, top: 120, textAlign: "center", fontFamily: IMPACT, fontSize: 150, color: wave >= 8 ? "#ff5a3a" : CREAM, WebkitTextStroke: "7px #000", paintOrder: "stroke", transform: `scale(${interpolate(s, [0, 1], [2, 1])})`, textShadow: "0 0 30px #ff3a1a" }}>OLEADA {wave}</div>
+      <div style={{ position: "absolute", left: 140, right: 140, top: 300, height: 40, borderRadius: 10, background: "rgba(0,0,0,0.7)", border: "4px solid #2b1408", overflow: "hidden" }}>
+        <div style={{ width: `${bell * 100}%`, height: "100%", background: "linear-gradient(180deg,#ffd36b,#c98a1a)" }} />
+      </div>
+      <div style={{ position: "absolute", left: 0, right: 0, top: 350, textAlign: "center", fontFamily: IMPACT, fontSize: 44, color: GOLD, WebkitTextStroke: "3px #000", paintOrder: "stroke" }}>🔔 CAMPANA</div>
+    </>
+  );
+};
+
+export const ShortWaves: React.FC = () => {
+  const s = scenes.waves;
+  const bells = [1, 0.85, 0.65, 0.4, 0.15];
+  return (
+    <AbsoluteFill style={{ background: NIGHT }}>
+      <Audio src={staticFile("update/audio_waves.wav")} />
+      <Sequence name="Gancho" durationInFrames={30}>
+        <Bg src="update/bg-asedio.jpg" grade="brightness(0.45) saturate(0.8)" zoom={0.3} />
+        <Vignette />
+        <Caption text="¿Cuántas *oleadas aguantas?" y={760} size={120} delay={2} every={4} />
+      </Sequence>
+      {s.fights.map((fight, i) => (
+        <Sequence key={i} from={fight.from} durationInFrames={fight.len}>
+          <Fight spec={fight} comboStart={s.fights.slice(0, i).reduce((n, f) => n + f.zombies.length, 0)} grade={`brightness(${0.8 - i * 0.08}) saturate(${1.15 - i * 0.1}) sepia(${i * 0.12}) hue-rotate(${-i * 6}deg)`}>
+            <WaveTag wave={s.labels[i]} bell={bells[i]} />
+          </Fight>
+        </Sequence>
+      ))}
+      <Sequence name="Cae" from={330} durationInFrames={45}>
+        <Bg src="update/bg-asedio.jpg" grade="brightness(0.3) saturate(0.2) contrast(1.3)" zoom={0.4} />
+        <AbsoluteFill style={{ background: "rgba(120,0,0,0.35)" }} />
+        <Stamp text="¡LA CAMPANA CAYÓ!" y={640} size={120} color={CREAM} glow={BLOOD} />
+        <Caption text="llegué a la *oleada *10… ¿y *tú? 👇" y={860} size={86} delay={10} every={3} />
+      </Sequence>
+      <Sequence name="Cierre" from={375}>
+        <EndCard news="Oleadas sin fin con tus amigos" />
+      </Sequence>
+      {s.fights.map((f) => (
+        <Sequence key={f.from} from={f.from} durationInFrames={6}><Flash peak={0.4} /></Sequence>
+      ))}
+      <Sequence from={330} durationInFrames={10}><Flash color="#ff3020" peak={0.7} /></Sequence>
       <Sequence from={375} durationInFrames={10}><Flash color={GOLD} peak={0.45} /></Sequence>
       <Progress />
     </AbsoluteFill>

@@ -19,6 +19,9 @@ https://www.roblox.com/games/107080967531379/Campana-Maldita
 | Mar 17 nov 19:00 | Combo (reemplazo) | reemplazos/ShortCombo2.mp4 | Por subir |
 | Mié 18 nov 19:00 | Elige tu arma (reemplazo) | reemplazos/ShortArms2.mp4 | Por subir |
 | Jue 19 nov 19:00 | El Segador (reemplazo) | reemplazos/ShortReaper.mp4 | Por subir |
+| Vie 20 nov 19:00 | Clasificación de zombis | nuevos/ShortTier.mp4 | Por subir |
+| Sáb 21 nov 19:00 | Noob vs Pro | nuevos/ShortNoobPro.mp4 | Por subir |
+| Dom 22 nov 19:00 | ¿Cuántas oleadas aguantas? | nuevos/ShortWaves.mp4 | Por subir |
 | Día 1 después de publicar la versión nueva | Jefe final | actualizacion/ShortFinalBoss.mp4 | Esperando publicación |
 | Día 2 | Bestiario coleccionable | actualizacion/ShortBestiary.mp4 | Esperando publicación |
 | Día 3 | Actualización + código | actualizacion/ShortUpdate.mp4 | Esperando publicación |
@@ -39,7 +42,7 @@ https://www.roblox.com/games/107080967531379/Campana-Maldita
 
 **08-elige-arma** — `¿Fusil, minigun, ballesta o lanzallamas? 🔫🏹🔥 Elige tu arma y defiende la campana. Gratis en Roblox: "Campana Maldita" 👇 #roblox #robloxgame #zombies #armas #juegosroblox #campanamaldita #fyp`
 
-Descripciones: `reemplazos/README.md` y `actualizacion/README.md`.
+Descripciones: `reemplazos/README.md`, `nuevos/README.md` y `actualizacion/README.md`.
 
 ## Reglas
 - Responder comentarios en la primera hora.

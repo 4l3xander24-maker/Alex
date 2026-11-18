@@ -223,12 +223,19 @@ def fights(b, fights_list, guns):
 S = json.load(open("src/updateScenes.json"))
 G = S["guns"]
 
-for key, out in [("boss", "audio_boss.wav"), ("bestiary", "audio_bestiary.wav"), ("update", "audio_update.wav"), ("combo", "audio_combo.wav"), ("arms", "audio_arms.wav"), ("reaper", "audio_reaper.wav")]:
+for key, out in [("boss", "audio_boss.wav"), ("bestiary", "audio_bestiary.wav"), ("update", "audio_update.wav"), ("combo", "audio_combo.wav"), ("arms", "audio_arms.wav"), ("reaper", "audio_reaper.wav"), ("tier", "audio_tier.wav"), ("noobpro", "audio_noobpro.wav"), ("waves", "audio_waves.wav")]:
     v = S[key]; b = buf()
     for seg in v["music"]:
         music(b, fr(seg[0]), fr(seg[1]), seg[2])
     drone(b, 49, 0.12, 0, fr(375))
-    fights(b, v["fights"], G)
+    fl = list(v["fights"])
+    if key == "noobpro":
+        fl = [v["noob"], v["pro"]]
+        for f in v["noob"]["misses"]:
+            add(b, gunshot("pistol"), fr(v["noob"]["from"] + f), 0.5, pan=-0.4)
+        for f in v["noob"]["hurt"]:
+            add(b, impact(0.6), fr(v["noob"]["from"] + f), 0.6, pan=-0.4); add(b, growl(0.6), fr(v["noob"]["from"] + f), 0.4, pan=-0.4)
+    fights(b, fl, G)
     if key in ("boss", "reaper"):
         bf = v["boss"]
         for h in bf["hits"]:
