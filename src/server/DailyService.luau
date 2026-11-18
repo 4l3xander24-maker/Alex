@@ -88,7 +88,7 @@ local function check(player: Player, data)
 		end
 		if not missions.Claimed[mission.Id] and (missions.Progress[mission.Id] or 0) >= mission.Goal then
 			missions.Claimed[mission.Id] = true
-			DataService.addCoins(player, mission.Reward)
+			DataService.addCoins(player, mission.Reward, "Mision")
 			Remotes.Notify:FireClient(player, `📅 Misión diaria cumplida: {mission.Icon} {mission.Name} · +{mission.Reward} monedas`)
 			SeasonService.onMission(player, false)
 			changed = true
@@ -99,7 +99,7 @@ local function check(player: Player, data)
 	end
 	if all and not missions.BonusClaimed then
 		missions.BonusClaimed = true
-		DataService.addCoins(player, rules.AllBonus)
+		DataService.addCoins(player, rules.AllBonus, "Mision")
 		Remotes.Notify:FireClient(player, `🎉 ¡Misiones del día completas! +{rules.AllBonus} monedas extra`)
 		SeasonService.onMission(player, true)
 		changed = true
@@ -171,7 +171,7 @@ function DailyService.onPlayerReady(player: Player)
 		Insignias.award(player, "Streak7")
 	end
 	local reward = Config.DailyRules.StreakRewards[DailyDay.cycleDay(count, #rules.StreakRewards)]
-	DataService.addCoins(player, reward)
+	DataService.addCoins(player, reward, "Racha")
 	DataService.changed(player, "Profile")
 	task.spawn(function()
 		DataService.saveNow(player)

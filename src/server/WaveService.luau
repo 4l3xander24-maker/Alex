@@ -5,7 +5,9 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage.Shared
 local Config = require(Shared.Config)
 local DayCycle = require(Shared.DayCycle)
+local Progression = require(Shared.Progression)
 local Remotes = require(Shared.Remotes)
+local Analytics = require(script.Parent.Analytics)
 local BellTower = require(script.Parent.BellTower)
 local CombatService = require(script.Parent.CombatService)
 local DataService = require(script.Parent.DataService)
@@ -35,11 +37,8 @@ local startPrompt: ProximityPrompt? = nil
 -- baja. Sin modificadores, sin reto semanal y sin oferta de Continuar.
 local gentle = false
 
--- Novato: nunca terminó una partida. Los perfiles de antes del contador
--- (MatchesPlayed) que ya jugaron tienen récord o bajas.
-local function isNovice(data): boolean
-	return (data.MatchesPlayed or 0) == 0 and (data.BestWave or 0) == 0 and (data.TotalKills or 0) == 0
-end
+-- Novato: nunca terminó una partida (Progression.isNovice)
+local isNovice = Progression.isNovice
 
 local function teamIsNovice(): boolean
 	for _, player in Players:GetPlayers() do
@@ -196,6 +195,16 @@ local function finishDifficultyVote()
 		startPrompt.Enabled = false
 	end
 	BellTower.rebuild()
+	-- Analíticas: empieza una partida nueva (embudo "Partida" y de bienvenida)
+	Analytics.newMatch()
+	for _, other in Players:GetPlayers() do
+		Analytics.matchStep(other, Analytics.MatchStep.Started)
+		Analytics.custom(other, "DifficultySelected", best, { `Dificultad - {info.Name}` })
+		local otherData = DataService.get(other)
+		if otherData and isNovice(otherData) then
+			Analytics.onboarding(other, Analytics.Step.Started)
+		end
+	end
 	local suffix = if #Players:GetPlayers() > 1 then ` (ganó con {bestCount} de {voted} votos)` else ""
 	for _, other in Players:GetPlayers() do
 		Remotes.Notify:FireClient(other, `🔔 {info.Icon} {info.Name}{suffix}: ¡la campana se reconstruye y la partida empieza!`)
@@ -327,7 +336,7 @@ function WaveService.onKill(typeName: string)
 		local reward = current.Goal * Config.Objectives.RewardPerKill
 		for _, player in Players:GetPlayers() do
 			if DataService.get(player) then
-				DataService.addCoins(player, reward)
+				DataService.addCoins(player, reward, "Objetivo")
 			end
 		end
 		Remotes.Notify:FireAllClients(`✅ ¡Objetivo cumplido! +{reward} monedas para todos`)
@@ -457,7 +466,7 @@ local function finalBossDown(position: Vector3?)
 	local reward = settings.KillCoins[difficultyId] or 0
 	for _, player in Players:GetPlayers() do
 		if reward > 0 and DataService.get(player) then
-			DataService.addCoins(player, reward)
+			DataService.addCoins(player, reward, "JefeFinal")
 			Remotes.Notify:FireClient(player, `{info.Icon} ¡Cayó el {info.DisplayName}! +{reward} monedas`)
 		end
 	end
@@ -641,6 +650,15 @@ local function runWave(wave: number): boolean
 		table.insert(names, Config.Enemies[typeName].DisplayName)
 	end
 	Remotes.Notify:FireAllClients(`🧟 Oleada {wave}: {table.concat(names, " + ")}`)
+	-- Analíticas: hasta dónde llega cada partida
+	if wave == 3 then
+		Analytics.matchStepAll(Analytics.MatchStep.Wave3)
+	elseif wave == 5 then
+		Analytics.matchStepAll(Analytics.MatchStep.Wave5)
+	end
+	if wave == WaveService.getDifficulty().Goal then
+		Analytics.matchStepAll(Analytics.MatchStep.Goal)
+	end
 
 	local healthMultiplier = WaveService.getHealthMultiplier(wave)
 	-- Los jefes salen de a uno, separados unos segundos
@@ -721,10 +739,21 @@ local function runWave(wave: number): boolean
 		GameState.set("EnemiesLeft", toSpawn + #bosses + (if finalPending then 1 else 0) + EnemyService.getAliveCount())
 	end
 	MatchService.onWaveCleared()
+	if wave % waves.BossEvery == 0 then
+		Analytics.matchStepAll(Analytics.MatchStep.Boss)
+	end
 	-- Superó las oleadas de la dificultad: se abre la que sigue (para quien la tenía de tope)
 	local info = WaveService.getDifficulty()
 	if wave == info.Goal then
 		Remotes.Notify:FireAllClients(`🏆 ¡Dificultad {info.Name} superada!`)
+		-- Analíticas: victoria (y la primera de cada uno: aún no tenía nada desbloqueado)
+		Analytics.matchStepAll(Analytics.MatchStep.Victory)
+		for _, player in Players:GetPlayers() do
+			local data = DataService.get(player)
+			if data and (data.Difficulty or 1) == 1 then
+				Analytics.onboarding(player, Analytics.Step.FirstVictory)
+			end
+		end
 		-- Quien entró con la partida en marcha no tiene foto: cuenta lo que tiene abierto ahora
 		-- (solo cambia al superar la meta, y eso se decide aquí abajo)
 		local eligible: { [Player]: boolean } = {}
@@ -746,7 +775,7 @@ local function runWave(wave: number): boolean
 		local bonus = Config.Economy.ClearBonus[difficultyId] or 0
 		for _, player in Players:GetPlayers() do
 			if bonus > 0 and DataService.get(player) then
-				DataService.addCoins(player, bonus)
+				DataService.addCoins(player, bonus, "Dificultad")
 				Remotes.Notify:FireClient(player, `🏁 Dificultad completada: +{bonus} monedas`)
 			end
 		end
@@ -857,6 +886,7 @@ local function runVictory(): boolean
 	task.wait(Config.Rooms.VictoryBannerTime)
 	local keep, finish = runTimedVote({ "Continue", "Finish" }, Config.Rooms.VictoryVoteTime, "VictoryVote", "VoteContinue", "VoteFinish")
 	if keep > finish then
+		Analytics.matchStepAll(Analytics.MatchStep.Endless)
 		Remotes.Notify:FireAllClients("♾️ ¡Modo sin fin! Las oleadas siguen hasta que caiga la campana")
 		return false
 	end

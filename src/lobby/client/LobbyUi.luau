@@ -3,12 +3,12 @@
 local Players = game:GetService("Players")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local SocialService = game:GetService("SocialService")
 local SoundService = game:GetService("SoundService")
 local TweenService = game:GetService("TweenService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
+local Invite = require(Shared:WaitForChild("Invite"))
 local Sounds = require(Shared:WaitForChild("Sounds"))
 local RobuxShop = require(Shared:WaitForChild("RobuxShop"))
 
@@ -91,14 +91,14 @@ local function openGuide()
 	playSound(Sounds.Equip.Id, 0.4)
 end
 
+-- Amigos invitados que ya terminaron su primera partida (lo publica el servidor)
+local function referralText(): string
+	return `🎁 Amigos invitados: {player:GetAttribute("Referrals") or 0}/{Config.Referral.MaxFriends}`
+end
+
 local function invite()
-	local ok, canInvite = pcall(function()
-		return SocialService:CanSendGameInviteAsync(player)
-	end)
-	if ok and canInvite then
-		pcall(function()
-			SocialService:PromptGameInvite(player)
-		end)
+	if Invite.prompt(player) then
+		showToast(`🎁 +{Config.Referral.InviterCoins} monedas por cada amigo nuevo que termine su primera partida`)
 	else
 		showToast("No se pueden enviar invitaciones ahora (en Studio no funciona).")
 	end
@@ -109,13 +109,18 @@ local function buildInviteButton()
 	button.Name = "Invite"
 	button.AnchorPoint = Vector2.new(1, 0)
 	button.Position = UDim2.new(1, -16, 0, 60)
-	button.Size = UDim2.fromOffset(190, 52)
+	button.Size = UDim2.fromOffset(190, 66)
 	button.BackgroundColor3 = Color3.fromRGB(46, 140, 80)
 	button.Font = Enum.Font.GothamBlack
-	button.TextSize = 16
+	button.TextSize = 15
 	button.TextColor3 = Color3.new(1, 1, 1)
 	button.TextWrapped = true
-	button.Text = `➕ Invitar amigos\n🤝 +{math.floor(Config.Friends.BonusPerFriend * 100 + 0.5)}% monedas y XP por amigo`
+	local bonus = `🤝 +{math.floor(Config.Friends.BonusPerFriend * 100 + 0.5)}% monedas y XP por amigo`
+	local function render()
+		button.Text = `➕ Invitar amigos\n{bonus}\n{referralText()}`
+	end
+	render()
+	player:GetAttributeChangedSignal("Referrals"):Connect(render)
 	button.AutoButtonColor = true
 	button.Parent = gui
 	corner(button, 10)
@@ -214,7 +219,7 @@ end
 local function buildProfile()
 	local button = Instance.new("TextButton")
 	button.AnchorPoint = Vector2.new(1, 0)
-	button.Position = UDim2.new(1, -16, 0, 114)
+	button.Position = UDim2.new(1, -16, 0, 132)
 	button.Size = UDim2.fromOffset(190, 40)
 	button.BackgroundColor3 = Color3.fromRGB(70, 80, 130)
 	button.Font = Enum.Font.GothamBlack

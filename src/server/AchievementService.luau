@@ -18,7 +18,7 @@ function AchievementService.check(player: Player, values: { [string]: number })
 	for _, achievement in Config.Achievements do
 		if not data.Achievements[achievement.Id] and (values[achievement.Stat] or 0) >= achievement.Goal then
 			data.Achievements[achievement.Id] = true
-			DataService.addCoins(player, achievement.Reward)
+			DataService.addCoins(player, achievement.Reward, "Logro")
 			Remotes.Notify:FireClient(player, `🏆 Logro: {achievement.Icon} {achievement.Name} · +{achievement.Reward} monedas`)
 			unlocked = true
 		end

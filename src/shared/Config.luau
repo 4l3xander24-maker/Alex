@@ -1071,6 +1071,17 @@ Config.Friends = {
 	MaxBonus = 0.30,
 }
 
+-- Invitar amigos (ReferralService): cuando un amigo que invitaste termina su
+-- PRIMERA partida, él recibe WelcomeCoins y tú InviterCoins (aunque estés
+-- desconectado: lo cobras al entrar a tu próxima partida). Hasta MaxFriends
+-- amigos por cuenta, para siempre.
+Config.Referral = {
+	WelcomeCoins = 50,
+	InviterCoins = 100,
+	MaxFriends = 10,
+	Store = "Referidos", -- DataStore con los premios pendientes de cada invitador
+}
+
 Config.Waves = {
 	FirstIntermission = 3,
 	Intermission = 12,
