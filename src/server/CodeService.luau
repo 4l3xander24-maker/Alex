@@ -6,6 +6,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Progression = require(ReplicatedStorage.Shared.Progression)
+local Analytics = require(script.Parent.Analytics)
 local DataService = require(script.Parent.DataService)
 local GiftCodes = require(script.Parent.GiftCodes)
 
@@ -84,7 +85,7 @@ function CodeService.redeem(player: Player, data: Progression.Profile, text: any
 	-- Se marca antes de pagar (sin esperas de por medio): no se puede cobrar dos veces
 	data.Codes[key] = true
 	local coins = gift.Coins or 0
-	DataService.addCoins(player, coins)
+	DataService.addCoins(player, coins, "Codigo")
 	local skin = gift.ObjectSkin
 	local gotSkin = skin ~= nil and skinIds[skin] == true and not data.ObjectSkins[skin]
 	if gotSkin then
@@ -95,6 +96,8 @@ function CodeService.redeem(player: Player, data: Progression.Profile, text: any
 	if limit then
 		limit.Fails = 0
 	end
+	-- Analíticas: solo que se canjeó uno (nunca el texto del código)
+	Analytics.custom(player, "CodeRedeemed", coins)
 	-- Guarda ya: el código no debe volver a canjearse si el servidor se cae
 	task.spawn(DataService.saveNow, player)
 	return true, `🎁 ¡Código canjeado! +{coins} monedas{if gotSkin then " + una skin nueva" else ""}`

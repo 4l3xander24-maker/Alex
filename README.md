@@ -33,6 +33,14 @@ el círculo de runas y el cuchillo), [`docs/capturas/pixel/`](docs/capturas/pixe
 - **Bonus por amigos**: cada amigo de Roblox presente en la partida suma +10% de monedas de bajas y de XP de cuenta,
   hasta +30% (`Config.Friends`). El servidor lo calcula al empezar y cuando entra alguien; se avisa al empezar, sale
   en el resumen y el botón de invitar del Lobby lo menciona.
+- **Invitar amigos con premio** (`Config.Referral`, `ReferralService`): botón **➕ Invitar amigos** en el Lobby y en la
+  preparación de la partida (después del tutorial), con el contador «Amigos invitados: N/10». La invitación lleva tu
+  UserId; cuando un amigo **nuevo** termina su **primera** partida, él cobra 50 monedas y tú 100 (aunque estés
+  desconectado: se guarda en el DataStore `Referidos` y lo cobras al entrar a tu próxima partida). Solo cuenta si son
+  amigos en Roblox, si el invitado nunca terminó una partida y una vez por invitado; tope de 10 amigos por cuenta.
+- **Analíticas** (`src/server/Analytics.luau`): embudo de bienvenida (pasos 1 a 10, del Lobby a la primera victoria),
+  embudo «Partida» de cada partida, todas las entradas y salidas de monedas y unos pocos eventos propios. Se ven en
+  Creator Hub → Analytics; qué es cada cosa, en [docs/analiticas.md](docs/analiticas.md).
 - **Códigos de regalo**: en ⚙ Ajustes hay una casilla "Códigos". Cada jugador canjea cada código una vez (se guarda en
   `Codes` del perfil); no distingue mayúsculas y hay un límite de intentos por jugador. Para agregar uno, añade una fila a
   `List` en `src/server/GiftCodes.luau` (`Code`, `Coins`, y opcionales `Until` = vencimiento en segundos UTC de `os.time`
@@ -309,6 +317,7 @@ src/
     Progression.luau        ← perfil, nivel de cuenta y cálculo de estadísticas
     EnemyMath.luau          ← movimiento de los zombis (línea quebrada por los caminos)
     Remotes.luau            ← comunicación servidor ↔ cliente
+    Invite.luau             ← abre la invitación de Roblox con tu UserId (Lobby y partida)
   server/                   → ServerScriptService.Server
     MapBuilder.luau         ← terreno, círculo de runas, bosque, molino, montañas, luz y bruma
     BellTower.luau          ← la campana: montículo, destruida/armada y su animación
@@ -321,7 +330,9 @@ src/
     CampBuilder.luau        ← fogata, tiendas, empalizada, mirador, puestos y NPC
     AssetService.luau       ← aplica las imágenes subidas: texturas pixeladas (MaterialVariant), cielo y NPC
     Props.luau              ← piezas del mapa (faroles, antorchas, velas, estandartes, cajas, letreros…)
-    DataService.luau        ← guardado del perfil (DataStore)
+    DataService.luau        ← guardado del perfil (DataStore); addCoins/spendCoins avisan a Analytics
+    Analytics.luau          ← analíticas de Roblox (también la usa el Lobby)
+    ReferralService.luau    ← premios por invitar amigos (DataStore «Referidos»)
     ShopService.luau        ← compras de los 4 NPC (solo en la preparación)
     MatchService.luau       ← estadísticas de la partida y XP final
     SeasonService.luau      ← pase de temporada: XP, Premium y cobro de premios
@@ -337,6 +348,7 @@ src/
     ShopUI.luau             ← ventanas de los NPC
     MatchSummary.luau       ← pantalla de fin de partida
     SeasonUi.luau           ← botón y pantalla del pase de temporada
+    InviteUi.luau           ← botón «Invitar amigos» de la preparación
     Hud.luau / Notify.luau  ← interfaz y avisos
     WeaponController.luau   ← disparo, munición, cambio de arma, apuntar
     MovementController.luau ← correr, doble salto, esquivar

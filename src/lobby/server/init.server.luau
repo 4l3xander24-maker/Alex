@@ -12,12 +12,14 @@ local RunService = game:GetService("RunService")
 local TeleportService = game:GetService("TeleportService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Invite = require(ReplicatedStorage.Shared.Invite)
 local MatchRegistry = require(ReplicatedStorage.Shared.MatchRegistry)
 local Weekly = require(ReplicatedStorage.Shared.Weekly)
 local Props = require(script.Props)
 local ModelLibrary = require(script.ModelLibrary)
 local Leaderboard = require(script.Leaderboard)
 local StoreService = require(script.StoreService)
+local Analytics = require(script.Analytics)
 
 local makePart, makeProp = Props.makePart, Props.makeProp
 local rooms = Config.Rooms
@@ -794,6 +796,7 @@ local function join(player: Player, room: Room)
 	roomOf[player] = room
 	setFrozen(player, true)
 	table.insert(room.Members, player)
+	Analytics.onboarding(player, Analytics.Step.EnteredRoom)
 	if not room.EndsAt then
 		room.EndsAt = os.clock() + rooms.Countdown
 	end
@@ -803,14 +806,21 @@ local function join(player: Player, room: Room)
 	refresh(room)
 end
 
+-- Invitar amigos: quién invitó a cada jugador que entró con una invitación
+-- válida (ver más abajo). Viaja a la partida en TeleportData.RefBy; allá
+-- ReferralService lo vuelve a revisar y decide el premio.
+local referrerOf: { [Player]: number } = {}
+
 -- Se van todos los de la sala a una partida privada
 local function launch(room: Room)
 	room.Launching = true
 	refresh(room)
 	local members = table.clone(room.Members)
 	local userIds = {}
+	local refBy = {} -- en el mismo orden que userIds (0 = nadie)
 	for _, member in members do
 		table.insert(userIds, member.UserId)
+		table.insert(refBy, referrerOf[member] or 0)
 	end
 	local registeredId: string? = nil -- servidor anotado en MatchRegistry (para deshacerlo si falla)
 	local ok, err = pcall(function()
@@ -823,11 +833,12 @@ local function launch(room: Room)
 		registeredId = privateId
 		for _, member in members do
 			teleportingUntil[member] = os.clock() + 40
+			Analytics.onboarding(member, Analytics.Step.Teleport)
 		end
 		local options = Instance.new("TeleportOptions")
 		options.ReservedServerAccessCode = code
 		-- La partida espera a que lleguen todos estos jugadores antes de empezar
-		options:SetTeleportData({ Room = room.Index, Players = #members, UserIds = userIds })
+		options:SetTeleportData({ Room = room.Index, Players = #members, UserIds = userIds, RefBy = refBy })
 		TeleportService:TeleportAsync(Config.Places.Match, members, options)
 	end)
 	if not ok then
@@ -924,6 +935,44 @@ Players.PlayerAdded:Connect(function(player)
 end)
 for _, player in Players:GetPlayers() do
 	task.spawn(checkReconnect, player)
+end
+
+-- Invitar amigos (Config.Referral): al entrar con una invitación se anota
+-- quién invitó, solo si es un número, no es uno mismo y son amigos en Roblox.
+-- También se publica cuántos amigos invitó él (atributo Referrals, para el botón).
+local referralStore: DataStore? = nil
+pcall(function()
+	referralStore = game:GetService("DataStoreService"):GetDataStore(Config.Referral.Store)
+end)
+
+local function onJoined(player: Player)
+	Analytics.onboarding(player, Analytics.Step.JoinedLobby)
+	local ok, joinData = pcall(function()
+		return player:GetJoinData()
+	end)
+	local inviterId = if ok and typeof(joinData) == "table" then Invite.parse(joinData.LaunchData) else nil
+	if inviterId and inviterId ~= player.UserId then
+		local checked, isFriend = pcall(function()
+			return player:IsFriendsWithAsync(inviterId)
+		end)
+		if checked and isFriend == true and player.Parent then
+			referrerOf[player] = inviterId
+		end
+	end
+	local referrals = referralStore
+	if referrals then
+		local read, record = pcall(function()
+			return referrals:GetAsync(tostring(player.UserId))
+		end)
+		if read and type(record) == "table" and type(record.Ids) == "table" and player.Parent then
+			player:SetAttribute("Referrals", #record.Ids)
+		end
+	end
+end
+
+Players.PlayerAdded:Connect(onJoined)
+for _, player in Players:GetPlayers() do
+	task.spawn(onJoined, player)
 end
 
 local reconnecting: { [Player]: boolean } = {}
@@ -1024,6 +1073,7 @@ end)
 Players.PlayerRemoving:Connect(function(player)
 	leave(player)
 	teleportingUntil[player] = nil
+	referrerOf[player] = nil
 end)
 
 -- Si Roblox rechaza el teletransporte, el jugador puede volver a intentarlo

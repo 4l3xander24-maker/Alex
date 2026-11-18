@@ -25,7 +25,7 @@ local function checkSet(player: Player, data: Progression.Profile, tier: number)
 	data.BestiaryClaimed[setKey] = true
 	local info = collection.Tiers[tier]
 	local reward = collection.SetRewards[tier]
-	DataService.addCoins(player, reward)
+	DataService.addCoins(player, reward, "Bestiario")
 	local extra = ""
 	if tier == #collection.Tiers then
 		data.Titles.Bestiary = true
@@ -58,7 +58,7 @@ function CollectionService.onKill(player: Player, typeName: string)
 		if kills >= goal and not data.BestiaryClaimed[key] then
 			data.BestiaryClaimed[key] = true
 			dirty = true
-			DataService.addCoins(player, rewards[tier])
+			DataService.addCoins(player, rewards[tier], "Bestiario")
 			local tierInfo = Config.Collection.Tiers[tier]
 			Remotes.Notify:FireClient(player, `📖 {info.DisplayName}: maestría {tierInfo.Icon} {tierInfo.Name} · +{rewards[tier]} monedas`)
 			if checkSet(player, data, tier) then

@@ -548,7 +548,7 @@ local function buyAtSlot(player: Player, slot: Slot)
 		if mines[index] then
 			return
 		end
-		if not DataService.spendCoins(player, mineConfig.Price) then
+		if not DataService.spendCoins(player, mineConfig.Price, "Trampa_Mina") then
 			Remotes.Notify:FireClient(player, `Te faltan monedas: la mina cuesta {mineConfig.Price} 💰`)
 			return
 		end
@@ -559,7 +559,7 @@ local function buyAtSlot(player: Player, slot: Slot)
 		if gates[slot.Key] then
 			return
 		end
-		if not DataService.spendCoins(player, gateConfig.Price) then
+		if not DataService.spendCoins(player, gateConfig.Price, "Trampa_Reja") then
 			Remotes.Notify:FireClient(player, `Te faltan monedas: la reja cuesta {gateConfig.Price} 💰`)
 			return
 		end
@@ -580,7 +580,7 @@ onUpgrade = function(player: Player, kind: string, key: string)
 			return
 		end
 		local price = mineConfig.UpgradePrice[mine.Level]
-		if not DataService.spendCoins(player, price) then
+		if not DataService.spendCoins(player, price, "Trampa_MejoraMina") then
 			Remotes.Notify:FireClient(player, `Te faltan monedas: mejorar cuesta {price} 💰`)
 			return
 		end
@@ -593,7 +593,7 @@ onUpgrade = function(player: Player, kind: string, key: string)
 			return
 		end
 		local price = gateConfig.UpgradePrice[gate.Level]
-		if not DataService.spendCoins(player, price) then
+		if not DataService.spendCoins(player, price, "Trampa_MejoraReja") then
 			Remotes.Notify:FireClient(player, `Te faltan monedas: mejorar cuesta {price} 💰`)
 			return
 		end

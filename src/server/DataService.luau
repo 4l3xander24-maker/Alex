@@ -9,6 +9,7 @@ local Shared = ReplicatedStorage.Shared
 local Progression = require(Shared.Progression)
 local Remotes = require(Shared.Remotes)
 local Config = require(Shared.Config)
+local Analytics = require(script.Parent.Analytics)
 
 local STORE_NAME = "CampanaMaldita_v1"
 local AUTOSAVE_INTERVAL = 90
@@ -164,21 +165,31 @@ function DataService.onChanged(listener: (Player, string) -> ())
 	table.insert(listeners, listener)
 end
 
--- Las monedas cambian muy seguido: solo actualizamos el atributo, no todo el perfil
-function DataService.addCoins(player: Player, amount: number)
+-- Las monedas cambian muy seguido: solo actualizamos el atributo, no todo el perfil.
+-- reason: de dónde salen, para las analíticas ("Zombi", "Mision", "Robux"...;
+-- la lista está en Analytics). Sin reason cuenta como "Otro".
+function DataService.addCoins(player: Player, amount: number, reason: string?)
 	local data = DataService.get(player)
 	if data then
 		data.Coins += amount
 		updateLeaderstats(player, data)
+		Analytics.coinsIn(player, amount, data.Coins, reason or "Otro")
 	end
 end
 
-function DataService.spendCoins(player: Player, amount: number): boolean
+-- sku: qué se compró, para las analíticas ("Arma_Shotgun", "Trampa_Mina"...).
+-- Sin sku cuenta como "Otro".
+function DataService.spendCoins(player: Player, amount: number, sku: string?): boolean
 	local data = DataService.get(player)
 	if not data or data.Coins < amount then
 		return false
 	end
 	data.Coins -= amount
+	Analytics.coinsOut(player, amount, data.Coins, sku or "Otro")
+	-- Embudo de bienvenida: la primera compra antes de terminar la primera partida
+	if amount > 0 and Progression.isNovice(data) then
+		Analytics.onboarding(player, Analytics.Step.FirstPurchase)
+	end
 	return true
 end
 

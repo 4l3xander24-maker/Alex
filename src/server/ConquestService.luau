@@ -34,7 +34,7 @@ local function claimFirst(player: Player, difficultyId: number)
 	if skinId then
 		data.ObjectSkins[skinId] = true
 	end
-	DataService.addCoins(player, bonus)
+	DataService.addCoins(player, bonus, "Conquista")
 	DataService.changed(player, "Profile")
 	DataService.saveNow(player)
 	Insignias.award(player, "HallOfFame")
@@ -54,7 +54,7 @@ function ConquestService.onCleared(difficultyId: number, eligible: { [Player]: b
 			data.Conquests[key] = true
 			local reward = conquest.Rewards[difficultyId] or 0
 			if reward > 0 then
-				DataService.addCoins(player, reward)
+				DataService.addCoins(player, reward, "Conquista")
 				Remotes.Notify:FireClient(player, `🏅 Primera vez que superas {Config.Difficulties[difficultyId].Name}: +{reward} monedas`)
 			end
 			DataService.changed(player, "Profile")

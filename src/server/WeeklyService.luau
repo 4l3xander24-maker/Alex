@@ -63,11 +63,11 @@ function WeeklyService.onPlayerReady(player: Player)
 		current.WeeklyClaimed = previous
 		if place then
 			local prize = Config.Weekly.Prizes[place] or 0
-			DataService.addCoins(player, prize)
+			DataService.addCoins(player, prize, "Semanal")
 			Remotes.Notify:FireClient(player, `🏅 Quedaste #{place} en el reto de la semana pasada: +{prize} monedas`)
 		elseif score > 0 then
 			local prize = Config.Weekly.Participation
-			DataService.addCoins(player, prize)
+			DataService.addCoins(player, prize, "Semanal")
 			Remotes.Notify:FireClient(player, `🎖️ Participaste en el reto de la semana pasada: +{prize} monedas`)
 		end
 		DataService.changed(player, "Profile")

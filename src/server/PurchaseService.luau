@@ -15,6 +15,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage.Shared
 local Config = require(Shared.Config)
 local Remotes = require(Shared.Remotes)
+local Analytics = require(script.Parent.Analytics)
 local DataService = require(script.Parent.DataService)
 local PlayerService = require(script.Parent.PlayerService)
 local GameState = require(script.Parent.GameState)
@@ -64,7 +65,7 @@ local function grant(player: Player, key: string)
 			Remotes.Notify:FireAllClients(`💖 {player.DisplayName} volvió a la pelea`)
 		else
 			-- Ya no se podía revivir (terminó la partida o ya estaba vivo)
-			DataService.addCoins(player, monetization.ReviveRefund)
+			DataService.addCoins(player, monetization.ReviveRefund, "ReembolsoRobux")
 			Remotes.Notify:FireClient(player, `💖 No hacía falta revivir: te damos {monetization.ReviveRefund} monedas`)
 		end
 	elseif key == "Continue" then
@@ -77,7 +78,7 @@ local function grant(player: Player, key: string)
 		if count > 0 or bellBack then
 			Remotes.Notify:FireAllClients(`💖 ¡{player.DisplayName} pagó para seguir! La partida continúa`)
 		else
-			DataService.addCoins(player, monetization.ReviveRefund)
+			DataService.addCoins(player, monetization.ReviveRefund, "ReembolsoRobux")
 			Remotes.Notify:FireClient(player, `💖 Ya no se podía continuar: te damos {monetization.ReviveRefund} monedas`)
 		end
 	elseif product.Season then
@@ -118,7 +119,7 @@ local function grant(player: Player, key: string)
 			Remotes.Notify:FireClient(player, `{product.Icon} ¡{product.Name} activado! Corre aunque salgas del juego`)
 		end
 	elseif product.Coins then
-		DataService.addCoins(player, product.Coins)
+		DataService.addCoins(player, product.Coins, "Robux")
 		Remotes.Notify:FireClient(player, `{product.Icon} +{product.Coins} monedas. ¡Gracias por tu compra!`)
 	end
 end
@@ -147,6 +148,7 @@ local function processReceipt(info): Enum.ProductPurchaseDecision
 		return Enum.ProductPurchaseDecision.NotProcessedYet
 	end
 	table.insert(data.Receipts, info.PurchaseId)
+	Analytics.custom(player, "RobuxProductBought", nil, { `Producto - {key}` })
 	while #data.Receipts > MAX_RECEIPTS do
 		table.remove(data.Receipts, 1)
 	end
@@ -166,7 +168,7 @@ local function grantStarterPack(player: Player)
 	end
 	local pack = monetization.Passes.StarterPack
 	data.StarterPack = true
-	data.Coins += pack.Coins
+	DataService.addCoins(player, pack.Coins, "PackInicial")
 	data.Weapons.Pistol = math.max(data.Weapons.Pistol or 0, pack.PistolLevel)
 	DataService.changed(player, "Shop")
 	DataService.saveNow(player)
@@ -183,13 +185,13 @@ function PurchaseService.init()
 	MarketplaceService.ProcessReceipt = processReceipt
 	-- Skins con monedas: cobra del perfil y, si no se pudo guardar, devuelve
 	StoreService.setCoinWallet(function(player, amount)
-		if DataService.spendCoins(player, amount) then
+		if DataService.spendCoins(player, amount, "SkinPersonaje") then
 			DataService.changed(player, "Shop")
 			return true
 		end
 		return false
 	end, function(player, amount)
-		DataService.addCoins(player, amount)
+		DataService.addCoins(player, amount, "Reembolso")
 		DataService.changed(player, "Shop")
 	end, function(player)
 		return DataService.saveNow(player)

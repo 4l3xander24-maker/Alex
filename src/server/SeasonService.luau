@@ -18,6 +18,7 @@ local Shared = ReplicatedStorage.Shared
 local Config = require(Shared.Config)
 local Progression = require(Shared.Progression)
 local Remotes = require(Shared.Remotes)
+local Analytics = require(script.Parent.Analytics)
 local CampBuilder = require(script.Parent.CampBuilder)
 local DataService = require(script.Parent.DataService)
 
@@ -141,6 +142,7 @@ function SeasonService.grantPremium(player: Player)
 		return
 	end
 	season.Premium = true
+	Analytics.custom(player, "SeasonPremium")
 	local ready = Progression.seasonClaimable(data)
 	Remotes.Notify:FireClient(player, `{pass.Icon} ¡Pase Premium de {pass.Name} activado!{if ready > 0 then ` Tienes {ready} premios para cobrar` else ""}`)
 end
@@ -148,7 +150,7 @@ end
 -- Entrega un premio del pase (cosméticos: se ganan para siempre y se ponen)
 local function giveReward(player: Player, data, reward)
 	if reward.Coins then
-		DataService.addCoins(player, reward.Coins)
+		DataService.addCoins(player, reward.Coins, "Pase")
 	end
 	if reward.Boost == "Coins" or reward.Boost == "Xp" then
 		addBoost(player, data, reward.Boost, pass.BoostMinutes * 60)
@@ -197,6 +199,7 @@ local function claim(player: Player, track: string, tier: number): (boolean, str
 	local reward = pass.Rewards[tier][track]
 	season.Claimed[Progression.seasonKey(track, tier)] = true
 	giveReward(player, data, reward)
+	Analytics.custom(player, "SeasonTierClaimed", tier, { `Fila - {if track == "Premium" then "Premium" else "Gratis"}` })
 	DataService.changed(player, "Profile")
 	-- Guardado al momento: un premio cobrado no se repite aunque se caiga el servidor
 	DataService.saveNow(player)

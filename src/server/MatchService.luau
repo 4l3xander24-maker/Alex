@@ -10,11 +10,13 @@ local Config = require(Shared.Config)
 local Progression = require(Shared.Progression)
 local Remotes = require(Shared.Remotes)
 local AchievementService = require(script.Parent.AchievementService)
+local Analytics = require(script.Parent.Analytics)
 local DailyService = require(script.Parent.DailyService)
 local DataService = require(script.Parent.DataService)
 local FriendService = require(script.Parent.FriendService)
 local Insignias = require(script.Parent.Insignias)
 local Leaderboard = require(script.Parent.Leaderboard)
+local ReferralService = require(script.Parent.ReferralService)
 local SeasonService = require(script.Parent.SeasonService)
 local StoreService = require(script.Parent.StoreService)
 local GameState = require(script.Parent.GameState)
@@ -106,6 +108,15 @@ function MatchService.onWaveCleared()
 	for _, player in Players:GetPlayers() do
 		local entry = ensure(player)
 		entry.Waves += 1
+		-- Embudo de bienvenida: oleadas 1 y 3 de su primera partida
+		local data = DataService.get(player)
+		if data and Progression.isNovice(data) then
+			if entry.Waves == 1 then
+				Analytics.onboarding(player, Analytics.Step.Wave1)
+			elseif entry.Waves == 3 then
+				Analytics.onboarding(player, Analytics.Step.Wave3)
+			end
+		end
 		if entry.Waves >= 10 then
 			Insignias.award(player, "Wave10")
 		end
@@ -140,7 +151,7 @@ function MatchService.award(player: Player, wave: number, team: { TeamRow }?, vi
 	if data and entry.Waves > 0 then
 		local info = Config.Difficulties[GameState.get("Difficulty") or 1]
 		local consolation = math.floor(Config.Economy.ParticipationPerWave * entry.Waves * (info and info.Coins or 1))
-		DataService.addCoins(player, consolation)
+		DataService.addCoins(player, consolation, "Oleadas")
 		entry.Coins += consolation
 	end
 	local previousBest = if data then data.BestWave else 0
@@ -197,7 +208,22 @@ function MatchService.endMatch(wave: number, victory: boolean?)
 		local data = DataService.get(player)
 		if data then
 			data.MatchesPlayed = (data.MatchesPlayed or 0) + 1
+			if data.MatchesPlayed == 1 then
+				Analytics.onboarding(player, Analytics.Step.FirstMatch)
+				-- Si un amigo lo invitó, ahora cobran los dos (ReferralService)
+				ReferralService.onFirstMatch(player)
+			end
 		end
+	end
+	-- Analíticas: un evento por jugador con sus oleadas superadas
+	local info = Config.Difficulties[GameState.get("Difficulty") or 1]
+	local count = #Players:GetPlayers()
+	for player, entry in stats do
+		Analytics.custom(player, "MatchEnded", entry.Waves, {
+			`Dificultad - {if info then info.Name else "?"}`,
+			`Jugadores - {count}`,
+			`Ganó - {if victory then "Sí" else "No"}`,
+		})
 	end
 	local team = teamRows()
 	for player in stats do

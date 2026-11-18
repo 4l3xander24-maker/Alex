@@ -47,6 +47,7 @@ export type Profile = {
 	Boosts: { Coins: number, Xp: number }, -- potenciadores de Robux: hora (os.time) en que termina cada uno
 	Rebirths: number, -- veces que renació con el Veterano (Config.Rebirth)
 	Season: { Id: string, Xp: number, Claimed: { [string]: boolean }, Premium: boolean }, -- pase de temporada (Config.SeasonPass): XP, premios cobrados ("F5" gratis, "P5" Premium) y si tiene el Premium
+	ReferredBy: number, -- UserId del amigo que lo invitó (0 = nadie). Se anota solo antes de su primera partida
 }
 
 local Progression = {}
@@ -111,7 +112,14 @@ function Progression.defaultProfile(): Profile
 		Boosts = { Coins = 0, Xp = 0 },
 		Rebirths = 0,
 		Season = { Id = "", Xp = 0, Claimed = {}, Premium = false },
+		ReferredBy = 0,
 	}
+end
+
+-- Novato: nunca terminó una partida. Los perfiles de antes del contador
+-- (MatchesPlayed) que ya jugaron tienen récord o bajas.
+function Progression.isNovice(profile: Profile): boolean
+	return (profile.MatchesPlayed or 0) == 0 and (profile.BestWave or 0) == 0 and (profile.TotalKills or 0) == 0
 end
 
 -- Pase de temporada del perfil. Si lo guardado es de otra temporada (u otro

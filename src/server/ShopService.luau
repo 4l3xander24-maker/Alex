@@ -9,6 +9,7 @@ local Shared = ReplicatedStorage.Shared
 local Config = require(Shared.Config)
 local Progression = require(Shared.Progression)
 local Remotes = require(Shared.Remotes)
+local Analytics = require(script.Parent.Analytics)
 local DataService = require(script.Parent.DataService)
 local GameState = require(script.Parent.GameState)
 local CampBuilder = require(script.Parent.CampBuilder)
@@ -46,7 +47,7 @@ function actions.BuyWeapon(player, data, id)
 	if data.Weapons[id] then
 		return false, "Ya tienes esta arma"
 	end
-	if not DataService.spendCoins(player, weapon.Price) then
+	if not DataService.spendCoins(player, weapon.Price, `Arma_{id}`) then
 		return false, NOT_ENOUGH
 	end
 	data.Weapons[id] = 0
@@ -65,7 +66,7 @@ function actions.UpgradeWeapon(player, data, id)
 	if not Progression.gateMet(data, "Weapon", level + 1) then
 		return false, Progression.gateText("Weapon", level + 1) .. " para subir esta mejora"
 	end
-	if not DataService.spendCoins(player, Progression.weaponUpgradeCost(id, level)) then
+	if not DataService.spendCoins(player, Progression.weaponUpgradeCost(id, level), `MejoraArma_{id}`) then
 		return false, NOT_ENOUGH
 	end
 	data.Weapons[id] = level + 1
@@ -88,7 +89,7 @@ function actions.BuyPower(player, data, id)
 	if data.Powers[id] then
 		return false, "Ya tienes este poder"
 	end
-	if not DataService.spendCoins(player, power.Price) then
+	if not DataService.spendCoins(player, power.Price, `Poder_{id}`) then
 		return false, NOT_ENOUGH
 	end
 	data.Powers[id] = 1
@@ -104,7 +105,7 @@ function actions.UpgradePower(player, data, id)
 	if level >= power.MaxLevel then
 		return false, "Este poder ya está al máximo"
 	end
-	if not DataService.spendCoins(player, Progression.powerUpgradeCost(id, level)) then
+	if not DataService.spendCoins(player, Progression.powerUpgradeCost(id, level), `MejoraPoder_{id}`) then
 		return false, NOT_ENOUGH
 	end
 	data.Powers[id] = level + 1
@@ -153,7 +154,7 @@ function actions.UpgradeStorage(player, data)
 	if not Progression.gateMet(data, "Storage", level + 1) then
 		return false, Progression.gateText("Storage", level + 1) .. " para subir la mochila"
 	end
-	if not DataService.spendCoins(player, cost) then
+	if not DataService.spendCoins(player, cost, "Mochila") then
 		return false, NOT_ENOUGH
 	end
 	data.AmmoStorage = level + 1
@@ -169,7 +170,7 @@ function actions.UpgradeBell(player, data)
 	if not Progression.gateMet(data, "Armor", level + 1) then
 		return false, Progression.gateText("Armor", level + 1) .. " para reforzar la campana"
 	end
-	if not DataService.spendCoins(player, cost) then
+	if not DataService.spendCoins(player, cost, "RefuerzoCampana") then
 		return false, NOT_ENOUGH
 	end
 	data.BellArmor = level + 1
@@ -184,7 +185,7 @@ function actions.RepairVillageBridge(player, data, _id)
 		return false, "Ya reparaste el puente a la aldea"
 	end
 	local price = Config.Arena.VillageBridge.Price
-	if not DataService.spendCoins(player, price) then
+	if not DataService.spendCoins(player, price, "Puente") then
 		return false, `Reparar el puente cuesta {price} 💰`
 	end
 	data.VillageBridge = true
@@ -203,7 +204,7 @@ function actions.BuyPet(player, data, id)
 	if pet.Product then
 		return false, "Este compañero se compra con Robux"
 	end
-	if not DataService.spendCoins(player, pet.Price) then
+	if not DataService.spendCoins(player, pet.Price, `Mascota_{id}`) then
 		return false, NOT_ENOUGH
 	end
 	data.Pets[id] = true
@@ -244,7 +245,7 @@ function actions.BuyWeaponSkin(player, data, id)
 	if not skin.CoinPrice then
 		return false, "Esta skin se compra con Robux"
 	end
-	if not DataService.spendCoins(player, skin.CoinPrice) then
+	if not DataService.spendCoins(player, skin.CoinPrice, `SkinArma_{id}`) then
 		return false, NOT_ENOUGH
 	end
 	data.WeaponSkins[id] = true
@@ -285,7 +286,7 @@ function actions.BuyObjectSkin(player, data, id)
 	if not skin.CoinPrice then
 		return false, "Esta skin Premium se compra con Robux"
 	end
-	if not DataService.spendCoins(player, skin.CoinPrice) then
+	if not DataService.spendCoins(player, skin.CoinPrice, `SkinObjeto_{id}`) then
 		return false, NOT_ENOUGH
 	end
 	data.ObjectSkins[id] = true
@@ -348,6 +349,7 @@ local function rebirth(player: Player): (boolean, string)
 	-- con el cargador nuevo (CombatService), como al gastar puntos en la preparación
 	DataService.changed(player, "Shop")
 	Insignias.award(player, "Rebirth1")
+	Analytics.custom(player, "Rebirth", count)
 	if not DataService.saveNow(player) then
 		-- El renacer ya está en el perfil: el guardado automático lo vuelve a intentar
 		warn(`Renacer de {player.Name}: no se pudo guardar al instante`)
